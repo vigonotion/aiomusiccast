@@ -1,0 +1,4 @@
+{
+    "python.pythonPath": "venv/bin/python3.9",
+    "editor.rulers": [80,88]
+}
