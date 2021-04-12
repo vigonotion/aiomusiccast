@@ -1,7 +1,7 @@
 [tool.poetry]
 
 name = "aiomusiccast"
-version = "0.1"
+version = "0.0.0" # Version is automatically filled by github action.
 description = "Companion library for musiccast devices intended for the Home Assistant integration."
 
 license = "MIT"
