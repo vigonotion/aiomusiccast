@@ -1,10 +1,10 @@
 import asyncio
 import logging
+import math
 from datetime import datetime
 from typing import Dict, List
 
 from .pyamaha import AsyncDevice, Clock, Dist, NetUSB, System, Tuner, Zone
-
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,6 +27,7 @@ class MusicCastData:
         # device info
         self.model_name = None
         self.system_version = None
+        self.api_version = None
 
         # network status
         self.mac_addresses = None
@@ -93,12 +94,12 @@ class MusicCastData:
     @property
     def fm_freq(self):
         """Return a formatted string with fm frequency."""
-        return "FM {:.2f} MHz".format(self.fm_freq / 1000)
+        return "FM {:.2f} MHz".format(self._fm_freq / 1000)
 
     @property
     def am_freq(self):
         """Return a formatted string with am frequency."""
-        return f"AM {self.am_freq:.2f} KHz"
+        return f"AM {self._am_freq:.2f} KHz"
 
 
 class MusicCastZoneData:
@@ -135,7 +136,6 @@ class MusicCastDevice:
         self._callbacks = set()
         self._group_update_callbacks = set()
         self.data = MusicCastData()
-        self.group_master_id = 0  # TODO @micha91 Group Master ID
 
         # the following data must not be updated frequently
         self._zone_ids: List = []
@@ -149,6 +149,8 @@ class MusicCastDevice:
         self._name_text = None
 
         print(f"HANDLE UDP ON {self.device._udp_port}")
+
+    # -----UDP messaging-----
 
     def handle(self, message):
         """Handle udp events."""
@@ -178,7 +180,7 @@ class MusicCastDevice:
                 )
 
                 if new_zone_data.get("play_info_updated") or new_zone_data.get(
-                    "status_updated"
+                        "status_updated"
                 ):
                     asyncio.run_coroutine_threadsafe(
                         self._fetch_zone(parameter), self.event_loop
@@ -229,6 +231,8 @@ class MusicCastDevice:
         """Remove previously registered callback."""
         self._callbacks.discard(callback)
 
+    # -----Data Fetching-----
+
     async def _fetch_netusb(self):
         """Fetch NetUSB data."""
         _LOGGER.debug("Fetching netusb...")
@@ -274,26 +278,26 @@ class MusicCastDevice:
 
         self.data.band = self._tuner_play_info.get("band", self.data.band)
 
-        self.data.fm_freq = self._tuner_play_info.get("fm", {}).get(
-            "freq", self.data.fm_freq
+        self.data._fm_freq = self._tuner_play_info.get("fm", {}).get(
+            "freq", self.data._fm_freq
         )
-        self.data.am_freq = self._tuner_play_info.get("am", {}).get(
-            "freq", self.data.am_freq
+        self.data._am_freq = self._tuner_play_info.get("am", {}).get(
+            "freq", self.data._am_freq
         )
         self.data.rds_text_a = (
             self._tuner_play_info.get("rds", {})
-            .get("radio_text_a", self.data.rds_text_a)
-            .strip()
+                .get("radio_text_a", self.data.rds_text_a)
+                .strip()
         )
         self.data.rds_text_b = (
             self._tuner_play_info.get("rds", {})
-            .get("radio_text_b", self.data.rds_text_b)
-            .strip()
+                .get("radio_text_b", self.data.rds_text_b)
+                .strip()
         )
         self.data.dab_service_label = (
             self._tuner_play_info.get("dab", {})
-            .get("service_label", self.data.dab_service_label)
-            .strip()
+                .get("service_label", self.data.dab_service_label)
+                .strip()
         )
         self.data.dab_dls = (
             self._tuner_play_info.get("dab", {}).get("dls", self.data.dab_dls).strip()
@@ -371,6 +375,7 @@ class MusicCastDevice:
 
             self.data.model_name = self._device_info.get("model_name")
             self.data.system_version = self._device_info.get("system_version")
+            self.data.api_version = self._device_info.get("api_version")
 
         if not self._features:
             self._features = await (
@@ -404,12 +409,12 @@ class MusicCastDevice:
                     self.data.has_alarm = True
 
                 if "date_and_time" in self._features.get('clock', {}).get(
-                    'func_list', []
+                        'func_list', []
                 ):
                     self.data.has_clock = True
 
                 for value_range in self._features.get('clock', {}).get(
-                    'range_step', []
+                        'range_step', []
                 ):
                     if value_range.get('id') == "alarm_volume":
                         self.data.alarm_volume_range = (
@@ -450,6 +455,199 @@ class MusicCastDevice:
 
         for zone in self._zone_ids:
             await self._fetch_zone(zone)
+
+    # -----Commands-----
+    async def turn_on(self, zone_id):
+        """Turn the media player on."""
+        await self.device.request(
+            Zone.set_power(zone_id, "on")
+        )
+
+    async def turn_off(self, zone_id):
+        """Turn the media player off."""
+        await self.device.request(
+            Zone.set_power(zone_id, "standby")
+        )
+
+    async def mute_volume(self, zone_id, mute):
+        """Mute the volume."""
+        await self.device.request(
+            Zone.set_mute(zone_id, mute)
+        )
+
+    async def set_volume_level(self, zone_id, volume):
+        """Set the volume level, range 0..1."""
+        vol = self.data.zones[zone_id].min_volume + \
+              (self.data.zones[zone_id].max_volume - self.data.zones[zone_id].min_volume) * volume
+
+        await self.device.request(
+            Zone.set_volume(zone_id, round(vol), 1)
+        )
+
+    async def netusb_play(self):
+        await self.device.request(NetUSB.set_playback("play"))
+
+    async def netusb_pause(self):
+        await self.device.request(NetUSB.set_playback("pause"))
+
+    async def netusb_stop(self):
+        await self.device.request(NetUSB.set_playback("stop"))
+
+    async def netusb_shuffle(self, shuffle: bool):
+        if self.data.api_version < 1.19:
+            if (self.data.netusb_shuffle == "on") != shuffle:
+                await self.device.request(NetUSB.toggle_shuffle())
+        else:
+            await self.device.request(NetUSB.set_shuffle("on" if shuffle else "off"))
+
+    async def select_sound_mode(self, zone_id, sound_mode):
+        """Select sound mode."""
+        await self.device.request(
+            Zone.set_sound_program(zone_id, sound_mode)
+        )
+
+    async def netusb_previous_track(self):
+        await self.device.request(
+            NetUSB.set_playback("previous")
+        )
+
+    async def netusb_next_track(self):
+        await self.device.request(
+            NetUSB.set_playback("next")
+        )
+
+    async def tuner_previous_station(self):
+        if self.data.band in ("fm", "am"):
+            await self.device.request(
+                Tuner.set_freq(self.data.band, "auto_down", 0)
+            )
+        elif self.data.band == "dab":
+            await self.device.request(
+                Tuner.set_dab_service("previous")
+            )
+
+    async def tuner_next_station(self):
+        if self.data.band in ("fm", "am"):
+            await self.device.request(
+                Tuner.set_freq(self.data.band, "auto_up", 0)
+            )
+        elif self.data.band == "dab":
+            await self.device.request(
+                Tuner.set_dab_service("next")
+            )
+
+    async def netusb_repeat(self, mode):
+        """Sets the repeat mode.
+        @param mode: Value : "off" / "one" / "all"
+        """
+        if self.data.api_version < 1.19:
+            if self.data.netusb_repeat != mode and self.data.netusb_repeat != "one":
+                await self.device.request(NetUSB.toggle_repeat())
+        else:
+            await self.device.request(NetUSB.set_repeat(mode))
+
+    async def select_source(self, zone_id, source):
+        await self.device.request(
+            Zone.set_input(zone_id, source, "")
+        )
+
+    async def recall_netusb_preset(self, zone_id, preset):
+        """Play the selected preset."""
+        await self.device.get(NetUSB.recall_preset(zone_id, preset))
+
+    async def store_netusb_preset(self, preset):
+        """Play the selected preset."""
+        await self.device.get(NetUSB.store_preset(preset))
+
+    async def set_sleep_timer(self, zone_id, sleep_time=0):
+        """Set sleep time"""
+        sleep_time = math.ceil(sleep_time / 30) * 30
+        await self.device.get(Zone.set_sleep(zone_id, sleep_time))
+
+    async def configure_alarm(self, enable=None, volume=None, alarm_time=None, source=""):
+        """Setup alarm"""
+        enable = self.data.alarm_enabled if enable is None else enable
+        resume_input = None
+        preset_type = None
+        preset_num = None
+        playback_type = None
+
+        source_parts = source.split(':')
+        if len(source_parts) > 0 and source_parts[0] != "":
+            playback_type = source_parts[0]
+            if playback_type == "resume":
+                resume_input = source_parts[1]
+            elif playback_type == "preset":
+                preset_type = source_parts[1]
+                preset_num = int(source_parts[2])
+            else:
+                playback_type = None
+
+        if isinstance(alarm_time, str):
+            time_parts = alarm_time.split(':')
+            alarm_time = time_parts[0] + time_parts[1]
+
+        await self.device.post(
+            *Clock.set_alarm_settings(enable, volume=volume, mode="oneday" if playback_type or alarm_time else None,
+                                      day="oneday" if playback_type or alarm_time else None,
+                                      playback_type=playback_type, alarm_time=alarm_time, preset_num=preset_num,
+                                      preset_type=preset_type, enable=enable if playback_type or alarm_time else None,
+                                      resume_input=resume_input)
+        )
+
+    # -----Properties-----
+
+    @property
+    def media_image_url(self):
+        """Return the image url of current playing media."""
+        return (
+            f"http://{self.device.ip}{self.data.netusb_albumart_url}"
+            if self.data.netusb_albumart_url else ""
+        )
+
+    @property
+    def tuner_media_title(self):
+        if self.data.band == "dab":
+            return self.data.dab_dls
+        else:
+            if (
+                    self.data.rds_text_a == ""
+                    and self.data.rds_text_b != ""
+            ):
+                return self.data.rds_text_b
+            elif (
+                    self.data.rds_text_a != ""
+                    and self.data.rds_text_b == ""
+            ):
+                return self.data.rds_text_a
+            elif (
+                    self.data.rds_text_a != ""
+                    and self.data.rds_text_b != ""
+            ):
+                return f"{self.data.rds_text_a} / {self.data.rds_text_b}"
+
+    @property
+    def tuner_media_artist(self):
+        if self.data.band == "dab":
+            return self.data.dab_service_label
+        elif self.data.band == "fm":
+            return self.data.fm_freq
+        elif self.data.band == "am":
+            return self.data.am_freq
+
+        return None
+
+    @property
+    def alarm_input_list(self):
+        inputs = {"resume:" + inp: "Resume " + inp for inp in self.data.alarm_resume_input_list}
+        if "netusb" in self.data.alarm_preset_list:
+            inputs = {**inputs, **{"preset:netusb:" + str(index): entry[0] + " - " + entry[1]
+                                   for index, entry in self.data.netusb_preset_list.items()}
+                      }
+
+        return inputs
+
+    # -----Group Management------
 
     def register_group_update_callback(self, callback):
         """Register async methods called after changes of the distribution data here."""
@@ -497,7 +695,7 @@ class MusicCastDevice:
 
     # Group server functions
 
-    async def mc_server_group_extend(self, zone, client_ips, group_id, retry=True):
+    async def mc_server_group_extend(self, zone, client_ips, group_id, distribution_num, retry=True):
         """Extend the given group by the given clients.
 
         If the group does not exist, it will be created.
@@ -506,25 +704,25 @@ class MusicCastDevice:
             await self.device.post(
                 *Dist.set_server_info(group_id, zone, "add", client_ips)
             )
-            await self.device.get(Dist.start_distribution(self.group_master_id))
+            await self.device.get(Dist.start_distribution(distribution_num))
             if await self.check_group_data(
-                [
-                    lambda: self._check_clients_added(client_ips),
-                    lambda: self._check_group_id(group_id),
-                    lambda: self._check_group_role("server"),
-                    lambda: self._check_group_server_zone(zone),
-                ]
+                    [
+                        lambda: self._check_clients_added(client_ips),
+                        lambda: self._check_group_id(group_id),
+                        lambda: self._check_group_role("server"),
+                        lambda: self._check_group_server_zone(zone),
+                    ]
             ):
                 return
 
         if retry:
-            await self.mc_server_group_extend(zone, client_ips, group_id, False)
+            await self.mc_server_group_extend(zone, client_ips, group_id, distribution_num, False)
         else:
             raise MusicCastGroupException(
                 self.ip + ": Failed to extent group by clients " + str(client_ips)
             )
 
-    async def mc_server_group_reduce(self, zone, client_ips_for_removal, retry=True):
+    async def mc_server_group_reduce(self, zone, client_ips_for_removal, distribution_num, retry=True):
         """Reduce the current group by the given clients."""
         async with self.data.group_update_lock:
             await self.device.post(
@@ -536,14 +734,14 @@ class MusicCastDevice:
                 )
             )
             if self.data.group_client_list:
-                await self.device.get(Dist.start_distribution(self.group_master_id))
+                await self.device.get(Dist.start_distribution(distribution_num))
             if await self.check_group_data(
-                [lambda: self._check_clients_removed(client_ips_for_removal)]
+                    [lambda: self._check_clients_removed(client_ips_for_removal)]
             ):
                 return
 
         if retry:
-            await self.mc_server_group_reduce(zone, client_ips_for_removal, False)
+            await self.mc_server_group_reduce(zone, client_ips_for_removal, distribution_num, False)
         else:
             raise MusicCastGroupException(
                 self.ip
@@ -572,11 +770,11 @@ class MusicCastDevice:
             await self.device.post(*Dist.set_client_info(group_id, zone, server_ip))
             await self.device.request(Zone.set_input(zone, MC_LINK, ""))
             if await self.check_group_data(
-                [
-                    lambda: self._check_group_id(group_id),
-                    lambda: self._check_group_role("client"),
-                    lambda: self._check_source(MC_LINK, zone),
-                ]
+                    [
+                        lambda: self._check_group_id(group_id),
+                        lambda: self._check_group_role("client"),
+                        lambda: self._check_source(MC_LINK, zone),
+                    ]
             ):
                 return
 
@@ -615,9 +813,9 @@ class MusicCastDevice:
             input.get('id')
             for input in self._features.get('system', {}).get('input_list', [])
             if input.get('distribution_enable')
-            and (input.get('play_info_type') != 'netusb' or not netusb_in_use)
-            and input.get('id') not in MC_LINK_SOURCES
-            and input.get('id') in (zone.input_list if zone else [])
+               and (input.get('play_info_type') != 'netusb' or not netusb_in_use)
+               and input.get('id') not in MC_LINK_SOURCES
+               and input.get('id') in (zone.input_list if zone else [])
         ]
 
     async def _fetch_netusb_presets(self):

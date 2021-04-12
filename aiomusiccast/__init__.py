@@ -7,6 +7,7 @@ from .musiccast_device import (
     MusicCastZoneData,
 )
 
+from .musiccast_media_content import MusicCastMediaContent
 
 try:
     __version__ = get_distribution('aiomusiccast').version

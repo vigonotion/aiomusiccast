@@ -1,4 +1,4 @@
 {
-    "python.pythonPath": "venv/bin/python3.9",
+    "python.pythonPath": "/usr/local/bin/python3",
     "editor.rulers": [80,88]
 }

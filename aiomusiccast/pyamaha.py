@@ -7,9 +7,7 @@ import socket
 import threading
 import time
 from datetime import datetime
-
-import requests
-
+from aiohttp import ClientConnectorError, ClientResponse, ClientSession
 
 BAND = ['common', 'am', 'fm', 'dab']
 CD_PLAYBACK = [
@@ -164,69 +162,6 @@ class BaseDevice:
             self._socket.close()
 
 
-class Device(BaseDevice):
-    """
-    Yamaha device abstraction class.
-    """
-
-    def __init__(self, ip, handle_event=None):
-        """Ctor.
-
-        Arguments:
-            ip -- Yamaha device IP.
-            handle_event -- callback function with one parameter (the message).
-        """
-        super().__init__(ip, handle_event)
-
-    # end-of-method __init__
-
-    def request(self, *args):
-        """Request YamahaExtendedControl API URI.
-
-        Arguments:
-            args -- URI link for GET or tupple (URI, data) for POST.
-        """
-
-        # If it is only a URI, send GET...
-        if isinstance(args[0], str):
-            return self.get(args[0])
-        else:
-            # ...otherwise unpack tuple and send POST
-            return self.post(*(args[0]))
-
-    # end-of-method request
-
-    def get(self, uri):
-        """Request given URI. Returns response object.
-
-        Arguments:
-            uri -- URI to request
-        """
-        r = requests.get(uri.format(host=self.ip), headers=self._headers)
-        return r
-
-    # end-of-method request
-
-    def post(self, uri, data):
-        """Send POST request. Returns response object.
-
-        Arguments:
-            uri -- URI to send POST
-            data -- POST data
-        """
-        r = requests.post(
-            uri.format(host=self.ip), data=json.dumps(data), headers=self._headers
-        )
-        return r
-
-    # end-of-method post
-
-    pass
-
-
-# end-of-class Device
-
-
 class AsyncDevice(BaseDevice):
     """
     Yamaha async device abstraction class.
@@ -243,7 +178,6 @@ class AsyncDevice(BaseDevice):
         super().__init__(ip, handle_event)
         self.client = client
 
-        from aiohttp import ClientConnectorError, ClientResponse, ClientSession
 
     # end-of-method __init__
 
@@ -446,10 +380,12 @@ class System:
         'SET_NETWORK_STANDBY': 'http://{host}/YamahaExtendedControl/v1/system/setNetworkStandby?standby={standby}',
         'GET_BLUETOOTH_INFO': 'http://{host}/YamahaExtendedControl/v1/system/getBluetoothInfo',
         'SET_BLUETOOTH_STANDBY': 'http://{host}/YamahaExtendedControl/v1/system/setBluetoothStandby?enable={enable}',
-        'SET_BLUETOOTH_TX_SETTING': 'http://{host}/YamahaExtendedControl/v1/system/setBluetoothTxSetting?enable={enable}',
+        'SET_BLUETOOTH_TX_SETTING':
+            'http://{host}/YamahaExtendedControl/v1/system/setBluetoothTxSetting?enable={enable}',
         'GET_BLUETOOTH_DEVICE_LIST': 'http://{host}/YamahaExtendedControl/v1/system/getBluetoothDeviceList',
         'UPDATE_BLUETOOTH_DEVICE_LIST': 'http://{host}/YamahaExtendedControl/v1/system/updateBluetoothDeviceList',
-        'CONNECT_BLUETOOTH_DEVICE': 'http://{host}/YamahaExtendedControl/v1/system/connectBluetoothDevice?address={address}',
+        'CONNECT_BLUETOOTH_DEVICE':
+            'http://{host}/YamahaExtendedControl/v1/system/connectBluetoothDevice?address={address}',
         'DISCONNECT_BLUETOOTH_DEVICE': 'http://{host}/YamahaExtendedControl/v1/system/disconnectBluetoothDevice',
         'SET_SPEAKER_A': 'http://{host}/YamahaExtendedControl/v1/system/setSpeakerA?enable={enable}',
         'SET_SPEAKER_B': 'http://{host}/YamahaExtendedControl/v1/system/setSpeakerB?enable={enable}',
@@ -944,8 +880,10 @@ class Zone:
         'SET_DIRECT': 'http://{host}/YamahaExtendedControl/v1/{zone}/setDirect?enable={enable}',
         'SET_PURE_DIRECT': 'http://{host}/YamahaExtendedControl/v1/{zone}/setPureDirect?enable={enable}',
         'SET_ENHANCER': 'http://{host}/YamahaExtendedControl/v1/{zone}/setEnhancer?enable={enable}',
-        'SET_TONE_CONTROL': 'http://{host}/YamahaExtendedControl/v1/{zone}/setToneControl?mode={mode}&bass={bass}&treble={treble}',
-        'SET_EQUALIZER': 'http://{host}/YamahaExtendedControl/v1/{zone}/setEqualizer?mode={mode}&low={low}&mid={mid}&high={high}',
+        'SET_TONE_CONTROL':
+            'http://{host}/YamahaExtendedControl/v1/{zone}/setToneControl?mode={mode}&bass={bass}&treble={treble}',
+        'SET_EQUALIZER':
+            'http://{host}/YamahaExtendedControl/v1/{zone}/setEqualizer?mode={mode}&low={low}&mid={mid}&high={high}',
         'SET_BALANCE': 'http://{host}/YamahaExtendedControl/v1/{zone}/setBalance?value={value}',
         'SET_DIALOGUE_LEVEL': 'http://{host}/YamahaExtendedControl/v1/{zone}/setDialogueLevel?value={value}',
         'SET_DIALOGUE_LIFT': 'http://{host}/YamahaExtendedControl/v1/{zone}/setDialogueLift?value={value}',
@@ -1524,6 +1462,8 @@ class NetUSB:
         'GET_ACCOUNT_STATUS': 'http://{host}/YamahaExtendedControl/v1/netusb/getAccountStatus',
         'SWITCH_ACCOUNT': 'http://{host}/YamahaExtendedControl/v1/netusb/switchAccount?input={input}&index={index}&timeout={timeout}',
         'GET_SERVICE_INFO': 'http://{host}/YamahaExtendedControl/v1/netusb/getServiceInfo?input={input}&type={type}&timeout={timeout}',
+        'SET_REPEAT': 'http://{host}/YamahaExtendedControl/v1/netusb/setRepeat?mode={mode}',
+        'SET_SHUFFLE': 'http://{host}/YamahaExtendedControl/v1/netusb/setShuffle?mode={mode}',
     }
 
     @staticmethod
@@ -1561,6 +1501,26 @@ class NetUSB:
         return NetUSB.URI['TOGGLE_REPEAT']
 
     # end-of-method toggle_repeat
+
+    @staticmethod
+    def set_repeat(mode):
+        """For setting repeat. Available on after API version 1.19.
+        @param mode: Specifies the repeat setting. Value : "off" / "one" / "all"
+        """
+        return NetUSB.URI['SET_REPEAT'].format(
+            host='{host}',
+            mode=mode
+        )
+
+    @staticmethod
+    def set_shuffle(mode):
+        """For setting shuffle. Available on after API version 1.19.
+        @param mode: Specifies the shuffle setting. Value : "off" / "on" / "songs" / "albums"
+        """
+        return NetUSB.URI['SET_SHUFFLE'].format(
+            host='{host}',
+            mode=mode
+        )
 
     @staticmethod
     def toggle_shuffle():
