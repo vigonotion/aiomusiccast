@@ -6,7 +6,6 @@
 </picture>
 
 ## Companion library for musiccast devices intended for the Home Assistant integration.
-<hr>
 
 [![PyPI Version](https://img.shields.io/pypi/v/aiomusiccast.svg)](https://pypi.org/project/aiomusiccast)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/vigonotion/aiomusiccast)
