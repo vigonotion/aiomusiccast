@@ -2,8 +2,8 @@ site_name: aiomusiccast
 site_description: Companion library for musiccast devices intended for the Home Assistant integration.
 site_author: Tom Schneider
 
-repo_url: https://github.com/vigonotion/template-python-demo
-edit_uri: https://github.com/vigonotion/template-python-demo/edit/main/docs
+repo_url: https://github.com/vigonotion/aiomusiccast
+edit_uri: https://github.com/vigonotion/aiomusiccast/edit/main/docs
 
 theme: readthedocs
 
