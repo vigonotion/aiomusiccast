@@ -1,5 +1,8 @@
+import logging
+
 from .pyamaha import NetUSB
 from .musiccast_device import MusicCastDevice
+
 BROWSABLE_INPUTS = [
     "usb",
     "server",
@@ -14,6 +17,8 @@ BROWSABLE_INPUTS = [
     "deezer",
     "amazon_music",
 ]
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class MusicCastMediaContent:
@@ -95,27 +100,24 @@ class MusicCastMediaContent:
 
         if media_content_path[0] == "input":
             source = media_content_path[1]
-            await self.reset_list_info(source)
+            await self.return_in_list_info(source)
             await self.load_list(source)
 
         elif media_content_path[0] == "list":
             source = media_content_path[1]
+            self.menu_layer = int(media_content_path[2])
 
-            if media_content_path[3] == "-1":
-                # one layer back
-                await self.musiccast.device.request(
-                    NetUSB.set_list_control(
-                        "main", "return", media_content_path[3], self._zone_id
-                    )
-                )
+            list_info = await self.musiccast.get_list_info(source, 0)
+            if self.menu_layer < list_info.get("menu_layer"):
+                await self.return_in_list_info(source, self.menu_layer)
 
-            else:
+            elif media_content_path[3].isdigit():
                 # an item was selected
-                await self.musiccast.device.request(
-                    NetUSB.set_list_control(
-                        "main", "select", media_content_path[3], self._zone_id
-                    )
-                )
+                await self.musiccast.select_list_item(media_content_path[3], self._zone_id)
+
+            elif self.menu_layer != list_info.get("menu_layer"):
+                _LOGGER.warning(f"Unexpected menu layer. Expected {self.menu_layer}, "
+                                f"indeed it is {list_info.get('menu_layer')}")
 
             await self.load_list(source)
 
@@ -125,6 +127,7 @@ class MusicCastMediaContent:
 
             self.title = "Presets"
             self.can_browse = True
+            self.content_type = "directory"
         else:
             raise ValueError(f"{media_content_path[0]} is an unknown browse method.")
 
@@ -164,65 +167,43 @@ class MusicCastMediaContent:
 
     async def load_list(self, source):
         # load list info
-        list_info = await (
-            await self.musiccast.device.request(
-                NetUSB.get_list_info(source, self.start_index, 8, "en", "main")
-            )
-        ).json()
+        list_info = await self.musiccast.get_list_info(source, self.start_index)
         self.title = list_info.get("menu_name")
-        self.menu_layer = list_info.get("menu_layer")
-        self.content_id = f"list:{source}:{self.menu_layer}:-1"
+        self.menu_layer = int(list_info.get("menu_layer"))
+        self.content_id = f"list:{source}:{self.menu_layer}:<>{self.start_index}"
         # get list items
         entries = list_info.get("list_info", [])
         for i in range(self.start_index + 8, self.start_index + self.list_len, 8):
             if i >= list_info.get('max_line', 8):
                 break
-            list_info_tmp = await (
-                await self.musiccast.device.request(
-                    NetUSB.get_list_info(source, self.start_index, 8, "en", "main")
-                )
-            ).json()
+            list_info_tmp = await self.musiccast.get_list_info(source, i)
             entries += list_info_tmp.get("list_info", [])
 
         if int(self.start_index) != 0:
             self.has_previous_page = True
-            self.children.append(MusicCastMediaContent(
-                can_browse=True,
-                content_type="directory",
-                menu_layer=self.menu_layer,
-                content_id=f"{self.content_id[:-2]}<>{self.start_index-self.list_len}",
-                title="Previous Page"
-            ))
 
         for i, info in enumerate(list_info.get("list_info", [])):
             self.children.append(self.from_info(source, info, self.menu_layer + 1, self.start_index + i))
         self.can_play = not any([child.can_browse for child in self.children])
         self.can_browse = True
         self.content_type = "directory" if any([child.can_browse for child in self.children]) else "track"
-        print(list_info.get('max_line', 8))
         if (list_info.get('max_line', 8) - self.start_index) >= self.list_len:
             self.has_next_page = True
             self.children.append(MusicCastMediaContent(
                 can_browse=True,
                 content_type="directory",
                 menu_layer=self.menu_layer,
-                content_id=f"{self.content_id[:-2]}<>{self.start_index+self.list_len}",
+                content_id=":".join(self.content_id.split(":")[:-1]) + f":<>{self.start_index + self.list_len}",
                 title="Next Page"
             ))
 
-    async def reset_list_info(self, source):
+    async def return_in_list_info(self, source, until_layer=0):
         # reset list info
         while True:
-            list_info = await (
-                await self.musiccast.device.request(
-                    NetUSB.get_list_info(source, 0, 8, "en", "main")
-                )
-            ).json()
+            list_info = await self.musiccast.get_list_info(source, 0)
 
             self.menu_layer = list_info.get("menu_layer")
-            if self.menu_layer == 0:
+            if self.menu_layer == until_layer:
                 break
             else:
-                await self.musiccast.device.request(
-                    NetUSB.set_list_control("main", "return", "", self._zone_id)
-                )
+                await self.musiccast.return_in_list(self._zone_id)

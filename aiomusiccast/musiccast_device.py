@@ -54,8 +54,8 @@ class MusicCastData:
 
         # Tuner
         self.band = None
-        self._am_freq = 1
-        self._fm_freq = 1
+        self.am_freq = 1
+        self.fm_freq = 1
         self.rds_text_a = ""
         self.rds_text_b = ""
 
@@ -92,14 +92,14 @@ class MusicCastData:
         self.alarm_preset_info = None
 
     @property
-    def fm_freq(self):
+    def fm_freq_str(self):
         """Return a formatted string with fm frequency."""
-        return "FM {:.2f} MHz".format(self._fm_freq / 1000)
+        return "FM {:.2f} MHz".format(self.fm_freq / 1000)
 
     @property
-    def am_freq(self):
+    def am_freq_str(self):
         """Return a formatted string with am frequency."""
-        return f"AM {self._am_freq:.2f} KHz"
+        return f"AM {self.am_freq:.2f} KHz"
 
 
 class MusicCastZoneData:
@@ -149,6 +149,17 @@ class MusicCastDevice:
         self._name_text = None
 
         print(f"HANDLE UDP ON {self.device._udp_port}")
+
+    @classmethod
+    async def check_yamaha_ssdp(cls, location, client):
+        res = await client.get(location)
+        text = await res.text()
+        return text.find('<yamaha:X_yxcControlURL>/YamahaExtendedControl/v1/</yamaha:X_yxcControlURL>') != -1
+
+    @classmethod
+    async def get_device_info(cls, ip, client):
+        device = AsyncDevice(client, ip)
+        return await (await device.get(System.get_device_info())).json()
 
     # -----UDP messaging-----
 
@@ -278,11 +289,11 @@ class MusicCastDevice:
 
         self.data.band = self._tuner_play_info.get("band", self.data.band)
 
-        self.data._fm_freq = self._tuner_play_info.get("fm", {}).get(
-            "freq", self.data._fm_freq
+        self.data.fm_freq = self._tuner_play_info.get("fm", {}).get(
+            "freq", self.data.fm_freq
         )
-        self.data._am_freq = self._tuner_play_info.get("am", {}).get(
-            "freq", self.data._am_freq
+        self.data.am_freq = self._tuner_play_info.get("am", {}).get(
+            "freq", self.data.am_freq
         )
         self.data.rds_text_a = (
             self._tuner_play_info.get("rds", {})
@@ -595,6 +606,31 @@ class MusicCastDevice:
                                       resume_input=resume_input)
         )
 
+    # -----NetUSB Browsing-----
+    async def get_list_info(self, source, start_index):
+        return await (
+            await self.device.request(
+                NetUSB.get_list_info(source, start_index, 8, "en", "main")
+            )
+        ).json()
+
+    async def select_list_item(self, item, zone_id):
+        await self.device.request(
+            NetUSB.set_list_control(
+                "main", "select", item, zone_id
+            )
+        )
+
+    async def return_in_list(self, zone_id):
+        await self.device.request(
+            NetUSB.set_list_control("main", "return", "", zone_id)
+        )
+
+    async def play_list_media(self, item, zone_id):
+        await self.device.request(
+            NetUSB.set_list_control("main", "play", item, zone_id)
+        )
+
     # -----Properties-----
 
     @property
@@ -631,9 +667,9 @@ class MusicCastDevice:
         if self.data.band == "dab":
             return self.data.dab_service_label
         elif self.data.band == "fm":
-            return self.data.fm_freq
+            return self.data.fm_freq_str
         elif self.data.band == "am":
-            return self.data.am_freq
+            return self.data.am_freq_str
 
         return None
 

@@ -178,7 +178,6 @@ class AsyncDevice(BaseDevice):
         super().__init__(ip, handle_event)
         self.client = client
 
-
     # end-of-method __init__
 
     async def request(self, *args):
