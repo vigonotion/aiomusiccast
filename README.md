@@ -1,15 +1,21 @@
-# Overview
+<div align="center">
 
-Companion library for musiccast devices intended for the Home Assistant integration.
+<picture>
+  <source srcset="banner-dark.png" media="(prefers-color-scheme: dark)">
+  <img src="banner.png">
+</picture>
 
-This project was generated with [cookiecutter](https://github.com/audreyr/cookiecutter) using [jacebrowning/template-python](https://github.com/jacebrowning/template-python).
+## Companion library for musiccast devices intended for the Home Assistant integration.
 
-[![Unix Build Status](https://img.shields.io/travis/com/vigonotion/template-python-demo.svg?label=unix)](https://travis-ci.com/vigonotion/template-python-demo)
-[![Windows Build Status](https://img.shields.io/appveyor/ci/vigonotion/template-python-demo.svg?label=windows)](https://ci.appveyor.com/project/vigonotion/template-python-demo)
-[![Coverage Status](https://img.shields.io/coveralls/vigonotion/template-python-demo.svg)](https://coveralls.io/r/vigonotion/template-python-demo)
-[![Scrutinizer Code Quality](https://img.shields.io/scrutinizer/g/vigonotion/template-python-demo.svg)](https://scrutinizer-ci.com/g/vigonotion/template-python-demo)
 [![PyPI Version](https://img.shields.io/pypi/v/aiomusiccast.svg)](https://pypi.org/project/aiomusiccast)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/vigonotion/aiomusiccast)
+![Read the Docs](https://img.shields.io/readthedocs/aiomusiccast)
 [![PyPI License](https://img.shields.io/pypi/l/aiomusiccast.svg)](https://pypi.org/project/aiomusiccast)
+
+
+</div>
+
+<br/>
 
 # Setup
 
