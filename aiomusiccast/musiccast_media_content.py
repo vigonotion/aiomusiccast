@@ -1,6 +1,5 @@
 import logging
 
-from .pyamaha import NetUSB
 from .musiccast_device import MusicCastDevice
 
 BROWSABLE_INPUTS = [
