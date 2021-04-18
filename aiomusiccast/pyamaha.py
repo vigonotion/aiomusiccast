@@ -7,7 +7,6 @@ import socket
 import threading
 import time
 from datetime import datetime
-from aiohttp import ClientConnectorError, ClientResponse, ClientSession
 
 BAND = ['common', 'am', 'fm', 'dab']
 CD_PLAYBACK = [
@@ -84,8 +83,8 @@ class BaseDevice:
         """Ctor.
 
         Arguments:
-            ip -- Yamaha device IP.
-            handle_event -- callback function with one parameter (the message).
+            @param ip: Yamaha device IP.
+            @param handle_event: callback function with one parameter (the message).
         """
         self.ip = ip
         self.handle_event = handle_event
@@ -171,9 +170,9 @@ class AsyncDevice(BaseDevice):
         """Ctor.
 
         Arguments:
-            client -- aiohttp client session.
-            ip -- Yamaha device IP.
-            handle_event -- callback function with one parameter (the message).
+            @param client: aiohttp client session.
+            @param ip: Yamaha device IP.
+            @param handle_event: callback function with one parameter (the message).
         """
         super().__init__(ip, handle_event)
         self.client = client
@@ -184,7 +183,7 @@ class AsyncDevice(BaseDevice):
         """Request YamahaExtendedControl API URI.
 
         Arguments:
-            args -- URI link for GET or tupple (URI, data) for POST.
+            @param args: URI link for GET or tupple (URI, data) for POST.
         """
 
         # If it is only a URI, send GET...
@@ -200,7 +199,7 @@ class AsyncDevice(BaseDevice):
         """Request given URI. Returns response object.
 
         Arguments:
-            uri -- URI to request
+            @param uri: URI to request
         """
         return await self.client.get(uri.format(host=self.ip), headers=self._headers)
 
@@ -210,8 +209,8 @@ class AsyncDevice(BaseDevice):
         """Send POST request. Returns response object.
 
         Arguments:
-            uri -- URI to send POST
-            data -- POST data
+            @param uri: URI to send POST
+            @param data: POST data
         """
         return await self.client.post(
             uri.format(host=self.ip), data=json.dumps(data), headers=self._headers
@@ -249,24 +248,22 @@ class Dist:
         """For setting a Link distribution server (Link master).
 
         Arguments:
-            group_id -- Specify Group ID in 32-digit hex.
+            @param group_id: Specify Group ID in 32-digit hex.
                         Specify "" (empty text) here to cancel a Device being the Link
                         distribution server. Group ID will be initialized ("000...")
                         after the cancel operation.
-            zone -- Specifies which target Zone ID to be the Link distribution
+            @param zone: Specifies which target Zone ID to be the Link distribution
                     server. If nothing is specified, current setting is kept. Zone
                     ID to be the Link distribution server is confirmable using
                     system/getFeatures server_zone_list.
                     Values: "main" / "zone2" / "zone3" / "zone4"
-            type -- Specifies a type of adding or removing clients. Not necessary
+            @param type: Specifies a type of adding or removing clients. Not necessary
                     to specify when canceling the Link master status.
                     Values: "add" / "remove"
-            client_list -- Specifies IP addresses of adding/removing clients. Specifiable
+            @param client_list: Specifies IP addresses of adding/removing clients. Specifiable
                            up to 9 clients
         """
-        data = {}
-
-        data['group_id'] = group_id
+        data = {'group_id': group_id}
 
         if zone is not None:
             data['zone'] = zone
@@ -289,18 +286,16 @@ class Dist:
            values than "server" using getDistributionInfo.
 
         Arguments:
-            group_id -- Specifies Group ID in 32-digit hex.
+            @param group_id: Specifies Group ID in 32-digit hex.
                         Specify "" (empty text) here to cancel a Device being a Link
                         distributed client. Group ID will be initialized ("000...") after
                         the cancel operation.
-            zone -- Specifies which target Zone ID to be a Link distributed
+            @param zone: Specifies which target Zone ID to be a Link distributed
                     client. Not necessary to specify when cancelling a client status.
                     Values: "main" / "zone2" / "zone3" / "zone4"
-            server_ip_address -- Specifies the IP Address of the Link distribution server.
+            @param server_ip_address: Specifies the IP Address of the Link distribution server.
         """
-        data = {}
-
-        data['group_id'] = group_id
+        data = {'group_id': group_id}
 
         if zone is not None:
             data['zone'] = zone
@@ -318,7 +313,7 @@ class Dist:
         This is valid to a Device that is setup as Link distribution server.
 
         Arguments:
-            num -- Specifies Link distribution number on current MusicCast Network.
+            @param num: Specifies Link distribution number on current MusicCast Network.
         """
         return Dist.URI['START_DISTRIBUTION'].format(host='{host}', num=num)
 
@@ -339,12 +334,10 @@ class Dist:
         Note that Group Name is reserved in volatile memory.
 
         Arguments:
-            name -- Specifies Group Name. Use UTF-8 within 128 bytes. Default name
+            @param name: Specifies Group Name. Use UTF-8 within 128 bytes. Default name
                     would be used if it's not setup or "" (empty text) is specified.
         """
-        data = {}
-
-        data['name'] = name
+        data = {'name': name}
 
         return Dist.URI['SET_GROUP_NAME'], data
 
@@ -434,7 +427,7 @@ class System:
         Actual operations/reactions of enabling Auto Power Standby depend on each Device.
 
         Arguments:
-        enable -- Specifies Auto Power Standby status.
+        @param enable: Specifies Auto Power Standby status.
         """
         return System.URI['SET_AUTOPOWER_STANDBY'].format(
             host='{host}', enable=_bool_to_str(enable)
@@ -456,7 +449,7 @@ class System:
         Refer to each Device's IR code list for details..
 
         Arguments:
-        code -- Specifies IR code in 8-digit hex.
+        @param code: Specifies IR code in 8-digit hex.
         """
         return System.URI['SEND_IR_CODE'].format(host='{host}', code=code)
 
@@ -476,12 +469,12 @@ class System:
         to provide network avalability.
 
         Arguments:
-        dhcp -- Specifies DHCP setting.
-        ip_address -- Specifies IP Address.
-        subnet_mask -- Specifies Subnet Mask.
-        default_gateway -- Specifies Default Gateway.
-        dns_server_1 -- Specifies DNS Server 1.
-        dns_server_2 -- Specifies DNS Server 2.
+        @param dhcp: Specifies DHCP setting.
+        @param ip_address: Specifies IP Address.
+        @param subnet_mask: Specifies Subnet Mask.
+        @param default_gateway: Specifies Default Gateway.
+        @param dns_server_1: Specifies DNS Server 1.
+        @param dns_server_2: Specifies DNS Server 2.
         """
         data = {}
 
@@ -634,8 +627,7 @@ class System:
     @staticmethod
     def set_mac_address_filter(filter, *macs):
         """For setting MAC Address Filter"""
-        data = {}
-        data['filter'] = filter
+        data = {'filter': filter}
 
         for i, address in enumerate(macs):
             data['address_{}'.format(i + 1)]
@@ -757,7 +749,7 @@ class System:
         """For setting FL/LED Dimmer.
 
         Arguments:
-        value -- Setting Dimmer. Specifies -1 in case of auto setting.
+        @param value: Setting Dimmer. Specifies -1 in case of auto setting.
                  Specifies 0 or more than 0 in case of manual setting.
                  Auto setting is available only when -1 is exists in vale range under
                  /system/getFeatures.
@@ -801,7 +793,7 @@ class System:
         retrieve text information renamed.
 
         Arguments:
-        id -- Specifies ID. If no ID is specified, retrieve all information of
+        @param id: Specifies ID. If no ID is specified, retrieve all information of
               Zone, Input, Sound program. Refer to "All ID List" for details (documentation).
         """
         return System.URI['GET_NAME_TEXT'].format(host='{host}', id=id)
@@ -813,7 +805,7 @@ class System:
         """For setting text information related to each ID of Zone, Input.
 
         Arguments:
-        id -- Specifies ID. Input ID can be specified only when
+        @param id: Specifies ID. Input ID can be specified only when
               " rename_enable " is true under /system/getFeatures.
               Sound Program ID can not be specified.
               Note:
@@ -821,7 +813,7 @@ class System:
               text information to be acceptable both MusicCast CONTROLLER
               (Yamaha) and Spotify App. If Network Name is changed, "main"
               text information is not changed.
-        text -- Specifies text information (UTF-8 within 64 bytes).
+        @param text: Specifies text information (UTF-8 within 64 bytes).
                 If "" (empty text) is specified, specifies default text information.
         """
         data = {'id': id, 'text': text}
@@ -835,7 +827,7 @@ class System:
         in  system func_list  under /system/getFeatures
 
         Arguments:
-        enable -- boolean
+        @param enable: boolean
         """
         return System.URI['SET_PARTYMODE'].format(
             host='{host}', enable=_bool_to_str(enable)
@@ -849,7 +841,7 @@ class System:
         function exists in system func_list under /system/getFeatures.
 
         Arguments:
-        num -- int Specifies Speaker pattern number. Values: speaker_pattern
+        @param num: int Specifies Speaker pattern number. Values: speaker_pattern
                number from /system/getFeatures
         """
         return System.URI['SET_SPEAKER_PATTERN'].format(host='{host}', num=num)
@@ -899,7 +891,7 @@ class Zone:
         """For retrieving basic information of each Zone like power, volume, input and so on.
 
         Arguments:
-            zone -- Specifies target Zone.
+            @param zone: Specifies target Zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
         """
         assert zone in ZONES, 'Invalid ZONE value!'
@@ -913,7 +905,7 @@ class Zone:
            be dynamically changed.
 
         Arguments:
-            zone -- Specifies target Zone.
+            @param zone: Specifies target Zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
         """
         assert zone in ZONES, 'Invalid ZONE value!'
@@ -926,9 +918,9 @@ class Zone:
         """For setting power status of each Zone.
 
         Arguments:
-            zone -- Specifies target Zone.
+            @param zone: Specifies target Zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
-            power -- Specifies power status.
+            @param power: Specifies power status.
                      Values: 'on', 'standby', 'toggle'
         """
         assert zone in ZONES, 'Invalid ZONE value!'
@@ -944,9 +936,9 @@ class Zone:
         set it up via YXC.
 
         Arguments:
-            zone -- Specifies target Zone.
+            @param zone: Specifies target Zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
-            sleep -- Specifies Sleep Time (unit in minutes)
+            @param sleep: Specifies Sleep Time (unit in minutes)
                      Values: 0, 30, 60, 90, 120
         """
         assert zone in ZONES, 'Invalid ZONE value!'
@@ -961,12 +953,12 @@ class Zone:
         some Devices that cannot allow this value to be go up to Device's maximum volume.
 
         Arguments:
-            zone -- Specifies target Zone.
+            @param zone: Specifies target Zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
-            volume -- Specifies volume value
+            @param volume: Specifies volume value
                       Value Range: calculated by minimum/maximum/step values gotten via /system/getFeatures.
                       (Available on and after API Version 1.17) 'up', 'down'
-            step -- Specifies volume step value if the volume is 'up' or 'down'. If
+            @param step: Specifies volume step value if the volume is 'up' or 'down'. If
                     nothing specified, minimum step value is used implicitly.
                     (Available on and after API Version 1.17)
                     Values: Value range calculated by minimum/maximum/step values gotten via /system/getFeatures.
@@ -983,9 +975,9 @@ class Zone:
         """For setting mute status in each Zone.
 
         Arguments:
-            zone -- Specifies target Zone.
+            @param zone: Specifies target Zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
-            enable -- Specifying mute status. Default: True.
+            @param enable: Specifying mute status. Default: True.
         """
         assert zone in ZONES, 'Invalid ZONE value!'
         return Zone.URI['SET_MUTE'].format(
@@ -999,10 +991,14 @@ class Zone:
         """For selecting each Zone input.
 
         Arguments:
-            zone -- Specifies target Zone.
+            @param zone: Specifies target Zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
-            input -- Specifies Input ID.
+            @param input: Specifies Input ID.
                      Values: Input IDs gotten via /system/getFeatures
+            @param mode: Specifies select mode. If no parameter is specified, actions of input change depend on a
+            Device’s specification
+            Value: "autoplay_disabled" (Restricts Auto Play of Net/USB related Inputs).
+            Available on and after API Version 1.12
         """
         assert zone in ZONES, 'Invalid ZONE value!'
         return Zone.URI['SET_INPUT'].format(
@@ -1016,9 +1012,9 @@ class Zone:
         """For selecting Sound Programs.
 
         Arguments:
-            zone -- Specifies target Zone.
+            @param zone: Specifies target Zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
-            program -- Specifies Sound Program ID.
+            @param program: Specifies Sound Program ID.
                        Values: Sound Program IDs gotten via /system/getFeatures
         """
         assert zone in ZONES, 'Invalid ZONE value!'
@@ -1036,9 +1032,9 @@ class Zone:
         before sending various APIs (of retrieving list information etc.) regarding selecting input.
 
         Arguments:
-            zone -- Specifies target Zone.
+            @param zone: Specifies target Zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
-            input -- Specifies Input ID.
+            @param input: Specifies Input ID.
                      Values: Input IDs gotten via /system/getFeatures
         """
         assert zone in ZONES, 'Invalid ZONE value!'
@@ -1053,9 +1049,9 @@ class Zone:
         """For setting 3D Surround status.
 
         Arguments:
-            zone -- Specifies target Zone.
+            @param zone: Specifies target Zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
-            enable -- Specifies 3D Surround status.
+            @param enable: Specifies 3D Surround status.
         """
         assert zone in ZONES, 'Invalid ZONE value!'
         return Zone.URI['SET_3D_SURROUND'].format(
@@ -1069,9 +1065,9 @@ class Zone:
         """For setting Direct status.
 
         Arguments:
-            zone -- Specifies target Zone.
+            @param zone: Specifies target Zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
-            enable -- Specifies Direct status.
+            @param enable: Specifies Direct status.
         """
         assert zone in ZONES, 'Invalid ZONE value!'
         return Zone.URI['SET_DIRECT'].format(
@@ -1085,9 +1081,9 @@ class Zone:
         """For setting Pure Direct status.
 
         Arguments:
-            zone -- Specifies target Zone.
+            @param zone: Specifies target Zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
-            enable -- Specifies Pure Direct status.
+            @param enable: Specifies Pure Direct status.
         """
         assert zone in ZONES, 'Invalid ZONE value!'
         return Zone.URI['SET_PURE_DIRECT'].format(
@@ -1101,9 +1097,9 @@ class Zone:
         """For setting Enhancer status.
 
         Arguments:
-            zone -- Specifies target Zone.
+            @param zone: Specifies target Zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
-            enable -- Specifies Enhancer status.
+            @param enable: Specifies Enhancer status.
         """
         assert zone in ZONES, 'Invalid ZONE value!'
         return Zone.URI['SET_ENHANCER'].format(
@@ -1117,16 +1113,16 @@ class Zone:
         """For setting Tone Control in each Zone. Values of specifying range and steps are different.
 
         Arguments:
-            zone -- Specifies target Zone.
+            @param zone: Specifies target Zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
-            mode -- Specifies Mode setting. If no parameter is specified, current Mode
+            @param mode: Specifies Mode setting. If no parameter is specified, current Mode
                     setting is not changed.
                     Regardless of the Mode setting, bass/treble setting can be changed,
                     but valid only when Mode setting is "manual".
-            bass -- Specifies Bass value
+            @param bass: Specifies Bass value
                     Values: Value range calculated by minimum/maximum/step values
                     gotten via /system/getFeatures
-            treble -- Specifies Treble value
+            @param treble: Specifies Treble value
                       Values: Value range calculated by minimum/maximum/step values
                       gotten via /system/getFeatures
         """
@@ -1142,20 +1138,20 @@ class Zone:
         """For setting Equalizer in each Zone. Values of specifying range and steps are different.
 
         Arguments:
-            zone -- Specifies target Zone.
+            @param zone: Specifies target Zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
-            mode -- Specifies Mode setting. If no parameter is specified, current Mode
+            @param mode: Specifies Mode setting. If no parameter is specified, current Mode
                     setting is not changed.
                     Regardless of the Mode setting, low/mid/high setting can be
                     changed, but valid only when Mode setting is "manual".
                     Values: Values gotten via /system/getFeatures
-            low -- Specifies Low value
+            @param low: Specifies Low value
                    Values: Value range calculated by minimum/maximum/step values
                    gotten via /system/getFeatures
-            mid -- Specifies Mid value
+            @param mid: Specifies Mid value
                    Values: Value range calculated by minimum/maximum/step values
                    gotten via /system/getFeatures
-            high -- Specifies High value
+            @param high: Specifies High value
                     Values: Value range calculated by minimum/maximum/step values
                     gotten via /system/getFeatures
         """
@@ -1171,9 +1167,9 @@ class Zone:
         """For setting L/R Balance in each Zone's speaker. Values of specifying range and steps are different.
 
         Arguments:
-            zone -- Specifies target Zone.
+            @param zone: Specifies target Zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
-            value -- Specifies L/R Balance value. Negative values are for left side,
+            @param value: Specifies L/R Balance value. Negative values are for left side,
                      positive values are for right side balance.
                      Values: Value range calculated by minimum/maximum/step values
                      gotten via /system/getFeatures
@@ -1188,9 +1184,9 @@ class Zone:
         """For setting Dialogue Level in each Zone. Values of specifying range and steps are different.
 
         Arguments:
-            zone -- Specifies target Zone.
+            @param zone: Specifies target Zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
-            value -- Specifies Dialogue Level value
+            @param value: Specifies Dialogue Level value
                      Values: Value range calculated by minimum/maximum/step values
                      gotten via /system/getFeatures
         """
@@ -1206,9 +1202,9 @@ class Zone:
         """For setting Dialogue Lift in each Zone. Values of specifying range and steps are different.
 
         Arguments:
-            zone -- Specifies target Zone.
+            @param zone: Specifies target Zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
-            value -- Specifies Dialogue Lift value
+            @param value: Specifies Dialogue Lift value
                      Values: Value range calculated by minimum/maximum/step values
                      gotten via /system/getFeatures
         """
@@ -1224,9 +1220,9 @@ class Zone:
         """For setting Clear Voice in each Zone.
 
         Arguments:
-            zone -- Specifies target Zone.
+            @param zone: Specifies target Zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
-            value -- Specifies Clear Voice setting
+            @param value: Specifies Clear Voice setting
         """
         assert zone in ZONES, 'Invalid ZONE value!'
         return Zone.URI['SET_CLEAR_VOICE'].format(host='{host}', zone=zone, value=value)
@@ -1238,9 +1234,9 @@ class Zone:
         """For setting Subwoofer Volume in each Zone.
 
         Arguments:
-            zone -- Specifies target Zone.
+            @param zone: Specifies target Zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
-            volume -- Specifies volume value
+            @param volume: Specifies volume value
                       Values: Value range calculated by minimum/maximum/step values
                       gotten via /system/getFeatures
         """
@@ -1256,9 +1252,9 @@ class Zone:
         """For setting Bass Extension in each Zone.
 
         Arguments:
-            zone -- Specifies target Zone.
+            @param zone: Specifies target Zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
-            enable -- Specifies Bass Extension setting
+            @param enable: Specifies Bass Extension setting
         """
         assert zone in ZONES, 'Invalid ZONE value!'
         return Zone.URI['SET_BASS_EXTENSION'].format(
@@ -1272,7 +1268,7 @@ class Zone:
         """For retrieving current playback signal information in each Zone.
 
         Arguments:
-            zone -- Specifies target Zone.
+            @param zone: Specifies target Zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
         """
         assert zone in ZONES, 'Invalid ZONE value!'
@@ -1285,9 +1281,9 @@ class Zone:
         """For setting Link Control in each Zone.
 
         Arguments:
-            zone -- Specifies target Zone.
+            @param zone: Specifies target Zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
-            control -- Specifies Link Control setting
+            @param control: Specifies Link Control setting
                        Values: Values gotten via /system/getFeatures
         """
         assert zone in ZONES, 'Invalid ZONE value!'
@@ -1303,9 +1299,9 @@ class Zone:
            "Stability Boost".
 
         Arguments:
-            zone -- Specifies target Zone.
+            @param zone: Specifies target Zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
-            delay -- Specifies Link Audio Delay setting
+            @param delay: Specifies Link Audio Delay setting
                      Values: Values gotten via /system/getFeatures
         """
         assert zone in ZONES, 'Invalid ZONE value!'
@@ -1340,7 +1336,7 @@ class Tuner:
         """For retrieving Tuner preset information.
 
         Arguments:
-            band -- Specifying a band. Values depend on Preset Type gotten via /system/getFeatures.
+            @param band: Specifying a band. Values depend on Preset Type gotten via /system/getFeatures.
                     Values: 'common' (common), 'am', 'fm', 'dab' (separate)
         """
         assert band in BAND, 'Invalid BAND value!'
@@ -1360,11 +1356,11 @@ class Tuner:
         """For setting Tuner frequency.
 
         Arguments:
-            band -- Specifies Band. Values : 'am', 'fm'
-            tunning -- Specifies a tuning method. Use 'tp_up' and 'tp_down' only when Band is RDS.
+            @param band: Specifies Band. Values : 'am', 'fm'
+            @param tuning: Specifies a tuning method. Use 'tp_up' and 'tp_down' only when Band is RDS.
                        Values: 'up', 'down', 'cancel', 'auto_up', 'auto_down',
                        'tp_up', 'tp_down', 'direct'
-            num -- Specifies frequency (unit in kHz). Valid only when tuning is 'direct'
+            @param num: Specifies frequency (unit in kHz). Valid only when tuning is 'direct'
         """
         assert band in BAND, 'Invalid BAND value!'
         assert tuning in TUNING, 'Invalid TUNING value!'
@@ -1379,12 +1375,12 @@ class Tuner:
         """For recalling a Tuner preset.
 
         Arguments:
-            zone -- Specifies station recalling zone. This causes input change in specified zone.
+            @param zone: Specifies station recalling zone. This causes input change in specified zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
-            band -- Specifies Band type. Depending on Preset Type gotten via
+            @param band: Specifies Band type. Depending on Preset Type gotten via
                     /system/getFeatures, specifying value is different
                     Values: 'common' (band common), 'separate' (each band preset)
-            num -- Specifies Preset number.
+            @param num: Specifies Preset number.
                    Value: one in the range gotten via /system/getFeatures
         """
         assert zone in ZONES, 'Invalid ZONE value!'
@@ -1404,7 +1400,7 @@ class Tuner:
         This API is available on and after API Version 1.17.
 
         Arguments:
-            dir -- Specifies change direction of preset.
+            @param dir: Specifies change direction of preset.
                    Values: 'next', 'previous'
         """
         assert dir in DIR, 'Invalid DIR value!'
@@ -1417,7 +1413,7 @@ class Tuner:
         """For registering current station to a preset.
 
         Arguments:
-            num -- Specifying a preset number.
+            @param num: Specifying a preset number.
                    Value: one in the range gotten via /system/getFeatures
         """
         return Tuner.URI['STORE_PRESET'].format(host='{host}', num=num)
@@ -1429,7 +1425,7 @@ class Tuner:
         """For selecting DAB Service. Available only when DAB is valid to use.
 
         Arguments:
-            dir -- Specifies change direction of services.
+            @param dir: Specifies change direction of services.
                    Values: 'next', 'previous'
         """
         assert dir in DIR, 'Invalid DIR value!'
@@ -1484,7 +1480,7 @@ class NetUSB:
         """For controlling playback status.
 
         Arguments:
-            playback -- Specifies playback status.
+            @param playback: Specifies playback status.
                         Values: 'play', 'stop', 'pause', 'play_pause', 'previous', 'next',
                         'fast_reverse_start', 'fast_reverse_end', 'fast_forward_start',
                         'fast_forward_end'
@@ -1534,21 +1530,21 @@ class NetUSB:
         or independent from current input.
 
         Arguments:
-                input -- Specifies target Input ID. Controls for setListControl are to work
+                @param input: Specifies target Input ID. Controls for setListControl are to work
                          with the input specified here.
                          Values: Input IDs for Net/USB related sources
-                index -- Specifies the reference index (offset from the beginning of the list).
+                @param index: Specifies the reference index (offset from the beginning of the list).
                          Note that this index must be in multiple of 8. If nothing was
                          specified, the reference index previously specified would be used.
                          Values: 0, 8, 16, 24, ..., 64984, 64992
-                size -- Specifies max list size retrieved at a time.
+                @param size: Specifies max list size retrieved at a time.
                         Value Range: 1 - 8
-                lang -- Specifies list language. But menu names or text info are not
+                @param lang: Specifies list language. But menu names or text info are not
                         always necessarily pulled in a language specified here. If nothing
                         specified, English ("en") is used implicitly
                         Values: 'en' (English), 'ja' (Japanese), 'fr' (French), 'de'
                         (German), 'es' (Spanish), 'ru' (Russian), 'it' (Italy), 'zh' (Chinese)
-                list_id -- Specifies list ID. If nothing specified, 'main' is chosen implicitly
+                @param list_id: Specifies list ID. If nothing specified, 'main' is chosen implicitly
                            Values: 'main' (common for all Net/USB sources)
                                    'auto_complete' (Pandora)
                                    'search_artist' (Pandora)
@@ -1571,12 +1567,12 @@ class NetUSB:
         """For control a list. Controllable list info is not limited to or independent from current input.
 
         Arguments:
-            list_id -- Specifies list ID. If nothing specified, 'main' is chosen implicitly
+            @param list_id: Specifies list ID. If nothing specified, 'main' is chosen implicitly
                        Values: 'main' (common for all Net/USB sources)
                                'auto_complete' (Pandora)
                                'search_artist' (Pandora)
                                'search_track' (Pandora)
-            type -- Specifies list transition type. 'select' is to enter and get into one deeper layer than the current
+            @param type: Specifies list transition type. 'select' is to enter and get into one deeper layer than the current
                     layer where the element specified by the index belongs to. 'play' is to start playback current index
                     element, 'return' is to go back one upper layer than current. 'select' and 'play' needs to specify
                     an index at the same time. In case to 'select' an element with its attribute being 'Capable of Search',
@@ -1600,13 +1596,13 @@ class NetUSB:
         retrieve info about searching list(Pandora).
 
         Arguments:
-                search_string -- Value to search for.
-                list_id -- Specifies list ID. If nothing specified, 'main' is chosen implicitly
+                @param search_string: Value to search for.
+                @param list_id: Specifies list ID. If nothing specified, 'main' is chosen implicitly
                            Values: 'main' (common for all Net/USB sources)
                                    'auto_complete' (Pandora)
                                    'search_artist' (Pandora)
                                    'search_track' (Pandora)
-                index -- Specifies an element position in the list being selected
+                @param index: Specifies an element position in the list being selected
                          (offset from the beginning of the list). Valid only when the list_id is "main".
                          Specifies index an element with its attribute being "Capable of Search"
                          Controls same as setListControl "select" are to work with the index an element specified.
@@ -1634,9 +1630,9 @@ class NetUSB:
         """For recalling a content preset.
 
         Arguments:
-            zone -- Specifies station recalling zone. This causes input change in specified zone.
+            @param zone: Specifies station recalling zone. This causes input change in specified zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
-            num -- Specifies Preset number.
+            @param num: Specifies Preset number.
                    Value: one in the range gotten via /system/getFeatures
         """
         assert zone in ZONES, 'Invalid ZONE value!'
@@ -1650,7 +1646,7 @@ class NetUSB:
         input sources.
 
         Arguments:
-            num -- Specifying a preset number.
+            @param num: Specifying a preset number.
                    Value: one in the range gotten via /system/getFeatures
         """
         return NetUSB.URI['STORE_PRESET'].format(host='{host}', num=num)
@@ -1669,11 +1665,11 @@ class NetUSB:
         """For switching account for service corresponding multi account.
 
         Arguments:
-            input -- Specifies target Input ID.
+            @param input: Specifies target Input ID.
                      Value: 'pandora'
-            index -- Specifies switch account index.
+            @param index: Specifies switch account index.
                      Value : 0 - 7 (Pandora)
-            timeout -- Specifies timeout duration(ms) for this API process. If specifies 0,
+            @param timeout: Specifies timeout duration(ms) for this API process. If specifies 0,
                        treat as maximum value.
                        Value: 0 - 60000
         """
@@ -1699,7 +1695,11 @@ class NetUSB:
         Note: Rhapsody service name will be changed to Napster.
 
         Arguments:
-            input -- Specifies target Input ID.
+            @param timeout: Specifies type of retrieving info Value:
+"account_list" (Pandora) "licensing" (Napster / Pandora) "activation_code" (Pandora)
+            @param type: Specifies type of retrieving info Value:
+"account_list" (Pandora) "licensing" (Napster / Pandora) "activation_code" (Pandora)
+            @param input: Specifies target Input ID.
                      Value: 'pandora', 'rhapsody', 'napster'
         """
         return NetUSB.URI['GET_SERVICE_INFO'].format(
@@ -1733,21 +1733,21 @@ class CD:
     # end-of-method get_play_info
 
     @staticmethod
-    def set_playback(playback):
+    def set_playback(playback, num):
         """For controlling playback status.
 
         Arguments:
-        playback -- Specifies playback status
+        @param playback: Specifies playback status
                     Values: 'play', 'stop', 'pause', 'previous', 'next',
                             'fast_reverse_start', 'fast_reverse_end', 'fast_forward_start',
                             'fast_forward_end', 'track_select'
 
-        num -- Specifies target track number to playback.
+        @param num: Specifies target track number to playback.
                This parameter is valid only when playback "track_select" is specified.
                Values: 1-512
         """
         assert playback in PLAYBACK, 'Invalid PLAYBACK value!'
-        return CD.URI['SET_PLAYBACK'].format(host='{host}', playback=playback)
+        return CD.URI['SET_PLAYBACK'].format(host='{host}', playback=playback, num=num)
 
     # end-of-method set_playback
 
@@ -1840,7 +1840,7 @@ class Clock:
         Available only when "date_and_time" exists in clock - func_list under /system/getFeatures.
 
         Arguments:
-        enable -- Specifies whether or not clock auto sync is valid
+        @param enable: Specifies whether or not clock auto sync is valid
 
         """
         assert isinstance(enable, bool)
@@ -1855,7 +1855,7 @@ class Clock:
         Available only when "date_and_time" exists in clock - func_list under /system/getFeatures.
 
         Arguments:
-        date_time -- Specifies date and time set on device. Format is "YYMMDDhhmmss".
+        @param date_time: Specifies date and time set on device. Format is "YYMMDDhhmmss".
                      Value : YY : 00 ~ 99 (Year / 2000 ~ 2099)
                      MM : 01 ~ 12 (Month) DD : 01 ~ 31 (Day)
                      hh : 00 ~ 23 (Hour) mm : 00 ~ 59 (Minute) ss : 00 ~ 59 (Second).
@@ -1877,8 +1877,8 @@ class Clock:
         Available only when " clock_format " exists in clock - func_list under /system/getFeatures.
 
         Arguments:
-        format -- format of time display
-                  Values : 12 (12-hour notation) / 24 (24-hour notation)
+        @param clock_format: format of time display
+                  Values: 12 (12-hour notation) / 24 (24-hour notation)
         """
         assert (
             clock_format == 12 or clock_format == 24
@@ -1908,34 +1908,35 @@ class Clock:
         """For setting alarm function.
 
         Arguments:
-        alarm_on -- Specifies alarm function status on/off
-        volume -- Specifies alarm volume value
+        @param alarm_on: Specifies alarm function status on/off
+        @param volume: Specifies alarm volume value
                   Vaule Range : calculated by minimum/maximum/step value gotten via /system/getFeatures "alarm_volume"
-        fade_interval -- Specifies alarm fade interval (unit in second)
+        @param fade_interval: Specifies alarm fade interval (unit in second)
                          Vaule Range : calculated by minimum/maximum/step
                          value gotten via /system/getFeatures "alarm_fade"
-        fade_type -- Specifies alarm fade type
+        @param fade_type: Specifies alarm fade type
                      Value : 1 ~ fade_type_max ( value gotten via /system/getFeatures)
-        mode -- Specifies alarm mode
+        @param mode: Specifies alarm mode
                 Value : one gotten via /system/getFeatures "alarm_mode_list"
-        repeat -- Specifies repeat setting. This parameter is valid only when alarm mode "oneday" is specified
-        day -- Specifies target date for alarm setting.
+        @param repeat: Specifies repeat setting. This parameter is valid only when alarm mode "oneday" is specified
+        @param day: Specifies target date for alarm setting.
                This parameter is specified certainly when set detail parameters.
                Value : "oneday" / "sunday" / "monday" / "tuesday" / "wednesday " / "thursday" / "friday" / "saturday"
-        enable -- 対象日のアラーム設定の有効/無効を指定します。 --> WTF?
-        alarm_time -- Specifies alarm start-up time. Format is "hhmm" Values : hh : 00 ~ 23 (Hour) mm : 00 ~ 59 (Minute)
-        beep -- Specifies whether or not beep is valid.
-        playback_type -- Specifies playback type Value : "resume" / "preset"
-        resume_input -- Specifies target Input ID to playback for resume.
+        @param enable: 対象日のアラーム設定の有効/無効を指定します。:> WTF?
+        @param alarm_time: Specifies alarm start-up time.
+        Format is "hhmm" Values : hh : 00 ~ 23 (Hour) mm : 00 ~ 59 (Minute)
+        @param beep: Specifies whether or not beep is valid.
+        @param playback_type: Specifies playback type Value : "resume" / "preset"
+        @param resume_input: Specifies target Input ID to playback for resume.
                         No playback when "none" is specified.
                         Values: Input IDs gotten via /system/getFeatures "alarm_input_list"
                         This parameter is valid only when playback_type "resume" is specified.
-        preset_type -- Specifies preset type. Values: Type gotten via /system/getFeatures "alarm_preset_list".
+        @param preset_type: Specifies preset type. Values: Type gotten via /system/getFeatures "alarm_preset_list".
                        This parameter is valid only when playback_type "preset" is specified.
-        preset_num -- Specifies preset number. Selectable preset number in each preset type is
+        @param preset_num: Specifies preset number. Selectable preset number in each preset type is
                       readable in /system/getFeatures.
                       This parameter is valid only when playback_type "preset" is specified.
-        preset_snooze -- Returns snooze setting. Available only when "snooze" exists in func_list
+        @param preset_snooze: Returns snooze setting. Available only when "snooze" exists in func_list
                          under /system/getFeatures.
                          This parameter is valid only when playback_type "preset" is specified.
         """

@@ -148,8 +148,6 @@ class MusicCastDevice:
         self._distribution_info: Dict = {}
         self._name_text = None
 
-        print(f"HANDLE UDP ON {self.device._udp_port}")
-
     @classmethod
     async def check_yamaha_ssdp(cls, location, client):
         res = await client.get(location)
@@ -165,14 +163,6 @@ class MusicCastDevice:
 
     def handle(self, message):
         """Handle udp events."""
-        # update data...
-
-        # print()
-        # print("=== INCOMING UDP EVENT FROM MUSICCAST ===")
-        # print(message)
-        # print("=========================================")
-        # print()
-
         for parameter in message:
             if parameter in ["main", "zone2", "zone3", "zone4"]:
                 new_zone_data = message[parameter]
@@ -453,8 +443,8 @@ class MusicCastDevice:
         ).json()
 
         self.data.input_names = {
-            input.get("id"): input.get("text")
-            for input in self._name_text.get("input_list")
+            source.get("id"): source.get("text")
+            for source in self._name_text.get("input_list")
         }
 
         await self._fetch_netusb()
@@ -488,8 +478,9 @@ class MusicCastDevice:
 
     async def set_volume_level(self, zone_id, volume):
         """Set the volume level, range 0..1."""
-        vol = self.data.zones[zone_id].min_volume + \
-              (self.data.zones[zone_id].max_volume - self.data.zones[zone_id].min_volume) * volume
+        vol = self.data.zones[zone_id].min_volume + (
+                self.data.zones[zone_id].max_volume - self.data.zones[zone_id].min_volume
+        ) * volume
 
         await self.device.request(
             Zone.set_volume(zone_id, round(vol), 1)
@@ -769,11 +760,11 @@ class MusicCastDevice:
                     client_ips_for_removal,
                 )
             )
-            if self.data.group_client_list:
-                await self.device.get(Dist.start_distribution(distribution_num))
             if await self.check_group_data(
                     [lambda: self._check_clients_removed(client_ips_for_removal)]
             ):
+                if self.data.group_client_list:
+                    await self.device.get(Dist.start_distribution(distribution_num))
                 return
 
         if retry:
@@ -846,12 +837,12 @@ class MusicCastDevice:
         zone = self.data.zones.get(zone_id)
 
         return [
-            input.get('id')
-            for input in self._features.get('system', {}).get('input_list', [])
-            if input.get('distribution_enable')
-               and (input.get('play_info_type') != 'netusb' or not netusb_in_use)
-               and input.get('id') not in MC_LINK_SOURCES
-               and input.get('id') in (zone.input_list if zone else [])
+            source.get('id')
+            for source in self._features.get('system', {}).get('input_list', [])
+            if source.get('distribution_enable') and
+            (source.get('play_info_type') != 'netusb' or not netusb_in_use) and
+            source.get('id') not in MC_LINK_SOURCES and
+            source.get('id') in (zone.input_list if zone else [])
         ]
 
     async def _fetch_netusb_presets(self):
