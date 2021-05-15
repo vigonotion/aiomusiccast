@@ -5,6 +5,11 @@ import logging
 import math
 from datetime import datetime
 from typing import Dict, List
+from urllib.parse import urlparse, urlunparse, quote_plus
+
+from async_upnp_client import UpnpDevice, UpnpFactory, UpnpService, UpnpStateVariable, UpnpError
+from async_upnp_client.aiohttp import AiohttpRequester, AiohttpSessionRequester
+from async_upnp_client.profiles.dlna import DmrDevice, DeviceState
 
 from .pyamaha import AsyncDevice, Clock, Dist, NetUSB, System, Tuner, Zone
 
@@ -123,7 +128,7 @@ class MusicCastDevice:
     device: AsyncDevice
     features: DeviceFeature = DeviceFeature.NONE
 
-    def __init__(self, ip, client):
+    def __init__(self, ip, client, upnp_description=None):
         """Init dummy MusicCastDevice."""
         self.ip = ip
         self.client = client
@@ -138,6 +143,9 @@ class MusicCastDevice:
         self._group_update_callbacks = set()
         self.group_reduce_by_source = False
         self.data = MusicCastData()
+
+        self.upnp_description = upnp_description
+        self._dlna_dmr = None
 
         # the following data must not be updated frequently
         self._zone_ids: List = []
@@ -164,6 +172,17 @@ class MusicCastDevice:
             event_loop = asyncio.new_event_loop()
         device = AsyncDevice(client, ip, event_loop)
         return await device.request_json(System.get_device_info())
+
+    async def dlna_dmr(self):
+        # dlna client
+        if not self._dlna_dmr:
+            requester = AiohttpSessionRequester(self.client, True)
+            upnp_factory = UpnpFactory(
+                requester, disable_state_variable_validation=True
+            )
+            upnp_device = await upnp_factory.async_create_device(self.upnp_description)
+            self._dlna_dmr = DmrDevice(upnp_device, None)
+        return self._dlna_dmr
 
     # -----UDP messaging-----
 
@@ -646,6 +665,29 @@ class MusicCastDevice:
         await self.device.request(
             NetUSB.set_list_control("main", "play", item, zone_id)
         )
+
+    async def play_url_media(self, media_id, title):
+        # Stop current playing media
+        if (await self.dlna_dmr()).can_stop:
+            await (await self.dlna_dmr()).async_stop()
+            print("send stop")
+        await asyncio.sleep(2)
+        # Queue media
+        await (await self.dlna_dmr()).async_set_transport_uri(
+            media_id, title
+        )
+        print("queued media")
+        print("waiting for ready to play")
+        await (await self.dlna_dmr()).async_wait_for_can_play()
+        print("ready to play")
+        # If already playing, no need to call Play
+        if (await self.dlna_dmr()).state == DeviceState.PLAYING:
+            print("already playing")
+            return
+
+        await asyncio.sleep(2)
+        await (await self.dlna_dmr()).async_play()
+        print("sent play")
 
     # -----Properties-----
 
