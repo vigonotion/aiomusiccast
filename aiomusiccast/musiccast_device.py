@@ -154,7 +154,7 @@ class MusicCastDevice:
     @classmethod
     async def get_device_info(cls, ip, client):
         device = AsyncDevice(client, ip)
-        return await (await device.get(System.get_device_info())).json()
+        return await device.request_json(System.get_device_info())
 
     # -----UDP messaging-----
 
@@ -234,9 +234,7 @@ class MusicCastDevice:
     async def _fetch_netusb(self):
         """Fetch NetUSB data."""
         _LOGGER.debug("Fetching netusb...")
-        self._netusb_play_info = await (
-            await self.device.request_json(NetUSB.get_play_info())
-        ).json()
+        self._netusb_play_info = await self.device.request_json(NetUSB.get_play_info())
 
         self.data.netusb_input = self._netusb_play_info.get(
             "input", self.data.netusb_input
@@ -270,9 +268,7 @@ class MusicCastDevice:
     async def _fetch_tuner(self):
         """Fetch tuner data."""
         _LOGGER.debug("Fetching tuner...")
-        self._tuner_play_info = await (
-            await self.device.request_json(Tuner.get_play_info())
-        ).json()
+        self._tuner_play_info = await self.device.request_json(Tuner.get_play_info())
 
         self.data.band = self._tuner_play_info.get("band", self.data.band)
 
@@ -303,7 +299,7 @@ class MusicCastDevice:
 
     async def _fetch_zone(self, zone_id):
         _LOGGER.debug("Fetching zone %s...", zone_id)
-        zone = await (await self.device.request_json(Zone.get_status(zone_id))).json()
+        zone = await self.device.request_json(Zone.get_status(zone_id))
         zone_data: MusicCastZoneData = self.data.zones.get(zone_id, MusicCastZoneData())
 
         zone_data.power = zone.get("power")
@@ -316,9 +312,9 @@ class MusicCastDevice:
 
     async def _fetch_distribution_data(self):
         _LOGGER.debug("Fetching Distribution data...")
-        self._distribution_info = await (
-            await self.device.get(Dist.get_distribution_info())
-        ).json()
+        self._distribution_info = (
+            await self.device.request_json(Dist.get_distribution_info())
+        )
         self.data.last_group_role = self.data.group_role
         self.data.last_group_id = self.data.group_id
         self.data.group_id = self._distribution_info.get("group_id", None)
@@ -335,9 +331,9 @@ class MusicCastDevice:
 
     async def _fetch_clock_data(self):
         _LOGGER.debug("Fetching Clock data...")
-        self._clock_info = await (
-            await self.device.get(Clock.get_clock_settings())
-        ).json()
+        self._clock_info = (
+            await self.device.request_json(Clock.get_clock_settings())
+        )
 
         one_day_info = self._clock_info.get('alarm', {}).get('oneday', {})
 
@@ -359,17 +355,13 @@ class MusicCastDevice:
     async def fetch(self):
         """Fetch data from musiccast device."""
         if not self._network_status:
-            self._network_status = await (
-                await self.device.request_json(System.get_network_status())
-            ).json()
+            self._network_status = await self.device.request_json(System.get_network_status())
 
             self.data.network_name = self._network_status.get("network_name")
             self.data.mac_addresses = self._network_status.get("mac_address")
 
         if not self._device_info:
-            self._device_info = await (
-                await self.device.request_json(System.get_device_info())
-            ).json()
+            self._device_info = await self.device.request_json(System.get_device_info())
 
             self.data.device_id = self._device_info.get("device_id")
             self.data.model_name = self._device_info.get("model_name")
@@ -377,9 +369,7 @@ class MusicCastDevice:
             self.data.api_version = self._device_info.get("api_version")
 
         if not self._features:
-            self._features = await (
-                await self.device.request_json(System.get_features())
-            ).json()
+            self._features = await self.device.request_json(System.get_features())
 
             self._zone_ids = [zone.get("id") for zone in self._features.get("zone", [])]
 
@@ -436,9 +426,7 @@ class MusicCastDevice:
                     'alarm_input_list', []
                 )
 
-        self._name_text = await (
-            await self.device.request_json(System.get_name_text(None))
-        ).json()
+        self._name_text = await self.device.request_json(System.get_name_text(None))
 
         self.data.input_names = {
             source.get("id"): source.get("text")
@@ -458,19 +446,19 @@ class MusicCastDevice:
     # -----Commands-----
     async def turn_on(self, zone_id):
         """Turn the media player on."""
-        await self.device.request_json(
+        await self.device.request(
             Zone.set_power(zone_id, "on")
         )
 
     async def turn_off(self, zone_id):
         """Turn the media player off."""
-        await self.device.request_json(
+        await self.device.request(
             Zone.set_power(zone_id, "standby")
         )
 
     async def mute_volume(self, zone_id, mute):
         """Mute the volume."""
-        await self.device.request_json(
+        await self.device.request(
             Zone.set_mute(zone_id, mute)
         )
 
@@ -480,59 +468,59 @@ class MusicCastDevice:
                 self.data.zones[zone_id].max_volume - self.data.zones[zone_id].min_volume
         ) * volume
 
-        await self.device.request_json(
+        await self.device.request(
             Zone.set_volume(zone_id, round(vol), 1)
         )
 
     async def netusb_play(self):
-        await self.device.request_json(NetUSB.set_playback("play"))
+        await self.device.request(NetUSB.set_playback("play"))
 
     async def netusb_pause(self):
-        await self.device.request_json(NetUSB.set_playback("pause"))
+        await self.device.request(NetUSB.set_playback("pause"))
 
     async def netusb_stop(self):
-        await self.device.request_json(NetUSB.set_playback("stop"))
+        await self.device.request(NetUSB.set_playback("stop"))
 
     async def netusb_shuffle(self, shuffle: bool):
         if self.data.api_version < 1.19:
             if (self.data.netusb_shuffle == "on") != shuffle:
-                await self.device.request_json(NetUSB.toggle_shuffle())
+                await self.device.request(NetUSB.toggle_shuffle())
         else:
-            await self.device.request_json(NetUSB.set_shuffle("on" if shuffle else "off"))
+            await self.device.request(NetUSB.set_shuffle("on" if shuffle else "off"))
 
     async def select_sound_mode(self, zone_id, sound_mode):
         """Select sound mode."""
-        await self.device.request_json(
+        await self.device.request(
             Zone.set_sound_program(zone_id, sound_mode)
         )
 
     async def netusb_previous_track(self):
-        await self.device.request_json(
+        await self.device.request(
             NetUSB.set_playback("previous")
         )
 
     async def netusb_next_track(self):
-        await self.device.request_json(
+        await self.device.request(
             NetUSB.set_playback("next")
         )
 
     async def tuner_previous_station(self):
         if self.data.band in ("fm", "am"):
-            await self.device.request_json(
+            await self.device.request(
                 Tuner.set_freq(self.data.band, "auto_down", 0)
             )
         elif self.data.band == "dab":
-            await self.device.request_json(
+            await self.device.request(
                 Tuner.set_dab_service("previous")
             )
 
     async def tuner_next_station(self):
         if self.data.band in ("fm", "am"):
-            await self.device.request_json(
+            await self.device.request(
                 Tuner.set_freq(self.data.band, "auto_up", 0)
             )
         elif self.data.band == "dab":
-            await self.device.request_json(
+            await self.device.request(
                 Tuner.set_dab_service("next")
             )
 
@@ -542,12 +530,12 @@ class MusicCastDevice:
         """
         if self.data.api_version < 1.19:
             if self.data.netusb_repeat != mode and self.data.netusb_repeat != "one":
-                await self.device.request_json(NetUSB.toggle_repeat())
+                await self.device.request(NetUSB.toggle_repeat())
         else:
-            await self.device.request_json(NetUSB.set_repeat(mode))
+            await self.device.request(NetUSB.set_repeat(mode))
 
     async def select_source(self, zone_id, source):
-        await self.device.request_json(
+        await self.device.request(
             Zone.set_input(zone_id, source, "")
         )
 
@@ -597,26 +585,26 @@ class MusicCastDevice:
 
     # -----NetUSB Browsing-----
     async def get_list_info(self, source, start_index):
-        return await (
+        return (
             await self.device.request_json(
                 NetUSB.get_list_info(source, start_index, 8, "en", "main")
             )
-        ).json()
+        )
 
     async def select_list_item(self, item, zone_id):
-        await self.device.request_json(
+        await self.device.request(
             NetUSB.set_list_control(
                 "main", "select", item, zone_id
             )
         )
 
     async def return_in_list(self, zone_id):
-        await self.device.request_json(
+        await self.device.request(
             NetUSB.set_list_control("main", "return", "", zone_id)
         )
 
     async def play_list_media(self, item, zone_id):
-        await self.device.request_json(
+        await self.device.request(
             NetUSB.set_list_control("main", "play", item, zone_id)
         )
 
@@ -793,7 +781,7 @@ class MusicCastDevice:
         """Join the given group as a client."""
         async with self.data.group_update_lock:
             await self.device.post(*Dist.set_client_info(group_id, zone, server_ip))
-            await self.device.request_json(Zone.set_input(zone, MC_LINK, ""))
+            await self.device.request(Zone.set_input(zone, MC_LINK, ""))
             if await self.check_group_data(
                     [
                         lambda: self._check_group_id(group_id),
@@ -844,7 +832,7 @@ class MusicCastDevice:
         ]
 
     async def _fetch_netusb_presets(self):
-        result = await (await self.device.request_json(NetUSB.get_preset_info())).json()
+        result = await self.device.request_json(NetUSB.get_preset_info())
         self.data.netusb_preset_list = {
             index + 1: (entry.get('input'), entry.get('text'))
             for index, entry in enumerate(result.get('preset_info', []))
