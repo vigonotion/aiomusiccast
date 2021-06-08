@@ -25,6 +25,7 @@ class MusicCastData:
     def __init__(self):
         """Ctor."""
         # device info
+        self.device_id = None
         self.model_name = None
         self.system_version = None
         self.api_version = None
@@ -374,6 +375,7 @@ class MusicCastDevice:
                 await self.device.request(System.get_device_info())
             ).json()
 
+            self.data.device_id = self._device_info.get("device_id")
             self.data.model_name = self._device_info.get("model_name")
             self.data.system_version = self._device_info.get("system_version")
             self.data.api_version = self._device_info.get("api_version")
