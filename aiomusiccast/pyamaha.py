@@ -1,5 +1,8 @@
 # taken from github.com/rsc-dev/pyamaha, which is licensed under the MIT License
+from __future__ import annotations
 
+import aiohttp
+from aiomusiccast.exceptions import MusicCastConnectionException
 import json
 import logging
 import queue
@@ -7,6 +10,7 @@ import socket
 import threading
 import time
 from datetime import datetime
+from aiohttp import ClientError, ClientTimeout
 
 BAND = ['common', 'am', 'fm', 'dab']
 CD_PLAYBACK = [
@@ -175,7 +179,7 @@ class AsyncDevice(BaseDevice):
             @param handle_event: callback function with one parameter (the message).
         """
         super().__init__(ip, handle_event)
-        self.client = client
+        self.client: aiohttp.ClientSession = client
 
     # end-of-method __init__
 
@@ -185,15 +189,37 @@ class AsyncDevice(BaseDevice):
         Arguments:
             @param args: URI link for GET or tupple (URI, data) for POST.
         """
-
-        # If it is only a URI, send GET...
-        if isinstance(args[0], str):
-            return await self.get(args[0])
-        else:
-            # ...otherwise unpack tuple and send POST
-            return await self.post(*(args[0]))
+        try:
+            # If it is only a URI, send GET...
+            if isinstance(args[0], str):
+                return await self.get(args[0])
+            else:
+                # ...otherwise unpack tuple and send POST
+                return await self.post(*(args[0]))
+        except ClientError as ce:
+            raise MusicCastConnectionException() from ce
 
     # end-of-method request
+
+    async def request_json(self, *args):
+        """Request YamahaExtendedControl API URI.
+
+        Arguments:
+            @param args: URI link for GET or tupple (URI, data) for POST.
+        """
+        try:
+            # If it is only a URI, send GET...
+            if isinstance(args[0], str):
+                return await(await self.get(args[0])).json()
+            else:
+                # ...otherwise unpack tuple and send POST
+                return await(await self.post(*(args[0]))).json()
+        except ClientError as ce:
+            raise MusicCastConnectionException() from ce
+        except TimeoutError as te:
+            raise MusicCastConnectionException() from te
+
+    # end-of-method request_json
 
     async def get(self, uri):
         """Request given URI. Returns response object.
@@ -201,7 +227,7 @@ class AsyncDevice(BaseDevice):
         Arguments:
             @param uri: URI to request
         """
-        return await self.client.get(uri.format(host=self.ip), headers=self._headers)
+        return await self.client.get(uri.format(host=self.ip), headers=self._headers, timeout=ClientTimeout(total=5))
 
     # end-of-method get
 
@@ -1849,7 +1875,7 @@ class Clock:
         )
 
     @staticmethod
-    def set_date_and_time(date_time: [datetime, str]):
+    def set_date_and_time(date_time: list[datetime, str]):
         """For setting date and clock time.
 
         Available only when "date_and_time" exists in clock - func_list under /system/getFeatures.
