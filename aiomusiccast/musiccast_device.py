@@ -123,14 +123,14 @@ class MusicCastZoneData:
 class MusicCastDevice:
     """Dummy MusicCastDevice (device for HA) for Hello World example."""
 
-    def __init__(self, ip, client, event_loop=None):
+    def __init__(self, ip, client):
         """Init dummy MusicCastDevice."""
         self.ip = ip
         self.client = client
 
-        if event_loop:
-            self.event_loop = event_loop
-        else:
+        try:
+            self.event_loop = asyncio.get_running_loop()
+        except RuntimeError:
             self.event_loop = asyncio.new_event_loop()
 
         self.device = AsyncDevice(client, ip, self.handle)
