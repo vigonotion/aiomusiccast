@@ -198,7 +198,9 @@ class AsyncDevice(BaseDevice):
                 return await self.post(*(args[0]))
         except ClientError as ce:
             raise MusicCastConnectionException() from ce
-
+        except TimeoutError as te:
+            raise MusicCastConnectionException() from te
+            
     # end-of-method request
 
     async def request_json(self, *args):
