@@ -80,7 +80,7 @@ RESPONSE_CODE = {
 
 _LOGGER = logging.getLogger(__name__)
 
-class MusicCastUdpProtocol(asyncio.Protocol):
+class MusicCastUdpProtocol(asyncio.DatagramProtocol):
 
     def __init__(self, handle_event) -> None:
         super().__init__()
@@ -91,8 +91,6 @@ class MusicCastUdpProtocol(asyncio.Protocol):
 
     def datagram_received(self, data, addr):
         message = data.decode()
-        print('Received %r from %s' % (message, addr))
-
         data = {}
         try:
             data = json.loads(message)
@@ -112,7 +110,7 @@ class AsyncDevice:
     _headers = dict[str, str]
     _transport: BaseTransport
 
-    def __init__(self, client, ip, handle_event=None):
+    def __init__(self, client, ip, loop, handle_event=None):
         """Ctor.
 
         Arguments:
@@ -121,6 +119,7 @@ class AsyncDevice:
         """
         self.ip = ip
         self.client: aiohttp.ClientSession = client
+        self.loop = loop
         self.handle_event = handle_event
 
         self._messages = queue.Queue()
@@ -133,20 +132,23 @@ class AsyncDevice:
         if self._transport:
             self._transport.close()
 
-    async def poll(self):
-        loop = asyncio.get_running_loop()
-
+    async def enable_polling(self):
         # One protocol instance will be created to serve all
         # client requests.
-        _transport, _ = await loop.create_datagram_endpoint(
+        self._transport, _ = await self.loop.create_datagram_endpoint(
             lambda: MusicCastUdpProtocol(self.handle_event),
             local_addr=('0.0.0.0', 0))
 
-        port = _transport._sock.getsockname()[1]
+        port = self._transport._sock.getsockname()[1]
 
         self._headers.update(
             {"X-AppName": "MusicCast/1.0", "X-AppPort": str(port)}
         )
+
+    async def disable_polling(self):
+        self._headers = {}
+
+        self._transport.close()
 
     async def request(self, *args):
         """Request YamahaExtendedControl API URI.

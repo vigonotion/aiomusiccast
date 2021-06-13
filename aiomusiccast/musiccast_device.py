@@ -131,7 +131,7 @@ class MusicCastDevice:
         except RuntimeError:
             self.event_loop = asyncio.new_event_loop()
 
-        self.device = AsyncDevice(client, ip, self.handle)
+        self.device = AsyncDevice(client, ip, self.event_loop, self.handle)
         self._callbacks = set()
         self._group_update_callbacks = set()
         self.data = MusicCastData()
@@ -158,9 +158,6 @@ class MusicCastDevice:
         device = AsyncDevice(client, ip)
         return await device.request_json(System.get_device_info())
 
-    async def poll(self):
-        await self.device.poll()
-
     # -----UDP messaging-----
 
     def handle(self, message):
@@ -185,15 +182,15 @@ class MusicCastDevice:
                 if new_zone_data.get("play_info_updated") or new_zone_data.get(
                         "status_updated"
                 ):
-                    asyncio.run_coroutine_threadsafe(
-                        self._fetch_zone(parameter), self.event_loop
-                    ).result()
+                    asyncio.create_task(
+                        self._fetch_zone(parameter)
+                    )
 
         if "netusb" in message.keys():
             if message.get("netusb").get("play_info_updated"):
-                asyncio.run_coroutine_threadsafe(
-                    self._fetch_netusb(), self.event_loop
-                ).result()
+                asyncio.create_task(
+                    self._fetch_netusb()
+                )
 
             play_time = message.get("netusb").get("play_time")
             if play_time:
@@ -201,38 +198,45 @@ class MusicCastDevice:
                 self.data.netusb_play_time_updated = datetime.utcnow()
 
             if message.get("netusb").get("preset_info_updated"):
-                asyncio.run_coroutine_threadsafe(
-                    self._fetch_netusb_presets(), self.event_loop
-                ).result()
+                asyncio.create_task(
+                    self._fetch_netusb_presets()
+                )
 
         if "tuner" in message.keys():
             if message.get("tuner").get("play_info_updated"):
-                asyncio.run_coroutine_threadsafe(
-                    self._fetch_tuner(), self.event_loop
-                ).result()
+                asyncio.create_task(
+                    self._fetch_tuner()
+                )
 
         if "dist" in message.keys():
             if message.get("dist").get("dist_info_updated"):
-                asyncio.run_coroutine_threadsafe(
-                    self._fetch_distribution_data(), self.event_loop
-                ).result()
+                asyncio.create_task(
+                    self._fetch_distribution_data()
+                )
 
         if "clock" in message.keys():
             if message.get("clock").get("settings_updated"):
-                asyncio.run_coroutine_threadsafe(
-                    self._fetch_clock_data(), self.event_loop
-                ).result()
+                asyncio.create_task(
+                    self._fetch_clock_data()
+                )
 
         for callback in self._callbacks:
-            callback()
+            asyncio.create_task(
+                callback()
+            )
 
-    def register_callback(self, callback):
+    async def register_callback(self, callback):
         """Register callback, called when MusicCastDevice changes state."""
         self._callbacks.add(callback)
 
-    def remove_callback(self, callback):
+        await self.device.enable_polling()
+
+    async def remove_callback(self, callback):
         """Remove previously registered callback."""
         self._callbacks.discard(callback)
+
+        if not self._callbacks:
+            await self.device.disable_polling()
 
     # -----Data Fetching-----
 
