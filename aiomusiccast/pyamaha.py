@@ -126,10 +126,6 @@ class AsyncDevice:
 
     # end-of-method __init__
 
-    def __del__(self):
-        if self._transport:
-            self._transport.close()
-
     @property
     def transport(self):
         return self._transport
