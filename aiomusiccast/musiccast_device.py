@@ -119,6 +119,8 @@ class MusicCastZoneData:
 class MusicCastDevice:
     """Dummy MusicCastDevice (device for HA) for Hello World example."""
 
+    device: AsyncDevice
+
     def __init__(self, ip, client):
         """Init dummy MusicCastDevice."""
         self.ip = ip
@@ -129,7 +131,7 @@ class MusicCastDevice:
         except RuntimeError:
             self.event_loop = asyncio.new_event_loop()
 
-        self.device = AsyncDevice(client, ip, self.handle)
+        self.device = AsyncDevice(client, ip, self.event_loop, self.handle)
         self._callbacks = set()
         self._group_update_callbacks = set()
         self.data = MusicCastData()
@@ -153,12 +155,16 @@ class MusicCastDevice:
 
     @classmethod
     async def get_device_info(cls, ip, client):
-        device = AsyncDevice(client, ip)
+        try:
+            event_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            event_loop = asyncio.new_event_loop()
+        device = AsyncDevice(client, ip, event_loop)
         return await device.request_json(System.get_device_info())
 
     # -----UDP messaging-----
 
-    def handle(self, message):
+    async def handle(self, message):
         """Handle udp events."""
         for parameter in message:
             if parameter in ["main", "zone2", "zone3", "zone4"]:
@@ -180,15 +186,11 @@ class MusicCastDevice:
                 if new_zone_data.get("play_info_updated") or new_zone_data.get(
                         "status_updated"
                 ):
-                    asyncio.run_coroutine_threadsafe(
-                        self._fetch_zone(parameter), self.event_loop
-                    ).result()
+                    await self._fetch_zone(parameter)
 
         if "netusb" in message.keys():
             if message.get("netusb").get("play_info_updated"):
-                asyncio.run_coroutine_threadsafe(
-                    self._fetch_netusb(), self.event_loop
-                ).result()
+                await self._fetch_netusb()
 
             play_time = message.get("netusb").get("play_time")
             if play_time:
@@ -196,27 +198,19 @@ class MusicCastDevice:
                 self.data.netusb_play_time_updated = datetime.utcnow()
 
             if message.get("netusb").get("preset_info_updated"):
-                asyncio.run_coroutine_threadsafe(
-                    self._fetch_netusb_presets(), self.event_loop
-                ).result()
+                await self._fetch_netusb_presets()
 
         if "tuner" in message.keys():
             if message.get("tuner").get("play_info_updated"):
-                asyncio.run_coroutine_threadsafe(
-                    self._fetch_tuner(), self.event_loop
-                ).result()
+                await self._fetch_tuner()
 
         if "dist" in message.keys():
             if message.get("dist").get("dist_info_updated"):
-                asyncio.run_coroutine_threadsafe(
-                    self._fetch_distribution_data(), self.event_loop
-                ).result()
+                await self._fetch_distribution_data()
 
         if "clock" in message.keys():
             if message.get("clock").get("settings_updated"):
-                asyncio.run_coroutine_threadsafe(
-                    self._fetch_clock_data(), self.event_loop
-                ).result()
+                await self._fetch_clock_data()
 
         for callback in self._callbacks:
             callback()
@@ -354,6 +348,8 @@ class MusicCastDevice:
 
     async def fetch(self):
         """Fetch data from musiccast device."""
+        if self.device.transport is None:
+            await self.device.enable_polling()
         if not self._network_status:
             self._network_status = await self.device.request_json(System.get_network_status())
 
