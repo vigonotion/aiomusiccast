@@ -130,6 +130,10 @@ class AsyncDevice:
         if self._transport:
             self._transport.close()
 
+    @property
+    def transport(self):
+        return self._transport
+
     async def enable_polling(self):
         # One protocol instance will be created to serve all
         # client requests.
@@ -137,13 +141,20 @@ class AsyncDevice:
             lambda: MusicCastUdpProtocol(self.handle_event),
             local_addr=('0.0.0.0', 0))
 
-        port = self._transport._sock.getsockname()[1]
+        socket = self._transport.get_extra_info('socket')
+
+        if socket is None:
+            self.disable_polling()
+            _LOGGER.error("Failed to open UDP connection")
+            return
+
+        port = socket.getsockname()[1]
 
         self._headers.update(
             {"X-AppName": "MusicCast/1.0", "X-AppPort": str(port)}
         )
 
-    async def disable_polling(self):
+    def disable_polling(self):
         self._headers = {}
 
         self._transport.close()

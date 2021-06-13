@@ -155,7 +155,11 @@ class MusicCastDevice:
 
     @classmethod
     async def get_device_info(cls, ip, client):
-        device = AsyncDevice(client, ip)
+        try:
+            event_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            event_loop = asyncio.new_event_loop()
+        device = AsyncDevice(client, ip, event_loop)
         return await device.request_json(System.get_device_info())
 
     # -----UDP messaging-----
@@ -211,18 +215,13 @@ class MusicCastDevice:
         for callback in self._callbacks:
             callback()
 
-    async def register_callback(self, callback):
+    def register_callback(self, callback):
         """Register callback, called when MusicCastDevice changes state."""
         self._callbacks.add(callback)
 
-        await self.device.enable_polling()
-
-    async def remove_callback(self, callback):
+    def remove_callback(self, callback):
         """Remove previously registered callback."""
         self._callbacks.discard(callback)
-
-        if not self._callbacks:
-            await self.device.disable_polling()
 
     # -----Data Fetching-----
 
@@ -349,6 +348,8 @@ class MusicCastDevice:
 
     async def fetch(self):
         """Fetch data from musiccast device."""
+        if self.device.transport is None:
+            await self.device.enable_polling()
         if not self._network_status:
             self._network_status = await self.device.request_json(System.get_network_status())
 
