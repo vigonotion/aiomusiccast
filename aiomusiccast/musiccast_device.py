@@ -160,7 +160,7 @@ class MusicCastDevice:
 
     # -----UDP messaging-----
 
-    def handle(self, message):
+    async def handle(self, message):
         """Handle udp events."""
         for parameter in message:
             if parameter in ["main", "zone2", "zone3", "zone4"]:
@@ -182,15 +182,11 @@ class MusicCastDevice:
                 if new_zone_data.get("play_info_updated") or new_zone_data.get(
                         "status_updated"
                 ):
-                    asyncio.create_task(
-                        self._fetch_zone(parameter)
-                    )
+                    await self._fetch_zone(parameter)
 
         if "netusb" in message.keys():
             if message.get("netusb").get("play_info_updated"):
-                asyncio.create_task(
-                    self._fetch_netusb()
-                )
+                await self._fetch_netusb()
 
             play_time = message.get("netusb").get("play_time")
             if play_time:
@@ -198,32 +194,22 @@ class MusicCastDevice:
                 self.data.netusb_play_time_updated = datetime.utcnow()
 
             if message.get("netusb").get("preset_info_updated"):
-                asyncio.create_task(
-                    self._fetch_netusb_presets()
-                )
+                await self._fetch_netusb_presets()
 
         if "tuner" in message.keys():
             if message.get("tuner").get("play_info_updated"):
-                asyncio.create_task(
-                    self._fetch_tuner()
-                )
+                await self._fetch_tuner()
 
         if "dist" in message.keys():
             if message.get("dist").get("dist_info_updated"):
-                asyncio.create_task(
-                    self._fetch_distribution_data()
-                )
+                await self._fetch_distribution_data()
 
         if "clock" in message.keys():
             if message.get("clock").get("settings_updated"):
-                asyncio.create_task(
-                    self._fetch_clock_data()
-                )
+                await self._fetch_clock_data()
 
         for callback in self._callbacks:
-            asyncio.create_task(
-                callback()
-            )
+            callback()
 
     async def register_callback(self, callback):
         """Register callback, called when MusicCastDevice changes state."""

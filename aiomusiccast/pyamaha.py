@@ -1,16 +1,13 @@
 # taken from github.com/rsc-dev/pyamaha, which is licensed under the MIT License
 from __future__ import annotations
 from asyncio.transports import BaseTransport
-from typing import Callable
+from typing import Awaitable
 
 import aiohttp
 from aiomusiccast.exceptions import MusicCastConnectionException
 import json
 import logging
 import queue
-import socket
-import threading
-import time
 from datetime import datetime
 from aiohttp import ClientError, ClientTimeout
 import asyncio
@@ -80,7 +77,9 @@ RESPONSE_CODE = {
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class MusicCastUdpProtocol(asyncio.DatagramProtocol):
+    transport: BaseTransport
 
     def __init__(self, handle_event) -> None:
         super().__init__()
@@ -91,12 +90,12 @@ class MusicCastUdpProtocol(asyncio.DatagramProtocol):
 
     def datagram_received(self, data, addr):
         message = data.decode()
-        data = {}
         try:
             data = json.loads(message)
-            self.handle_event(data)
+            asyncio.create_task(self.handle_event(data))
         except ValueError:
             _LOGGER.error("Received invalid message: %s", message)
+
 
 class AsyncDevice:
     """
@@ -104,11 +103,10 @@ class AsyncDevice:
     """
 
     ip: str
-    handle_event: Callable[[dict], None] | None
+    handle_event: Awaitable[[dict], None] | None
 
     _messages: queue.Queue
-    _headers = dict[str, str]
-    _transport: BaseTransport
+    _transport: [BaseTransport, None]
 
     def __init__(self, client, ip, loop, handle_event=None):
         """Ctor.
@@ -498,7 +496,7 @@ class System:
     @staticmethod
     def set_wireless_lan(
         ssid=None,
-        type=None,
+        wifi_type=None,
         key=None,
         dhcp=None,
         ip_address=None,
@@ -516,9 +514,9 @@ class System:
         if ssid is not None:
             data['ssid'] = ssid
 
-        if type is not None:
-            assert type in WIFI, 'Invalid TYPE value!'
-            data['type'] = type
+        if wifi_type is not None:
+            assert wifi_type in WIFI, 'Invalid TYPE value!'
+            data['type'] = wifi_type
 
         if key is not None:
             data['key'] = key
@@ -546,16 +544,16 @@ class System:
     # end-of-method set_wireless_lan
 
     @staticmethod
-    def set_wireless_direct(type=None, key=None):
+    def set_wireless_direct(wifi_type=None, key=None):
         """For setting Wireless Network (Wireless Direct). Network connection is switched to wireless
         (Wireless Direct) by using this API. If no parameter is specified, current parameter is used. If set
         parameter is incomplete, it is possible not to provide network avalability.
         """
         data = {}
 
-        if type is not None:
-            assert type in WIFI_DIRECT, 'Invalid TYPE value!'
-            data['type'] = type
+        if wifi_type is not None:
+            assert wifi_type in WIFI_DIRECT, 'Invalid TYPE value!'
+            data['type'] = wifi_type
 
         if key is not None:
             data['key'] = key
