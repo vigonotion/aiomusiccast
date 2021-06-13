@@ -119,6 +119,8 @@ class MusicCastZoneData:
 class MusicCastDevice:
     """Dummy MusicCastDevice (device for HA) for Hello World example."""
 
+    device: AsyncDevice
+
     def __init__(self, ip, client):
         """Init dummy MusicCastDevice."""
         self.ip = ip
@@ -155,6 +157,9 @@ class MusicCastDevice:
     async def get_device_info(cls, ip, client):
         device = AsyncDevice(client, ip)
         return await device.request_json(System.get_device_info())
+
+    async def poll(self):
+        await self.device.poll()
 
     # -----UDP messaging-----
 

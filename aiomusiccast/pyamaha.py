@@ -1,5 +1,7 @@
 # taken from github.com/rsc-dev/pyamaha, which is licensed under the MIT License
 from __future__ import annotations
+from asyncio.transports import BaseTransport
+from typing import Callable
 
 import aiohttp
 from aiomusiccast.exceptions import MusicCastConnectionException
@@ -11,6 +13,7 @@ import threading
 import time
 from datetime import datetime
 from aiohttp import ClientError, ClientTimeout
+import asyncio
 
 BAND = ['common', 'am', 'fm', 'dab']
 CD_PLAYBACK = [
@@ -77,98 +80,37 @@ RESPONSE_CODE = {
 
 _LOGGER = logging.getLogger(__name__)
 
+class MusicCastUdpProtocol(asyncio.Protocol):
 
-class BaseDevice:
-    """
-    Yamaha device abstraction class.
-    """
-
-    def __init__(self, ip, handle_event=None):
-        """Ctor.
-
-        Arguments:
-            @param ip: Yamaha device IP.
-            @param handle_event: callback function with one parameter (the message).
-        """
-        self.ip = ip
+    def __init__(self, handle_event) -> None:
+        super().__init__()
         self.handle_event = handle_event
 
-        self._messages = queue.Queue()
-        self._headers = {}
+    def connection_made(self, transport):
+        self.transport = transport
 
-        self._socket = None
+    def datagram_received(self, data, addr):
+        message = data.decode()
+        print('Received %r from %s' % (message, addr))
 
-        if handle_event:
-            self._init_socket()
-
-    def _init_socket(self):
+        data = {}
         try:
-            self._socket = socket.socket(
-                socket.AF_INET, socket.SOCK_DGRAM  # IPv4  # UDP
-            )
-            self._socket.bind(('', 0))
-            self._udp_port = self._socket.getsockname()[1]
-        except socket.error as err:
-            raise err
-        else:
-            socket_thread = threading.Thread(
-                name="SocketThread", target=self._socket_worker
-            )
-            socket_thread.setDaemon(True)
-            socket_thread.start()
+            data = json.loads(message)
+            self.handle_event(data)
+        except ValueError:
+            _LOGGER.error("Received invalid message: %s", message)
 
-            worker_thread = threading.Thread(
-                name="WorkerThread", target=self._message_worker
-            )
-            worker_thread.setDaemon(True)
-            worker_thread.start()
-
-            self._headers.update(
-                {"X-AppName": "MusicCast/1.0", "X-AppPort": str(self._udp_port)}
-            )
-
-    def _message_worker(self):
-        """Loop through messages and pass them on to right device"""
-        _LOGGER.debug("Starting Worker Thread.")
-
-        while True:
-
-            if not self._messages.empty():
-                message = self._messages.get()
-
-                data = {}
-                try:
-                    data = json.loads(message.decode("utf-8"))
-                except ValueError:
-                    _LOGGER.error("Received invalid message: %s", message)
-
-                self.handle_event(data)
-                self._messages.task_done()
-
-            time.sleep(0.2)
-
-    def _socket_worker(self):
-        """Socket Loop that fills message queue"""
-        while True:
-            try:
-                data, addr = self._socket.recvfrom(1024)  # buffer size is 1024 bytes
-            except OSError as err:
-                _LOGGER.error(err)
-            else:
-                _LOGGER.debug("received message: %s from %s", data, addr)
-                self._messages.put(data)
-            time.sleep(0.2)
-
-    def __del__(self):
-        if self._socket:
-            _LOGGER.debug("Closing Socket.")
-            self._socket.close()
-
-
-class AsyncDevice(BaseDevice):
+class AsyncDevice:
     """
     Yamaha async device abstraction class.
     """
+
+    ip: str
+    handle_event: Callable[[dict], None] | None
+
+    _messages: queue.Queue
+    _headers = dict[str, str]
+    _transport: BaseTransport
 
     def __init__(self, client, ip, handle_event=None):
         """Ctor.
@@ -176,12 +118,35 @@ class AsyncDevice(BaseDevice):
         Arguments:
             @param client: aiohttp client session.
             @param ip: Yamaha device IP.
-            @param handle_event: callback function with one parameter (the message).
         """
-        super().__init__(ip, handle_event)
+        self.ip = ip
         self.client: aiohttp.ClientSession = client
+        self.handle_event = handle_event
+
+        self._messages = queue.Queue()
+        self._headers = {}
+        self._transport = None
 
     # end-of-method __init__
+
+    def __del__(self):
+        if self._transport:
+            self._transport.close()
+
+    async def poll(self):
+        loop = asyncio.get_running_loop()
+
+        # One protocol instance will be created to serve all
+        # client requests.
+        _transport, _ = await loop.create_datagram_endpoint(
+            lambda: MusicCastUdpProtocol(self.handle_event),
+            local_addr=('0.0.0.0', 0))
+
+        port = _transport._sock.getsockname()[1]
+
+        self._headers.update(
+            {"X-AppName": "MusicCast/1.0", "X-AppPort": str(port)}
+        )
 
     async def request(self, *args):
         """Request YamahaExtendedControl API URI.
