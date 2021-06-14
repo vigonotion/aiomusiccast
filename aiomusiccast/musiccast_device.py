@@ -5,10 +5,9 @@ import logging
 import math
 from datetime import datetime
 from typing import Dict, List
-from urllib.parse import urlparse, urlunparse, quote_plus
 
-from async_upnp_client import UpnpDevice, UpnpFactory, UpnpService, UpnpStateVariable, UpnpError
-from async_upnp_client.aiohttp import AiohttpRequester, AiohttpSessionRequester
+from async_upnp_client import UpnpFactory
+from async_upnp_client.aiohttp import AiohttpSessionRequester
 from async_upnp_client.profiles.dlna import DmrDevice, DeviceState
 
 from .pyamaha import AsyncDevice, Clock, Dist, NetUSB, System, Tuner, Zone
