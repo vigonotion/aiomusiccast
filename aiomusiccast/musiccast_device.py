@@ -669,24 +669,18 @@ class MusicCastDevice:
         # Stop current playing media
         if (await self.dlna_dmr()).can_stop:
             await (await self.dlna_dmr()).async_stop()
-            print("send stop")
-        await asyncio.sleep(2)
+
         # Queue media
         await (await self.dlna_dmr()).async_set_transport_uri(
             media_id, title
         )
-        print("queued media")
-        print("waiting for ready to play")
+
         await (await self.dlna_dmr()).async_wait_for_can_play()
-        print("ready to play")
         # If already playing, no need to call Play
         if (await self.dlna_dmr()).state == DeviceState.PLAYING:
-            print("already playing")
             return
 
-        await asyncio.sleep(2)
         await (await self.dlna_dmr()).async_play()
-        print("sent play")
 
     # -----Properties-----
 
