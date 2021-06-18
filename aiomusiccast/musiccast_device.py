@@ -666,19 +666,10 @@ class MusicCastDevice:
         )
 
     async def play_url_media(self, media_id, title):
-        # Stop current playing media
-        if (await self.dlna_dmr()).can_stop:
-            await (await self.dlna_dmr()).async_stop()
-
         # Queue media
         await (await self.dlna_dmr()).async_set_transport_uri(
             media_id, title
         )
-
-        await (await self.dlna_dmr()).async_wait_for_can_play()
-        # If already playing, no need to call Play
-        if (await self.dlna_dmr()).state == DeviceState.PLAYING:
-            return
 
         await (await self.dlna_dmr()).async_play()
 
