@@ -1,3 +1,4 @@
+from aiomusiccast.const import DEVICE_FUNC_LIST_TO_FEATURE_MAPPING, DeviceFeature, ZONE_FUNC_LIST_TO_FEATURE_MAPPING, ZoneFeature
 from aiomusiccast.exceptions import MusicCastGroupException
 import asyncio
 import logging
@@ -69,10 +70,7 @@ class MusicCastData:
         self.group_client_list = []
         self.group_update_lock = asyncio.locks.Lock()
 
-        self.has_clock = False
-
         # Alarm
-        self.has_alarm = False
         self.alarm_enabled = None
         self.alarm_volume = None
         self.alarm_volume_range = (0, 0)
@@ -102,6 +100,8 @@ class MusicCastData:
 class MusicCastZoneData:
     """Object that holds data for a MusicCast device zone."""
 
+    features: ZoneFeature = ZoneFeature.NONE
+
     def __init__(self):
         """Ctor."""
         self.power = None
@@ -120,6 +120,7 @@ class MusicCastDevice:
     """Dummy MusicCastDevice (device for HA) for Hello World example."""
 
     device: AsyncDevice
+    features: DeviceFeature = DeviceFeature.NONE
 
     def __init__(self, ip, client):
         """Init dummy MusicCastDevice."""
@@ -367,6 +368,15 @@ class MusicCastDevice:
         if not self._features:
             self._features = await self.device.request_json(System.get_features())
 
+            # feature flags from func list
+            for feature in self._features.get("system", {}).get("func_list", []):
+                feature_bit = DEVICE_FUNC_LIST_TO_FEATURE_MAPPING.get(feature)
+
+                if feature_bit:
+                    self.features |= feature_bit
+                else:
+                    _LOGGER.info("The model %s supports the feature %s which is not known to aiomusiccast. Please consider opening an issue on GitHub to tell us about this feature so we can implement it.", self.data.model_name, feature)
+
             self._zone_ids = [zone.get("id") for zone in self._features.get("zone", [])]
 
             for zone in self._features.get("zone", []):
@@ -387,16 +397,25 @@ class MusicCastDevice:
                 zone_data.input_list = zone.get("input_list", [])
                 zone_data.func_list = zone.get('func_list')
 
+                for feature in zone_data.func_list:
+                    feature_bit = ZONE_FUNC_LIST_TO_FEATURE_MAPPING.get(feature)
+
+                    if feature_bit:
+                        zone_data.features |= feature_bit
+                    else:
+                        _LOGGER.info("Zone %s of model %s supports the feature %s which is not known to aiomusiccast. Please consider opening an issue on GitHub to tell us about this feature so we can implement it.", zone_id, self.data.model_name, feature)
+
+
                 self.data.zones[zone_id] = zone_data
 
             if "clock" in self._features.keys():
                 if "alarm" in self._features.get('clock', {}).get('func_list', []):
-                    self.data.has_alarm = True
+                    self.features |= FEATURE_ALARM
 
                 if "date_and_time" in self._features.get('clock', {}).get(
                         'func_list', []
                 ):
-                    self.data.has_clock = True
+                    self.features |= FEATURE_CLOCK
 
                 for value_range in self._features.get('clock', {}).get(
                         'range_step', []
@@ -433,7 +452,7 @@ class MusicCastDevice:
         await self._fetch_netusb_presets()
         await self._fetch_tuner()
         await self._fetch_distribution_data()
-        if self.data.has_alarm:
+        if DeviceFeature.ALARM in self.features:
             await self._fetch_clock_data()
 
         for zone in self._zone_ids:
