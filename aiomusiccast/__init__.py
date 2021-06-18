@@ -10,6 +10,8 @@ from .exceptions import MusicCastException, MusicCastConnectionException, MusicC
 
 from .musiccast_media_content import MusicCastMediaContent
 
+from .features import DeviceFeature, ZoneFeature
+
 try:
     __version__ = get_distribution('aiomusiccast').version
 except DistributionNotFound:
