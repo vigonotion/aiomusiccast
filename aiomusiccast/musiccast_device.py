@@ -410,12 +410,12 @@ class MusicCastDevice:
 
             if "clock" in self._features.keys():
                 if "alarm" in self._features.get('clock', {}).get('func_list', []):
-                    self.features |= FEATURE_ALARM
+                    self.features |= DeviceFeature.ALARM
 
                 if "date_and_time" in self._features.get('clock', {}).get(
                         'func_list', []
                 ):
-                    self.features |= FEATURE_CLOCK
+                    self.features |= DeviceFeature.CLOCK
 
                 for value_range in self._features.get('clock', {}).get(
                         'range_step', []
