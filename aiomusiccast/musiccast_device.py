@@ -386,13 +386,6 @@ class MusicCastDevice:
                     zone_id, MusicCastZoneData()
                 )
 
-                range_volume = next(
-                    item for item in zone.get("range_step") if item["id"] == "volume"
-                )
-
-                zone_data.min_volume = range_volume.get("min")
-                zone_data.max_volume = range_volume.get("max")
-
                 zone_data.sound_program_list = zone.get("sound_program_list", [])
                 zone_data.input_list = zone.get("input_list", [])
                 zone_data.func_list = zone.get('func_list')
@@ -404,6 +397,14 @@ class MusicCastDevice:
                         zone_data.features |= feature_bit
                     else:
                         _LOGGER.info("Zone %s of model %s supports the feature %s which is not known to aiomusiccast. Please consider opening an issue on GitHub to tell us about this feature so we can implement it.", zone_id, self.data.model_name, feature)
+
+                if ZoneFeature.VOLUME in zone_data.features:
+                    range_volume = next(
+                        item for item in zone.get("range_step") if item["id"] == "volume"
+                    )
+
+                    zone_data.min_volume = range_volume.get("min")
+                    zone_data.max_volume = range_volume.get("max")
 
 
                 self.data.zones[zone_id] = zone_data
@@ -448,9 +449,12 @@ class MusicCastDevice:
             for source in self._name_text.get("input_list")
         }
 
-        await self._fetch_netusb()
-        await self._fetch_netusb_presets()
-        await self._fetch_tuner()
+        if "netusb" in self._features.keys() and self._features.get("netusb").get("func_list"):
+            await self._fetch_netusb()
+            await self._fetch_netusb_presets()
+
+        if "tuner" in self._features.keys():
+            await self._fetch_tuner()
         await self._fetch_distribution_data()
         if DeviceFeature.ALARM in self.features:
             await self._fetch_clock_data()
