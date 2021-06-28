@@ -171,18 +171,23 @@ class MusicCastDevice:
             if parameter in ["main", "zone2", "zone3", "zone4"]:
                 new_zone_data = message[parameter]
 
-                self.data.zones[parameter].current_volume = new_zone_data.get(
-                    "volume", self.data.zones[parameter].current_volume
-                )
-                self.data.zones[parameter].power = new_zone_data.get(
-                    "power", self.data.zones[parameter].power
-                )
-                self.data.zones[parameter].mute = new_zone_data.get(
-                    "mute", self.data.zones[parameter].mute
-                )
-                self.data.zones[parameter].input = new_zone_data.get(
-                    "input", self.data.zones[parameter].input
-                )
+                zone = self.data.zones.get(parameter)
+
+                if zone:
+                    zone.current_volume = new_zone_data.get(
+                        "volume", zone.current_volume
+                    )
+                    zone.power = new_zone_data.get(
+                        "power", zone.power
+                    )
+                    zone.mute = new_zone_data.get(
+                        "mute", zone.mute
+                    )
+                    zone.input = new_zone_data.get(
+                        "input", zone.input
+                    )
+                else:
+                    _LOGGER.warning("Zone %s does not exist. Available zones are: %s", parameter, self.data.zones.keys())
 
                 if new_zone_data.get("play_info_updated") or new_zone_data.get(
                         "status_updated"
