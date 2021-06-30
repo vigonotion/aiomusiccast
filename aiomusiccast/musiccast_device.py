@@ -406,7 +406,6 @@ class MusicCastDevice:
                     zone_data.min_volume = range_volume.get("min")
                     zone_data.max_volume = range_volume.get("max")
 
-
                 self.data.zones[zone_id] = zone_data
 
             if "clock" in self._features.keys():
@@ -685,6 +684,10 @@ class MusicCastDevice:
         """Register async methods called after changes of the distribution data here."""
         self._group_update_callbacks.add(callback)
 
+    def remove_group_update_callback(self, callback):
+        """Remove async methods called after changes of the distribution data here."""
+        self._group_update_callbacks.discard(callback)
+
     # Simple check functions for better code readability
 
     def _check_clients_removed(self, clients):
@@ -704,6 +707,9 @@ class MusicCastDevice:
 
     def _check_group_server_zone(self, zone):
         return self.data.group_server_zone == zone
+
+    def _check_power_status(self, zone_id, status):
+        return self.data.zones[zone_id].power == status
 
     # Group update checking functions
 
@@ -826,6 +832,23 @@ class MusicCastDevice:
             await self.mc_client_unjoin(False)
         else:
             raise MusicCastGroupException(self.ip + ": Failed to leave group")
+
+    async def zone_unjoin(self, zone_id, retry=True):
+        """Stop the musiccast playback for one of the zones, but keep the device in the group."""
+        save_inputs = self.get_save_inputs(zone_id)
+        if len(save_inputs):
+            await self.select_source(zone_id, save_inputs[0])
+        else:
+            _LOGGER.warning(self.ip + ": did not find a save input for zone " + zone_id)
+        # Then turn off the zone
+        await self.turn_off(zone_id)
+        if await self.check_group_data([lambda: self._check_power_status(zone_id, "standby")]):
+            return
+
+        if retry:
+            await self.zone_unjoin(zone_id, False)
+        else:
+            raise MusicCastGroupException(self.ip + ": Failed to leave group with zone " + zone_id)
 
     # Misc
 
