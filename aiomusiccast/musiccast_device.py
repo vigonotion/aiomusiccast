@@ -183,9 +183,7 @@ class MusicCastDevice:
                     zone.mute = new_zone_data.get(
                         "mute", zone.mute
                     )
-                    zone.input = new_zone_data.get(
-                        "input", zone.input
-                    )
+                    await self._update_input(parameter, new_zone_data.get("input", zone.input))
                 else:
                     _LOGGER.warning("Zone %s does not exist. Available zones are: %s", parameter, self.data.zones.keys())
 
@@ -228,6 +226,17 @@ class MusicCastDevice:
     def remove_callback(self, callback):
         """Remove previously registered callback."""
         self._callbacks.discard(callback)
+
+    async def _update_input(self, zone_id, new_input):
+        """If the input of a zone changes from or to MC_LINK, a group update has to be triggered."""
+        trigger_group_cb = (
+                self.data.zones[zone_id].input == MC_LINK or
+                new_input == MC_LINK) and not self.data.group_update_lock.locked()
+
+        self.data.zones[zone_id].input = new_input
+        if trigger_group_cb:
+            for cb in self._group_update_callbacks:
+                await cb()
 
     # -----Data Fetching-----
 
@@ -305,10 +314,10 @@ class MusicCastDevice:
         zone_data.power = zone.get("power")
         zone_data.current_volume = zone.get("volume")
         zone_data.mute = zone.get("mute")
-        zone_data.input = zone.get("input")
         zone_data.sound_program = zone.get("sound_program")
 
         self.data.zones[zone_id] = zone_data
+        await self._update_input(zone_id, zone.get("input"))
 
     async def _fetch_distribution_data(self):
         _LOGGER.debug("Fetching Distribution data...")
@@ -840,20 +849,34 @@ class MusicCastDevice:
 
     async def zone_unjoin(self, zone_id, retry=True):
         """Stop the musiccast playback for one of the zones, but keep the device in the group."""
-        save_inputs = self.get_save_inputs(zone_id)
-        if len(save_inputs):
-            await self.select_source(zone_id, save_inputs[0])
-        else:
-            _LOGGER.warning(self.ip + ": did not find a save input for zone " + zone_id)
-        # Then turn off the zone
-        await self.turn_off(zone_id)
-        if await self.check_group_data([lambda: self._check_power_status(zone_id, "standby")]):
-            return
+        async with self.data.group_update_lock:
+            save_inputs = self.get_save_inputs(zone_id)
+            if len(save_inputs):
+                await self.select_source(zone_id, save_inputs[0])
+            else:
+                _LOGGER.warning(self.ip + ": did not find a save input for zone " + zone_id)
+            # Then turn off the zone
+            await self.turn_off(zone_id)
+            if await self.check_group_data([lambda: self._check_power_status(zone_id, "standby")]):
+                return
 
         if retry:
             await self.zone_unjoin(zone_id, False)
         else:
             raise MusicCastGroupException(self.ip + ": Failed to leave group with zone " + zone_id)
+
+    async def zone_join(self, zone_id, retry=True):
+        """Join a musiccast group with a zone when another zone of the same device is already client in that group."""
+        async with self.data.group_update_lock:
+            await self.select_source(zone_id, MC_LINK)
+
+            if await self.check_group_data([lambda: self._check_source(zone_id, MC_LINK)]):
+                return
+
+        if retry:
+            await self.zone_join(zone_id, False)
+        else:
+            raise MusicCastGroupException(self.ip + ": Failed to join group with zone " + zone_id)
 
     # Misc
 
