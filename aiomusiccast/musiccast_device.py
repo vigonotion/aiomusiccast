@@ -870,7 +870,7 @@ class MusicCastDevice:
         async with self.data.group_update_lock:
             await self.select_source(zone_id, MC_LINK)
 
-            if await self.check_group_data([lambda: self._check_source(zone_id, MC_LINK)]):
+            if await self.check_group_data([lambda: self._check_source(MC_LINK, zone_id)]):
                 return
 
         if retry:
