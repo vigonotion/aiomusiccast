@@ -16,6 +16,7 @@ MC_LINK_SOURCES = [MC_LINK, MAIN_SYNC]
 
 NULL_GROUP = "00000000000000000000000000000000"
 
+
 class MusicCastData:
     """Object that holds data for a MusicCast device."""
 
@@ -135,6 +136,7 @@ class MusicCastDevice:
         self.device = AsyncDevice(client, ip, self.event_loop, self.handle)
         self._callbacks = set()
         self._group_update_callbacks = set()
+        self.group_reduce_by_source = False
         self.data = MusicCastData()
 
         # the following data must not be updated frequently
@@ -235,8 +237,13 @@ class MusicCastDevice:
 
         self.data.zones[zone_id].input = new_input
         if trigger_group_cb:
-            for cb in self._group_update_callbacks:
-                await cb()
+            if self.data.zones[zone_id].input != MC_LINK:
+                self.group_reduce_by_source = True
+            try:
+                for cb in self._group_update_callbacks:
+                    await cb()
+            finally:
+                self.group_reduce_by_source = False
 
     # -----Data Fetching-----
 
