@@ -1,5 +1,5 @@
 from aiomusiccast.const import DEVICE_FUNC_LIST_TO_FEATURE_MAPPING, DeviceFeature, ZONE_FUNC_LIST_TO_FEATURE_MAPPING, ZoneFeature
-from aiomusiccast.exceptions import MusicCastGroupException
+from aiomusiccast.exceptions import MusicCastGroupException, MusicCastConfigurationException
 import asyncio
 import logging
 import math
@@ -175,6 +175,8 @@ class MusicCastDevice:
     async def dlna_dmr(self):
         # dlna client
         if not self._dlna_dmr:
+            if not self.upnp_description:
+                raise MusicCastConfigurationException("There is no upnp_description URL set for client %s.", self.ip)
             requester = AiohttpSessionRequester(self.client, True)
             upnp_factory = UpnpFactory(
                 requester, disable_state_variable_validation=True
