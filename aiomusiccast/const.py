@@ -68,3 +68,12 @@ ZONE_FUNC_LIST_TO_FEATURE_MAPPING = {
     "audio_select": ZoneFeature.AUDIO_SELECT,
     "surr_decoder_type": ZoneFeature.SURR_DECODER_TYPE,
 }
+
+MIME_TYPE_UPNP_CLASS = {
+    "application/x-mpegurl": "object.item.videoItem",
+    "image": "object.item.imageItem",
+    "video": "object.item.videoItem",
+    "application/dash+xml": "object.item.videoItem",
+    "application/vnd.apple.mpegurl": "object.item.videoItem",
+    "audio": "object.item.audioItem",
+}

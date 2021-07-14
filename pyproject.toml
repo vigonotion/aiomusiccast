@@ -30,7 +30,6 @@ classifiers = [
 
 python = "^3.8"
 aiohttp = "^3.7.4"
-async-upnp-client = "^0.16"
 
 [tool.poetry.dev-dependencies]
 
