@@ -39,6 +39,11 @@ class DeviceFeature(Flag):
     PARTY_MODE = auto()
     AUTO_POWER_STANDBY = auto()
     ANALYTICS = auto()
+    YPAO_VOLUME = auto()
+    PARTY_VOLUME = auto()
+    PARTY_MUTE = auto()
+    NAME_TEXT_AVR = auto()
+    HDMI_STANDBY_THROUGH = auto()
 
     # list of supported features that got infered indirectly
     CLOCK = auto()
@@ -78,3 +83,9 @@ class ZoneFeature(Flag):
     ACTUAL_VOLUME = auto()
     AUDIO_SELECT = auto()
     SURR_DECODER_TYPE = auto()
+    EXTRA_BASS = auto()
+    ADAPTIVE_DRC = auto()
+    DTS_DIALOGUE_CONTROL = auto()
+    ADAPTIVE_DSP_LEVEL = auto()
+    EXTRA_BASS = auto()
+    MONO = auto()
