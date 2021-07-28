@@ -34,6 +34,11 @@ DEVICE_FUNC_LIST_TO_FEATURE_MAPPING = {
     "speaker_pattern": DeviceFeature.SPEAKER_PATTERN,
     "party_mode": DeviceFeature.PARTY_MODE,
     'analytics': DeviceFeature.ANALYTICS,
+    "ypao_volume": DeviceFeature.YPAO_VOLUME,
+    "party_volume": DeviceFeature.PARTY_VOLUME,
+    "party_mute": DeviceFeature.PARTY_MUTE,
+    "name_text_avr": DeviceFeature.NAME_TEXT_AVR,
+    "hdmi_standby_through": DeviceFeature.HDMI_STANDBY_THROUGH,
 }
 
 
@@ -67,4 +72,10 @@ ZONE_FUNC_LIST_TO_FEATURE_MAPPING = {
     "actual_volume": ZoneFeature.ACTUAL_VOLUME,
     "audio_select": ZoneFeature.AUDIO_SELECT,
     "surr_decoder_type": ZoneFeature.SURR_DECODER_TYPE,
+    "extra_bass": ZoneFeature.EXTRA_BASS,
+    "adaptive_drc": ZoneFeature.ADAPTIVE_DRC,
+    "dts_dialogue_control": ZoneFeature.DTS_DIALOGUE_CONTROL,
+    "adaptive_dsp_level": ZoneFeature.ADAPTIVE_DSP_LEVEL,
+    "extra_bass": ZoneFeature.EXTRA_BASS,
+    "mono": ZoneFeature.MONO,
 }
