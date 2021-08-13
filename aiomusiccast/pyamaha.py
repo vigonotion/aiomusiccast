@@ -2,9 +2,11 @@
 from __future__ import annotations
 from asyncio.transports import BaseTransport
 from typing import Awaitable
+from urllib.parse import urlparse
+import xml.etree.ElementTree as ET
 
 import aiohttp
-from aiomusiccast.exceptions import MusicCastConnectionException
+from aiomusiccast.exceptions import MusicCastConnectionException, MusicCastConfigurationException
 import json
 import logging
 import queue
@@ -108,7 +110,14 @@ class AsyncDevice:
     _messages: queue.Queue
     _transport: [BaseTransport, None]
 
-    def __init__(self, client, ip, loop, handle_event=None):
+    def __init__(
+            self,
+            client,
+            ip,
+            loop,
+            handle_event=None,
+            upnp_description=None
+    ):
         """Ctor.
 
         Arguments:
@@ -119,6 +128,9 @@ class AsyncDevice:
         self.client: aiohttp.ClientSession = client
         self.loop = loop
         self.handle_event = handle_event
+        self.upnp_description = upnp_description
+        self.upnp_avt_ns = None
+        self.upnp_avt_ctrl = None
 
         self._messages = queue.Queue()
         self._headers = {}
@@ -172,7 +184,7 @@ class AsyncDevice:
             raise MusicCastConnectionException() from ce
         except TimeoutError as te:
             raise MusicCastConnectionException() from te
-            
+
     # end-of-method request
 
     async def request_json(self, *args):
@@ -217,6 +229,58 @@ class AsyncDevice:
         )
 
     # end-of-method post
+
+    async def dlna_avt_request(self, action: str, dlna_body_args: dict):
+        if not self.upnp_description:
+            raise MusicCastConfigurationException("The UPNP description has to be set to perform this action.")
+
+        upnp_port = urlparse(self.upnp_description).port
+
+        if not self.upnp_avt_ctrl or not self.upnp_avt_ns:
+            desc = await (await self.client.get(self.upnp_description)).text()
+            service_list = desc[desc.find("<serviceList>"):desc.find("</serviceList>") + 14]
+            services_xml = ET.fromstring(service_list)
+            res = None
+            for child in services_xml:
+                service_id = child.find("serviceId")
+                if service_id.text.find("AVT") != -1:
+                    res = child
+                    break
+
+            if not res:
+                raise MusicCastConfigurationException("Did not find the AVTransport service.")
+            self.upnp_avt_ns = res.find("serviceType").text
+            self.upnp_avt_ctrl = res.find("controlURL").text
+
+        avt_ctrl_url = f"http://{self.ip}:{upnp_port}{self.upnp_avt_ctrl}"
+
+        dlna_body = "".join(
+            [
+                f"<{key}>{value}</{key}>" for key, value in dlna_body_args.items()
+            ]
+        )
+
+        body = (
+            '<?xml version="1.0"?>'
+            '<s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"'
+            ' xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">'
+            "<s:Body>"
+            f'<u:{action} xmlns:u="{self.upnp_avt_ns}">'
+            f"{dlna_body}"
+            f"</u:{action}>"
+            "</s:Body>"
+            "</s:Envelope>"
+        )
+
+        headers = {
+            'Content-Type': 'text/xml; charset="utf-8"',
+            'SOAPACTION': f'"{self.upnp_avt_ns}#{action}"',
+            'Accept': '*/*',
+            'User-Agent': 'MusicCast/4673 (iOS)',  # Otherwise the main zone switches to server source on play commands
+            "Content-Length": str(len(body)),
+        }
+
+        return await self.client.request("POST", avt_ctrl_url, headers=headers, data=body)
 
     pass
 
@@ -457,12 +521,12 @@ class System:
 
     @staticmethod
     def set_wired_lan(
-        dhcp=None,
-        ip_address=None,
-        subnet_mask=None,
-        default_gateway=None,
-        dns_server_1=None,
-        dns_server_2=None,
+            dhcp=None,
+            ip_address=None,
+            subnet_mask=None,
+            default_gateway=None,
+            dns_server_1=None,
+            dns_server_2=None,
     ):
         """For setting Wired Network. Network connection is switched to wired by using this API. If no
         parameter is specified, current parameter is used. If set parameter is incomplete, it is possible not
@@ -502,15 +566,15 @@ class System:
 
     @staticmethod
     def set_wireless_lan(
-        ssid=None,
-        wifi_type=None,
-        key=None,
-        dhcp=None,
-        ip_address=None,
-        subnet_mask=None,
-        default_gateway=None,
-        dns_server_1=None,
-        dns_server_2=None,
+            ssid=None,
+            wifi_type=None,
+            key=None,
+            dhcp=None,
+            ip_address=None,
+            subnet_mask=None,
+            default_gateway=None,
+            dns_server_1=None,
+            dns_server_2=None,
     ):
         """For setting Wireless Network (Wi-Fi). Network connection is switched to wireless (Wi-Fi) by using
         this API. If no parameter is specified, current parameter is used. If set parameter is incomplete, it
@@ -571,7 +635,7 @@ class System:
 
     @staticmethod
     def set_ip_settings(
-        dhcp, ip_address, subnet_mask, default_gateway, dns_server_1, dns_server_2
+            dhcp, ip_address, subnet_mask, default_gateway, dns_server_1, dns_server_2
     ):
         """For setting IP. This API only set IP as maintain same network connection status (Wired/Wireless
         Lan/Wireless Direct/Extend). If no parameter is specified, current parameter is used. If set
@@ -1614,7 +1678,7 @@ class NetUSB:
         if list_id is not None:
             search_list_ids = ['main', 'auto_complete', 'search_artist', 'search_track']
             assert (
-                list_id in search_list_ids
+                    list_id in search_list_ids
             ), "list_id has to be one of the following " + str(search_list_ids)
             payload['list_id'] = list_id
         if index is not None:
@@ -1881,7 +1945,7 @@ class Clock:
                   Values: 12 (12-hour notation) / 24 (24-hour notation)
         """
         assert (
-            clock_format == 12 or clock_format == 24
+                clock_format == 12 or clock_format == 24
         ), "Only 12 and 24 are possible formats"
         return Clock.URI['SET_CLOCK_FORMAT'].format(
             host='{host}', format=str(clock_format) + 'h'
@@ -1889,21 +1953,21 @@ class Clock:
 
     @staticmethod
     def set_alarm_settings(
-        alarm_on,
-        volume=None,
-        fade_interval=None,
-        fade_type=None,
-        mode=None,
-        repeat=None,
-        day=None,
-        enable=None,
-        alarm_time=None,
-        beep=None,
-        playback_type=None,
-        resume_input=None,
-        preset_type=None,
-        preset_num=None,
-        preset_snooze=None,
+            alarm_on,
+            volume=None,
+            fade_interval=None,
+            fade_type=None,
+            mode=None,
+            repeat=None,
+            day=None,
+            enable=None,
+            alarm_time=None,
+            beep=None,
+            playback_type=None,
+            resume_input=None,
+            preset_type=None,
+            preset_num=None,
+            preset_snooze=None,
     ):
         """For setting alarm function.
 

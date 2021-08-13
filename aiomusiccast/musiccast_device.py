@@ -1,10 +1,14 @@
-from aiomusiccast.const import DEVICE_FUNC_LIST_TO_FEATURE_MAPPING, DeviceFeature, ZONE_FUNC_LIST_TO_FEATURE_MAPPING, ZoneFeature
+import mimetypes
+
+from aiomusiccast.const import DEVICE_FUNC_LIST_TO_FEATURE_MAPPING, DeviceFeature, ZONE_FUNC_LIST_TO_FEATURE_MAPPING, \
+    ZoneFeature, MIME_TYPE_UPNP_CLASS
 from aiomusiccast.exceptions import MusicCastGroupException
 import asyncio
 import logging
 import math
 from datetime import datetime
 from typing import Dict, List
+from xml.sax.saxutils import escape
 
 from .pyamaha import AsyncDevice, Clock, Dist, NetUSB, System, Tuner, Zone
 
@@ -123,7 +127,7 @@ class MusicCastDevice:
     device: AsyncDevice
     features: DeviceFeature = DeviceFeature.NONE
 
-    def __init__(self, ip, client):
+    def __init__(self, ip, client, upnp_description=None):
         """Init dummy MusicCastDevice."""
         self.ip = ip
         self.client = client
@@ -133,7 +137,7 @@ class MusicCastDevice:
         except RuntimeError:
             self.event_loop = asyncio.new_event_loop()
 
-        self.device = AsyncDevice(client, ip, self.event_loop, self.handle)
+        self.device = AsyncDevice(client, ip, self.event_loop, self.handle, upnp_description)
         self._callbacks = set()
         self._group_update_callbacks = set()
         self.group_reduce_by_source = False
@@ -573,9 +577,9 @@ class MusicCastDevice:
         else:
             await self.device.request(NetUSB.set_repeat(mode))
 
-    async def select_source(self, zone_id, source):
+    async def select_source(self, zone_id, source, mode=""):
         await self.device.request(
-            Zone.set_input(zone_id, source, "")
+            Zone.set_input(zone_id, source, mode)
         )
 
     async def recall_netusb_preset(self, zone_id, preset):
@@ -645,6 +649,55 @@ class MusicCastDevice:
     async def play_list_media(self, item, zone_id):
         await self.device.request(
             NetUSB.set_list_control("main", "play", item, zone_id)
+        )
+
+    async def play_url_media(self, zone_id, media_url, title, mime_type=None):
+        await self.select_source(zone_id, "server", "autoplay_disabled")
+
+        await self.device.dlna_avt_request("Stop", {"InstanceID": 0})
+
+        if not mime_type:
+            mime_type, _ = mimetypes.guess_type(media_url)
+
+        if not mime_type:
+            mime_type = "application/octet-stream"
+
+        obj_class = None
+        for mime, upnp in MIME_TYPE_UPNP_CLASS.items():
+            if mime_type.startswith(mime):
+                obj_class = upnp
+                break
+
+        if not obj_class:
+            obj_class = "object.item"
+
+        meta = (
+            '<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" '
+            'xmlns:dc="http://purl.org/dc/elements/1.1/" '
+            'xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" '
+            'xmlns:sec="http://www.sec.co.kr/">'
+            '<item id="0" parentID="-1" restricted="false">'
+            f'<dc:title>{title}</dc:title><upnp:class>{obj_class}</upnp:class>'
+            f'<res protocolInfo="http-get:*:{mime_type}:*">{media_url}</res>'
+            '</item>'
+            '</DIDL-Lite>'
+        )
+
+        await self.device.dlna_avt_request(
+            "SetAVTransportURI",
+            {
+                "InstanceID": 0,
+                "CurrentURI": media_url,
+                "CurrentURIMetaData": escape(meta),
+            }
+        )
+
+        await self.device.dlna_avt_request(
+            "Play",
+            {
+                "InstanceID": 0,
+                "Speed": 1,
+            }
         )
 
     # -----Properties-----

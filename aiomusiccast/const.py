@@ -79,3 +79,12 @@ ZONE_FUNC_LIST_TO_FEATURE_MAPPING = {
     "extra_bass": ZoneFeature.EXTRA_BASS,
     "mono": ZoneFeature.MONO,
 }
+
+MIME_TYPE_UPNP_CLASS = {
+    "application/x-mpegurl": "object.item.videoItem",
+    "image": "object.item.imageItem",
+    "video": "object.item.videoItem",
+    "application/dash+xml": "object.item.videoItem",
+    "application/vnd.apple.mpegurl": "object.item.videoItem",
+    "audio": "object.item.audioItem",
+}
