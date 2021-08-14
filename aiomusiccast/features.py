@@ -87,5 +87,4 @@ class ZoneFeature(Flag):
     ADAPTIVE_DRC = auto()
     DTS_DIALOGUE_CONTROL = auto()
     ADAPTIVE_DSP_LEVEL = auto()
-    EXTRA_BASS = auto()
     MONO = auto()
