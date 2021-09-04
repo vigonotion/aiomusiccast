@@ -173,6 +173,9 @@ class MusicCastDevice:
 
     async def handle(self, message):
         """Handle udp events."""
+        if message is None:
+            await self.fetch()
+
         for parameter in message:
             if parameter in ["main", "zone2", "zone3", "zone4"]:
                 new_zone_data = message[parameter]
