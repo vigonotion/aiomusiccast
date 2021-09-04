@@ -103,7 +103,6 @@ class MusicCastUdpProtocol(asyncio.DatagramProtocol):
         except Exception:
             _LOGGER.exception("An unexpected error occurred while handling an UDP message.")
         finally:
-            pass
             asyncio.create_task(self.handle_event(message_data))
 
 
