@@ -91,12 +91,19 @@ class MusicCastUdpProtocol(asyncio.DatagramProtocol):
         self.transport = transport
 
     def datagram_received(self, data, addr):
-        message = data.decode()
+        message_data = None
+        message_str = ""
         try:
-            data = json.loads(message)
-            asyncio.create_task(self.handle_event(data))
+            message_str = data.decode()
+            message_data = json.loads(message_str)
+        except UnicodeDecodeError:
+            _LOGGER.error("Received non UTF-8 compliant message: %s", data)
         except ValueError:
-            _LOGGER.error("Received invalid message: %s", message)
+            _LOGGER.error("Received invalid message: %s", message_str)
+        except Exception:
+            _LOGGER.exception("An unexpected error occurred while handling an UDP message.")
+        finally:
+            asyncio.create_task(self.handle_event(message_data))
 
 
 class AsyncDevice:
