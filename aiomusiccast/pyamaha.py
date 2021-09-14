@@ -933,7 +933,7 @@ class Zone:
         'GET_SOUND_PROGRAM_LIST': 'http://{host}/YamahaExtendedControl/v1/{zone}/getSoundProgramList',
         'SET_POWER': 'http://{host}/YamahaExtendedControl/v1/{zone}/setPower?power={power}',
         'SET_SLEEP': 'http://{host}/YamahaExtendedControl/v1/{zone}/setSleep?sleep={sleep}',
-        'SET_VOLUME': 'http://{host}/YamahaExtendedControl/v1/{zone}/setVolume?volume={volume}&step={step}',
+        'SET_VOLUME': 'http://{host}/YamahaExtendedControl/v1/{zone}/setVolume?volume={volume}',
         'SET_MUTE': 'http://{host}/YamahaExtendedControl/v1/{zone}/setMute?enable={enable}',
         'SET_INPUT': 'http://{host}/YamahaExtendedControl/v1/{zone}/setInput?input={input}&mode={mode}',
         'SET_SOUND_PROGRAM': 'http://{host}/YamahaExtendedControl/v1/{zone}/setSoundProgram?program={program}',
@@ -1035,9 +1035,12 @@ class Zone:
                     Values: Value range calculated by minimum/maximum/step values gotten via /system/getFeatures.
         """
         assert zone in ZONES, 'Invalid ZONE value!'
-        return Zone.URI['SET_VOLUME'].format(
-            host='{host}', zone=zone, volume=volume, step=step
+        url = Zone.URI['SET_VOLUME'].format(
+            host='{host}', zone=zone, volume=volume
         )
+        if step:
+            url += f"&step={step}"
+        return url
 
     # end-of-method set_volume
 

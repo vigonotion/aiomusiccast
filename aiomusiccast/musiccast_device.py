@@ -518,6 +518,20 @@ class MusicCastDevice:
             Zone.set_volume(zone_id, round(vol), 1)
         )
 
+    async def volume_up(self, zone_id, step=None):
+        """Turn up the volume by step or by the default step of the zone."""
+
+        await self.device.request(
+            Zone.set_volume(zone_id, "up", step)
+        )
+
+    async def volume_down(self, zone_id, step=None):
+        """Turn down the volume by step or by the default step of the zone."""
+
+        await self.device.request(
+            Zone.set_volume(zone_id, "down", step)
+        )
+
     async def netusb_play(self):
         await self.device.request(NetUSB.set_playback("play"))
 
