@@ -221,11 +221,11 @@ class AsyncDevice:
             # If it is only a URI, send GET...
             if isinstance(args[0], str):
                 response = await self.get(args[0])
-                return await self.build_json(response)
             else:
                 # ...otherwise unpack tuple and send POST
                 response = await self.post(*(args[0]))
-                return await self.build_json(response)
+
+            return await self.build_json(response)
 
         except ClientError as ce:
             raise MusicCastConnectionException() from ce
