@@ -11,7 +11,7 @@ import json
 import logging
 import queue
 from datetime import datetime
-from aiohttp import ClientError, ClientTimeout
+from aiohttp import ClientError, ClientTimeout, ClientResponse
 import asyncio
 
 BAND = ['common', 'am', 'fm', 'dab']
@@ -193,6 +193,23 @@ class AsyncDevice:
             raise MusicCastConnectionException() from te
 
     # end-of-method request
+    @classmethod
+    async def build_json(cls, response: ClientResponse):
+        """
+        A method, which tries to decode the response with errors being ignored.
+        @param response: The ClientResponse, which the data should be extrated from
+        @return: A dictionary on success
+        """
+        try:
+            text = await response.text()
+        except UnicodeDecodeError:
+            _LOGGER.warning("Failed to decode response. Trying to decode it with errors being ignored")
+            text = await response.text(errors="ignore")
+        try:
+            return json.loads(text)
+        except ValueError:
+            _LOGGER.error("Failed to generate JSON from %s", text)
+            raise
 
     async def request_json(self, *args):
         """Request YamahaExtendedControl API URI.
@@ -203,10 +220,13 @@ class AsyncDevice:
         try:
             # If it is only a URI, send GET...
             if isinstance(args[0], str):
-                return await(await self.get(args[0])).json()
+                response = await self.get(args[0])
             else:
                 # ...otherwise unpack tuple and send POST
-                return await(await self.post(*(args[0]))).json()
+                response = await self.post(*(args[0]))
+
+            return await self.build_json(response)
+
         except ClientError as ce:
             raise MusicCastConnectionException() from ce
         except TimeoutError as te:
