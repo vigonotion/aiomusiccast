@@ -118,6 +118,7 @@ class MusicCastZoneData:
         self.input = None
         self.sound_program_list = []
         self.sound_program = None
+        self.sleep_time = None
         self.func_list = []
 
 
@@ -329,6 +330,7 @@ class MusicCastDevice:
         zone_data.current_volume = zone.get("volume")
         zone_data.mute = zone.get("mute")
         zone_data.sound_program = zone.get("sound_program")
+        zone_data.sleep_time = zone.get("sleep")
 
         self.data.zones[zone_id] = zone_data
         await self._update_input(zone_id, zone.get("input"))
