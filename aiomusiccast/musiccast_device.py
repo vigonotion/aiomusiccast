@@ -195,7 +195,8 @@ class MusicCastDevice:
                     )
                     await self._update_input(parameter, new_zone_data.get("input", zone.input))
                 else:
-                    _LOGGER.warning("Zone %s does not exist. Available zones are: %s", parameter, self.data.zones.keys())
+                    _LOGGER.warning("Zone %s does not exist. Available zones are: %s", parameter,
+                                    self.data.zones.keys())
 
                 if new_zone_data.get("play_info_updated") or new_zone_data.get(
                         "status_updated"
@@ -405,7 +406,10 @@ class MusicCastDevice:
                 if feature_bit:
                     self.features |= feature_bit
                 else:
-                    _LOGGER.info("The model %s supports the feature %s which is not known to aiomusiccast. Please consider opening an issue on GitHub to tell us about this feature so we can implement it.", self.data.model_name, feature)
+                    _LOGGER.info(
+                        "The model %s supports the feature %s which is not known to aiomusiccast. Please consider "
+                        "opening an issue on GitHub to tell us about this feature so we can implement it.",
+                        self.data.model_name, feature)
 
             self._zone_ids = [zone.get("id") for zone in self._features.get("zone", [])]
 
@@ -426,7 +430,10 @@ class MusicCastDevice:
                     if feature_bit:
                         zone_data.features |= feature_bit
                     else:
-                        _LOGGER.info("Zone %s of model %s supports the feature %s which is not known to aiomusiccast. Please consider opening an issue on GitHub to tell us about this feature so we can implement it.", zone_id, self.data.model_name, feature)
+                        _LOGGER.info(
+                            "Zone %s of model %s supports the feature %s which is not known to aiomusiccast. Please "
+                            "consider opening an issue on GitHub to tell us about this feature so we can implement it.",
+                            zone_id, self.data.model_name, feature)
 
                 if ZoneFeature.VOLUME in zone_data.features:
                     range_volume = next(
@@ -439,7 +446,8 @@ class MusicCastDevice:
                 self.data.zones[zone_id] = zone_data
 
             if "clock" in self._features.keys():
-                if "alarm" in self._features.get('clock', {}).get('func_list', []):
+                if "alarm" in self._features.get('clock', {}).get('func_list', []) and \
+                        "oneday" in self._features.get('clock', {}).get('alarm_mode_list', []):
                     self.features |= DeviceFeature.ALARM
 
                 if "date_and_time" in self._features.get('clock', {}).get(
@@ -600,8 +608,8 @@ class MusicCastDevice:
         sleep_time = math.ceil(sleep_time / 30) * 30
         await self.device.get(Zone.set_sleep(zone_id, sleep_time))
 
-    async def configure_alarm(self, enable=None, volume=None, alarm_time=None, source=""):
-        """Setup alarm"""
+    async def configure_oneday_alarm(self, enable=None, volume=None, alarm_time=None, source=""):
+        """Setup oneday alarm."""
         enable = self.data.alarm_enabled if enable is None else enable
         resume_input = None
         preset_type = None
