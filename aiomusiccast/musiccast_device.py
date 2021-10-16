@@ -692,13 +692,13 @@ class MusicCastDevice:
             *Clock.set_alarm_settings(
                 alarm_on=alarm_on,
                 volume=volume,
-                mode=mode if playback_type or alarm_time else None,
-                day=day if playback_type or alarm_time else None,
+                mode=mode,
+                day=day,
                 playback_type=playback_type,
                 alarm_time=alarm_time,
                 preset_num=preset_num,
                 preset_type=preset_type,
-                enable=enable_day if playback_type or alarm_time else None,
+                enable=enable_day,
                 resume_input=resume_input,
                 beep=beep
             )
