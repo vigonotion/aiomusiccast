@@ -688,23 +688,6 @@ class MusicCastDevice:
             time_parts = alarm_time.split(':')
             alarm_time = time_parts[0] + time_parts[1]
 
-        (url, body) = Clock.set_alarm_settings(
-                alarm_on=alarm_on,
-                volume=volume,
-                mode=mode,
-                day=day,
-                playback_type=playback_type,
-                alarm_time=alarm_time,
-                preset_num=preset_num,
-                preset_type=preset_type,
-                enable=enable_day,
-                resume_input=resume_input,
-                beep=beep
-            )
-
-        print(url)
-        print(json.dumps(body))
-
         await self.device.post(
             *Clock.set_alarm_settings(
                 alarm_on=alarm_on,
