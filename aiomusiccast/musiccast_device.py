@@ -7,7 +7,7 @@ from aiomusiccast.exceptions import MusicCastGroupException
 import asyncio
 import logging
 import math
-from datetime import datetime
+from datetime import datetime, time
 from typing import Dict, List
 from xml.sax.saxutils import escape
 
@@ -393,14 +393,17 @@ class MusicCastDevice:
                 self.data.alarm_details[day] = MusicCastAlarmDetails()
 
             day_info = self._clock_info.get('alarm', {}).get(day, {})
+            time_str = day_info.get('time')
+            if isinstance(time_str, str):
+                time_str = f"{time_str[:2]}:{time_str[2:]}"
 
-            self.data.alarm_details[day].enabled = day_info.get('enable', None)
-            self.data.alarm_details[day].beep = day_info.get('beep', None)
-            self.data.alarm_details[day].time = day_info.get('time', None)
-            self.data.alarm_details[day].playback_type = day_info.get('playback_type', None)
-            self.data.alarm_details[day].resume_input = day_info.get('resume', {}).get('input', None)
-            self.data.alarm_details[day].preset = day_info.get('preset', {}).get('num', None)
-            self.data.alarm_details[day].preset_type = day_info.get('preset', {}).get('type', None)
+            self.data.alarm_details[day].enabled = day_info.get('enable')
+            self.data.alarm_details[day].beep = day_info.get('beep')
+            self.data.alarm_details[day].time = time_str
+            self.data.alarm_details[day].playback_type = day_info.get('playback_type')
+            self.data.alarm_details[day].resume_input = day_info.get('resume', {}).get('input')
+            self.data.alarm_details[day].preset = day_info.get('preset', {}).get('num')
+            self.data.alarm_details[day].preset_type = day_info.get('preset', {}).get('type')
             self.data.alarm_details[day].preset_info = (
                 day_info.get('preset', {}).get('netusb_info', {})
                 if self.data.alarm_details[day].preset_type == "netusb"
@@ -687,6 +690,9 @@ class MusicCastDevice:
         if isinstance(alarm_time, str) and alarm_time.find(":") != -1:
             time_parts = alarm_time.split(':')
             alarm_time = time_parts[0] + time_parts[1]
+
+        if isinstance(alarm_time, time):
+            alarm_time = alarm_time.strftime("%H%M")
 
         await self.device.post(
             *Clock.set_alarm_settings(
