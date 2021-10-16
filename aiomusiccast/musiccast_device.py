@@ -646,7 +646,7 @@ class MusicCastDevice:
             self,
             alarm_on: bool = None,
             volume: float = None,
-            alarm_time: str | time = None,
+            alarm_time: str | 'time' =None,
             source: str = None,
             mode: str = None,
             day: str = None,
