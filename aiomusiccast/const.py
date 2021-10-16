@@ -88,3 +88,16 @@ MIME_TYPE_UPNP_CLASS = {
     "application/vnd.apple.mpegurl": "object.item.videoItem",
     "audio": "object.item.audioItem",
 }
+
+ALARM_WEEK_DAYS = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+]
+
+ALARM_ONEDAY = "oneday"
+ALARM_WEEKLY = "weekly"

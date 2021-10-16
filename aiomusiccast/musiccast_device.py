@@ -1,7 +1,7 @@
 import mimetypes
 
 from aiomusiccast.const import DEVICE_FUNC_LIST_TO_FEATURE_MAPPING, DeviceFeature, ZONE_FUNC_LIST_TO_FEATURE_MAPPING, \
-    ZoneFeature, MIME_TYPE_UPNP_CLASS
+    ZoneFeature, MIME_TYPE_UPNP_CLASS, ALARM_WEEK_DAYS, ALARM_ONEDAY, ALARM_WEEKLY
 from aiomusiccast.exceptions import MusicCastGroupException
 import asyncio
 import logging
@@ -19,6 +19,17 @@ MAIN_SYNC = "main_sync"
 MC_LINK_SOURCES = [MC_LINK, MAIN_SYNC]
 
 NULL_GROUP = "00000000000000000000000000000000"
+
+
+class MusicCastAlarmDetails:
+    def __init__(self):
+        self.enabled = None
+        self.time = None
+        self.alarm_playback_type = None
+        self.alarm_resume_input = None
+        self.alarm_preset = None
+        self.alarm_preset_type = None
+        self.alarm_preset_info = None
 
 
 class MusicCastData:
@@ -76,20 +87,16 @@ class MusicCastData:
         self.group_update_lock = asyncio.locks.Lock()
 
         # Alarm
-        self.alarm_enabled = None
+        self.alarm_on = None
         self.alarm_volume = None
         self.alarm_volume_range = (0, 0)
         self.alarm_volume_step = 1
         self.alarm_fade_range = (0, 0)
         self.alarm_fade_step = 1
-        self.alarm_time = None
-        self.alarm_playback_type = None
         self.alarm_resume_input_list = []
-        self.alarm_resume_input = None
         self.alarm_preset_list = []
-        self.alarm_preset = None
-        self.alarm_preset_type = None
-        self.alarm_preset_info = None
+        self.alarm_mode = None
+        self.alarm_details: Dict[str, MusicCastAlarmDetails] = {}
 
     @property
     def fm_freq_str(self):
@@ -361,22 +368,34 @@ class MusicCastDevice:
             await self.device.request_json(Clock.get_clock_settings())
         )
 
-        one_day_info = self._clock_info.get('alarm', {}).get('oneday', {})
-
-        self.data.alarm_enabled = self._clock_info.get('alarm', {}).get(
-            'alarm_on', False
-        )
-        self.data.alarm_time = one_day_info.get('time', None)
-        self.data.alarm_playback_type = one_day_info.get('playback_type', None)
-        self.data.alarm_resume_input = one_day_info.get('resume', {}).get('input', None)
-        self.data.alarm_preset = one_day_info.get('preset', {}).get('num', None)
-        self.data.alarm_preset_type = one_day_info.get('preset', {}).get('type', None)
-        self.data.alarm_preset_info = (
-            one_day_info.get('preset', {}).get('netusb_info', {})
-            if self.data.alarm_preset_type == "netusb"
-            else one_day_info.get('preset', {}).get('tuner_info', {})
-        )
+        self.data.alarm_on = self._clock_info.get('alarm', {}).get('alarm_on', False)
         self.data.alarm_volume = self._clock_info.get('alarm', {}).get("volume", None)
+        self.data.alarm_mode = self._clock_info.get('alarm', {}).get("mode", None)
+
+        days = []
+        if DeviceFeature.ALARM_WEEKLY in self.features:
+            days += ALARM_WEEK_DAYS
+
+        if DeviceFeature.ALARM_ONEDAY in self.features:
+            days += [ALARM_ONEDAY]
+
+        for day in days:
+            if day not in self.data.alarm_details:
+                self.data.alarm_details[day] = MusicCastAlarmDetails()
+
+            day_info = self._clock_info.get('alarm', {}).get(day, {})
+
+            self.data.alarm_details[day].enabled = day_info.get['enable', None]
+            self.data.alarm_details[day].time = day_info.get('time', None)
+            self.data.alarm_details[day].alarm_playback_type = day_info.get('playback_type', None)
+            self.data.alarm_details[day].alarm_resume_input = day_info.get('resume', {}).get('input', None)
+            self.data.alarm_details[day].alarm_preset = day_info.get('preset', {}).get('num', None)
+            self.data.alarm_details[day].alarm_preset_type = day_info.get('preset', {}).get('type', None)
+            self.data.alarm_details[day].alarm_preset_info = (
+                day_info.get('preset', {}).get('netusb_info', {})
+                if self.data.alarm_details[day].alarm_preset_type == "netusb"
+                else day_info.get('preset', {}).get('tuner_info', {})
+            )
 
     async def fetch(self):
         """Fetch data from musiccast device."""
@@ -446,9 +465,11 @@ class MusicCastDevice:
                 self.data.zones[zone_id] = zone_data
 
             if "clock" in self._features.keys():
-                if "alarm" in self._features.get('clock', {}).get('func_list', []) and \
-                        "oneday" in self._features.get('clock', {}).get('alarm_mode_list', []):
-                    self.features |= DeviceFeature.ALARM
+                if "alarm" in self._features.get('clock', {}).get('func_list', []):
+                    if ALARM_ONEDAY in self._features.get('clock', {}).get('alarm_mode_list', []):
+                        self.features |= DeviceFeature.ALARM_ONEDAY
+                    if ALARM_WEEKLY in self._features.get('clock', {}).get('alarm_mode_list', []):
+                        self.features |= DeviceFeature.ALARM_WEEKLY
 
                 if "date_and_time" in self._features.get('clock', {}).get(
                         'func_list', []
@@ -608,9 +629,17 @@ class MusicCastDevice:
         sleep_time = math.ceil(sleep_time / 30) * 30
         await self.device.get(Zone.set_sleep(zone_id, sleep_time))
 
-    async def configure_oneday_alarm(self, enable=None, volume=None, alarm_time=None, source=""):
-        """Setup oneday alarm."""
-        enable = self.data.alarm_enabled if enable is None else enable
+    async def configure_alarm(
+            self,
+            alarm_on=None,
+            volume=None,
+            alarm_time=None,
+            source="",
+            mode="oneday",
+            day="oneday",
+            enable_day=None
+    ):
+        """Setup alarm."""
         resume_input = None
         preset_type = None
         preset_num = None
@@ -632,11 +661,15 @@ class MusicCastDevice:
             alarm_time = time_parts[0] + time_parts[1]
 
         await self.device.post(
-            *Clock.set_alarm_settings(enable, volume=volume, mode="oneday" if playback_type or alarm_time else None,
-                                      day="oneday" if playback_type or alarm_time else None,
-                                      playback_type=playback_type, alarm_time=alarm_time, preset_num=preset_num,
-                                      preset_type=preset_type, enable=enable if playback_type or alarm_time else None,
-                                      resume_input=resume_input)
+            *Clock.set_alarm_settings(
+                alarm_on=alarm_on,
+                volume=volume,
+                mode=mode if playback_type or alarm_time else None,
+                day=day if playback_type or alarm_time else None,
+                playback_type=playback_type, alarm_time=alarm_time, preset_num=preset_num,
+                preset_type=preset_type, enable=enable_day if playback_type or alarm_time else None,
+                resume_input=resume_input
+            )
         )
 
     # -----NetUSB Browsing-----
