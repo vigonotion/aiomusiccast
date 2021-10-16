@@ -644,16 +644,27 @@ class MusicCastDevice:
 
     async def configure_alarm(
             self,
-            alarm_on=None,
-            volume=None,
-            alarm_time=None,
-            source=None,
-            mode=None,
-            day=None,
-            enable_day=None,
-            beep=None
+            alarm_on: bool = None,
+            volume: float = None,
+            alarm_time: str | time = None,
+            source: str = None,
+            mode: str = None,
+            day: str = None,
+            enable_day: bool = None,
+            beep: bool = None
     ):
-        """Setup alarm."""
+        """
+        Configure an alarm.
+        @param alarm_on: Define whether the alarm should be turned on (bool)
+        @param volume: Alarm volume 0..1 (float)
+        @param alarm_time: Alarm time in str in hh:mm form or as time object (valid only with mode and day)
+        @param source: Source for the alarm in PLAYBACKTYPE:SOURCE[:ID] form e.g. preset:netusb:2
+        (valid only with mode and day)
+        @param mode: 'oneday' or 'weekly' must be set together with day
+        @param day: Must be set with mode
+        @param enable_day: Define whether to enable the alarm for the defined day (valid only with mode and day)
+        @param beep: Define to enable the beep mode (valid only with mode and day)
+        """
         resume_input = None
         preset_type = None
         preset_num = None
