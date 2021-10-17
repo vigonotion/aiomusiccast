@@ -47,7 +47,8 @@ class DeviceFeature(Flag):
 
     # list of supported features that got infered indirectly
     CLOCK = auto()
-    ALARM = auto()
+    ALARM_ONEDAY = auto()
+    ALARM_WEEKLY = auto()
 
 
 # Zone Features

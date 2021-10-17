@@ -1983,7 +1983,7 @@ class Clock:
 
     @staticmethod
     def set_alarm_settings(
-            alarm_on,
+            alarm_on=None,
             volume=None,
             fade_interval=None,
             fade_type=None,
@@ -2004,9 +2004,9 @@ class Clock:
         Arguments:
         @param alarm_on: Specifies alarm function status on/off
         @param volume: Specifies alarm volume value
-                  Vaule Range : calculated by minimum/maximum/step value gotten via /system/getFeatures "alarm_volume"
+                  Value Range : calculated by minimum/maximum/step value gotten via /system/getFeatures "alarm_volume"
         @param fade_interval: Specifies alarm fade interval (unit in second)
-                         Vaule Range : calculated by minimum/maximum/step
+                         Value Range : calculated by minimum/maximum/step
                          value gotten via /system/getFeatures "alarm_fade"
         @param fade_type: Specifies alarm fade type
                      Value : 1 ~ fade_type_max ( value gotten via /system/getFeatures)
@@ -2014,11 +2014,12 @@ class Clock:
                 Value : one gotten via /system/getFeatures "alarm_mode_list"
         @param repeat: Specifies repeat setting. This parameter is valid only when alarm mode "oneday" is specified
         @param day: Specifies target date for alarm setting.
-               This parameter is specified certainly when set detail parameters.
-               Value : "oneday" / "sunday" / "monday" / "tuesday" / "wednesday " / "thursday" / "friday" / "saturday"
+                   This parameter is specified certainly when set detail parameters.
+                   Value: "oneday" / "sunday" / "monday" / "tuesday" / "wednesday " / "thursday" / "friday" / "saturday"
         @param enable: 対象日のアラーム設定の有効/無効を指定します。:> WTF?
+                    According to google translate: Specify whether to enable/disable the alarm setting for the target day
         @param alarm_time: Specifies alarm start-up time.
-        Format is "hhmm" Values : hh : 00 ~ 23 (Hour) mm : 00 ~ 59 (Minute)
+                        Format is "hhmm" Values : hh : 00 ~ 23 (Hour) mm : 00 ~ 59 (Minute)
         @param beep: Specifies whether or not beep is valid.
         @param playback_type: Specifies playback type Value : "resume" / "preset"
         @param resume_input: Specifies target Input ID to playback for resume.
@@ -2034,8 +2035,10 @@ class Clock:
                          under /system/getFeatures.
                          This parameter is valid only when playback_type "preset" is specified.
         """
-        assert isinstance(alarm_on, bool), "alarm_on has to be a boolean"
-        payload = {'alarm_on': alarm_on, 'detail': dict()}
+        payload = {}
+        if alarm_on is not None:
+            assert isinstance(alarm_on, bool), "alarm_on has to be a boolean"
+            payload['alarm_on'] = alarm_on
         if volume is not None:
             assert isinstance(volume, int), "volume has to be an integer"
             payload['volume'] = volume
@@ -2056,45 +2059,50 @@ class Clock:
             assert day in Clock.DAYS, "day has to be one of the following " + str(
                 Clock.DAYS
             )
+            payload['detail'] = {}
             payload['detail']['day'] = day
-        if enable is not None:
-            assert isinstance(enable, bool), "enable has to be a bool"
-            payload['detail']['enable'] = enable
-        if alarm_time is not None:
-            assert isinstance(alarm_time, str), "time has to be a str"
-            payload['detail']['time'] = alarm_time
-        if beep is not None:
-            assert isinstance(beep, bool), "beep has to be a bool"
-            payload['detail']['beep'] = beep
-        if playback_type is not None:
-            assert playback_type in [
-                'resume',
-                'preset',
-            ], "playback_type has to be resume or preset"
-            payload['detail']['playback_type'] = playback_type
-            if playback_type == 'resume':
-                payload['detail']['resume'] = dict()
-                if resume_input is not None:
-                    assert isinstance(resume_input, str), "resume_input has to be a str"
-                    payload['detail']['resume']['input'] = resume_input
-            else:
-                payload['detail']['preset'] = dict()
-                if preset_num is not None:
-                    assert isinstance(
-                        preset_num, int
-                    ), "preset_num has to be an integer"
-                    payload['detail']['preset']['num'] = preset_num
-                if preset_type is not None:
-                    assert isinstance(preset_type, str), "preset_type has to be a str"
-                    payload['detail']['preset']['type'] = preset_type
-                if preset_snooze is not None:
-                    assert isinstance(
-                        preset_snooze, bool
-                    ), "preset_snooze has to be a bool"
-                    payload['detail']['preset']['snooze'] = preset_snooze
+            if enable is not None:
+                assert isinstance(enable, bool), "enable has to be a bool"
+                payload['detail']['enable'] = enable
+            if alarm_time is not None:
+                assert isinstance(alarm_time, str), "time has to be a str"
+                payload['detail']['time'] = alarm_time
+            if beep is not None:
+                assert isinstance(beep, bool), "beep has to be a bool"
+                payload['detail']['beep'] = beep
+            if playback_type is not None:
+                assert playback_type in [
+                    'resume',
+                    'preset',
+                ], "playback_type has to be resume or preset"
+                payload['detail']['playback_type'] = playback_type
+                if playback_type == 'resume':
+                    payload['detail']['resume'] = dict()
+                    if resume_input is not None:
+                        assert isinstance(resume_input, str), "resume_input has to be a str"
+                        payload['detail']['resume']['input'] = resume_input
 
-        if len(payload['detail']) == 0:
-            del payload['detail']
+                    assert preset_type is None, "preset_type is not compatible with playback_type resume"
+                    assert preset_num is None, "preset_num is not compatible with playback_type resume"
+                    assert preset_snooze is None, "preset_snooze is not compatible with playback_type resume"
+                else:
+                    payload['detail']['preset'] = dict()
+                    if preset_num is not None:
+                        assert isinstance(
+                            preset_num, int
+                        ), "preset_num has to be an integer"
+                        payload['detail']['preset']['num'] = preset_num
+                    if preset_type is not None:
+                        assert isinstance(preset_type, str), "preset_type has to be a str"
+                        payload['detail']['preset']['type'] = preset_type
+                    if preset_snooze is not None:
+                        assert isinstance(
+                            preset_snooze, bool
+                        ), "preset_snooze has to be a bool"
+                        payload['detail']['preset']['snooze'] = preset_snooze
+
+                    assert resume_input is None, "resume_input is not compatible with playback_type preset"
+
         return Clock.URI['SET_ALARM_SETTINGS'], payload
 
 
