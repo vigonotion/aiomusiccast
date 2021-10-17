@@ -1,4 +1,3 @@
-import json
 import mimetypes
 
 from aiomusiccast.const import DEVICE_FUNC_LIST_TO_FEATURE_MAPPING, DeviceFeature, ZONE_FUNC_LIST_TO_FEATURE_MAPPING, \
@@ -646,7 +645,7 @@ class MusicCastDevice:
             self,
             alarm_on: bool = None,
             volume: float = None,
-            alarm_time: str | 'time' =None,
+            alarm_time=None,
             source: str = None,
             mode: str = None,
             day: str = None,
