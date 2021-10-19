@@ -1,6 +1,8 @@
 class MusicCastException(Exception):
     pass
 
+class MusicCastUnsupportedException(Exception):
+    pass
 
 class MusicCastGroupException(MusicCastException):
     pass
