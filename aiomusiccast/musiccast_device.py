@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 import mimetypes
+
+from aiohttp.client_reqrep import ClientResponse
 
 from aiomusiccast.const import DEVICE_FUNC_LIST_TO_FEATURE_MAPPING, DeviceFeature, ZONE_FUNC_LIST_TO_FEATURE_MAPPING, \
     ZoneFeature, MIME_TYPE_UPNP_CLASS, ALARM_WEEK_DAYS, ALARM_ONEDAY, ALARM_WEEKLY
-from aiomusiccast.exceptions import MusicCastGroupException
+from aiomusiccast.exceptions import MusicCastException, MusicCastGroupException, MusicCastUnsupportedException
 import asyncio
 import logging
 import math
@@ -143,6 +147,9 @@ class MusicCastDevice:
     device: AsyncDevice
     features: DeviceFeature = DeviceFeature.NONE
 
+    speaker_a: bool | None
+    speaker_b: bool | None
+
     def __init__(self, ip, client, upnp_description=None):
         """Init dummy MusicCastDevice."""
         self.ip = ip
@@ -167,6 +174,7 @@ class MusicCastDevice:
         self._netusb_play_info = None
         self._tuner_play_info = None
         self._clock_info = None
+        self._func_status = None
         self._distribution_info: Dict = {}
         self._name_text = None
 
@@ -409,6 +417,21 @@ class MusicCastDevice:
                 else day_info.get('preset', {}).get('tuner_info', {})
             )
 
+    async def _fetch_func_status(self):
+        _LOGGER.debug("Fetching func status...")
+
+        self._func_status = (
+            await self.device.request_json(System.get_func_status())
+        )
+
+        if DeviceFeature.SPEAKER_A in self.features:
+            self.speaker_a = self._func_status.get("speaker_a")
+
+        if DeviceFeature.SPEAKER_B in self.features:
+            self.speaker_b = self._func_status.get("speaker_b")
+
+
+
     async def fetch(self):
         """Fetch data from musiccast device."""
         if self.device.transport is None:
@@ -532,6 +555,8 @@ class MusicCastDevice:
         for zone in self._zone_ids:
             await self._fetch_zone(zone)
 
+        await self._fetch_func_status()
+
     # -----Commands-----
     async def turn_on(self, zone_id):
         """Turn the media player on."""
@@ -590,6 +615,36 @@ class MusicCastDevice:
                 await self.device.request(NetUSB.toggle_shuffle())
         else:
             await self.device.request(NetUSB.set_shuffle("on" if shuffle else "off"))
+
+    async def set_speaker_a(self, speaker_a: bool):
+        """Set speaker a."""
+
+        if DeviceFeature.SPEAKER_A not in self.features:
+            raise MusicCastUnsupportedException("Device doesn't support Speaker A.")
+
+        resp: ClientResponse = await self.device.request(
+            System.set_speaker_a(speaker_a)
+        )
+
+        data = await resp.json()
+
+        if data.get("response_code") == 0:
+            self.speaker_a = speaker_a
+
+    async def set_speaker_b(self, speaker_b: bool):
+        """Set speaker b."""
+
+        if DeviceFeature.SPEAKER_B not in self.features:
+            raise MusicCastUnsupportedException("Device doesn't support Speaker B.")
+
+        resp: ClientResponse = await self.device.request(
+            System.set_speaker_b(speaker_b)
+        )
+
+        data = await resp.json()
+
+        if data.get("response_code") == 0:
+            self.speaker_b = speaker_b
 
     async def select_sound_mode(self, zone_id, sound_mode):
         """Select sound mode."""
