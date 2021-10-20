@@ -113,6 +113,10 @@ class MusicCastData:
         self.alarm_mode = None
         self.alarm_details: Dict[str, MusicCastAlarmDetails] = {}
 
+        # Speaker A/B
+        self.speaker_a: bool | None = None
+        self.speaker_b: bool | None = None
+
     @property
     def fm_freq_str(self):
         """Return a formatted string with fm frequency."""
@@ -442,9 +446,14 @@ class MusicCastDevice:
             await self.device.request_json(System.get_func_status())
         )
 
+        if DeviceFeature.SPEAKER_A in self.features:
+            self.data.speaker_a = self._func_status.get("speaker_a")
+
+        if DeviceFeature.SPEAKER_B in self.features:
+            self.data.speaker_b = self._func_status.get("speaker_b")
+
         if DeviceFeature.DIMMER in self.features and "dimmer" in self._func_status and self.data.dimmer:
             self.data.dimmer.dimmer_current = self._func_status.get("dimmer")
-
 
     async def fetch(self):
         """Fetch data from musiccast device."""
@@ -580,7 +589,6 @@ class MusicCastDevice:
                 0
             )
 
-
         await self._fetch_func_status()
 
     # -----Commands-----
@@ -654,6 +662,26 @@ class MusicCastDevice:
                 await self.device.request(NetUSB.toggle_shuffle())
         else:
             await self.device.request(NetUSB.set_shuffle("on" if shuffle else "off"))
+
+    async def set_speaker_a(self, speaker_a: bool):
+        """Set speaker a."""
+
+        if DeviceFeature.SPEAKER_A not in self.features:
+            raise MusicCastUnsupportedException("Device doesn't support Speaker A.")
+
+        await self.device.request(
+            System.set_speaker_a(speaker_a)
+        )
+
+    async def set_speaker_b(self, speaker_b: bool):
+        """Set speaker b."""
+
+        if DeviceFeature.SPEAKER_B not in self.features:
+            raise MusicCastUnsupportedException("Device doesn't support Speaker B.")
+
+        await self.device.request(
+            System.set_speaker_b(speaker_b)
+        )
 
     async def select_sound_mode(self, zone_id, sound_mode):
         """Select sound mode."""
