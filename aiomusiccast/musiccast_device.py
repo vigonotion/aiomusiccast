@@ -110,6 +110,10 @@ class MusicCastData:
         self.alarm_mode = None
         self.alarm_details: Dict[str, MusicCastAlarmDetails] = {}
 
+        # Speaker A/B
+        self.speaker_a: bool | None = None
+        self.speaker_b: bool | None = None
+
     @property
     def fm_freq_str(self):
         """Return a formatted string with fm frequency."""
@@ -146,9 +150,6 @@ class MusicCastDevice:
 
     device: AsyncDevice
     features: DeviceFeature = DeviceFeature.NONE
-
-    speaker_a: bool | None
-    speaker_b: bool | None
 
     def __init__(self, ip, client, upnp_description=None):
         """Init dummy MusicCastDevice."""
@@ -249,6 +250,10 @@ class MusicCastDevice:
         if "clock" in message.keys():
             if message.get("clock").get("settings_updated"):
                 await self._fetch_clock_data()
+
+        if "system" in message.keys():
+            if message.get("system").get("func_status_updated"):
+                await self._fetch_func_status()
 
         for callback in self._callbacks:
             callback()
@@ -425,10 +430,10 @@ class MusicCastDevice:
         )
 
         if DeviceFeature.SPEAKER_A in self.features:
-            self.speaker_a = self._func_status.get("speaker_a")
+            self.data.speaker_a = self._func_status.get("speaker_a")
 
         if DeviceFeature.SPEAKER_B in self.features:
-            self.speaker_b = self._func_status.get("speaker_b")
+            self.data.speaker_b = self._func_status.get("speaker_b")
 
 
 
@@ -622,14 +627,9 @@ class MusicCastDevice:
         if DeviceFeature.SPEAKER_A not in self.features:
             raise MusicCastUnsupportedException("Device doesn't support Speaker A.")
 
-        resp: ClientResponse = await self.device.request(
+        await self.device.request(
             System.set_speaker_a(speaker_a)
         )
-
-        data = await resp.json()
-
-        if data.get("response_code") == 0:
-            self.speaker_a = speaker_a
 
     async def set_speaker_b(self, speaker_b: bool):
         """Set speaker b."""
@@ -637,14 +637,9 @@ class MusicCastDevice:
         if DeviceFeature.SPEAKER_B not in self.features:
             raise MusicCastUnsupportedException("Device doesn't support Speaker B.")
 
-        resp: ClientResponse = await self.device.request(
+        await self.device.request(
             System.set_speaker_b(speaker_b)
         )
-
-        data = await resp.json()
-
-        if data.get("response_code") == 0:
-            self.speaker_b = speaker_b
 
     async def select_sound_mode(self, zone_id, sound_mode):
         """Select sound mode."""
