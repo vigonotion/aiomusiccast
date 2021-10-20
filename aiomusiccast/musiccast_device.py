@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 import mimetypes
+
+from aiohttp.client_reqrep import ClientResponse
 
 from aiomusiccast.const import DEVICE_FUNC_LIST_TO_FEATURE_MAPPING, DeviceFeature, ZONE_FUNC_LIST_TO_FEATURE_MAPPING, \
     ZoneFeature, MIME_TYPE_UPNP_CLASS, ALARM_WEEK_DAYS, ALARM_ONEDAY, ALARM_WEEKLY
-from aiomusiccast.exceptions import MusicCastGroupException
+from aiomusiccast.exceptions import MusicCastException, MusicCastGroupException, MusicCastUnsupportedException
 import asyncio
 import logging
 import math
@@ -94,6 +98,9 @@ class MusicCastData:
         self.group_client_list = []
         self.group_update_lock = asyncio.locks.Lock()
 
+        # Dimmer
+        self.dimmer: Dimmer | None = None
+
         # Alarm
         self.alarm_on = None
         self.alarm_volume = None
@@ -136,6 +143,20 @@ class MusicCastZoneData:
         self.sleep_time = None
         self.func_list = []
 
+class Dimmer:
+    """Dimmer. Not all devices support dimming. A value of -1 indicates auto dimming."""
+
+    dimmer_min: int
+    dimmer_max: int
+    dimmer_step: int
+    dimmer_current: int
+
+    def __init__(self, dimmer_min, dimmer_max, dimmer_step, dimmer_current):
+        self.dimmer_min = dimmer_min
+        self.dimmer_max = dimmer_max
+        self.dimmer_step = dimmer_step
+        self.dimmer_current = dimmer_current
+    
 
 class MusicCastDevice:
     """Dummy MusicCastDevice (device for HA) for Hello World example."""
@@ -167,6 +188,7 @@ class MusicCastDevice:
         self._netusb_play_info = None
         self._tuner_play_info = None
         self._clock_info = None
+        self._func_status = None
         self._distribution_info: Dict = {}
         self._name_text = None
 
@@ -241,6 +263,10 @@ class MusicCastDevice:
         if "clock" in message.keys():
             if message.get("clock").get("settings_updated"):
                 await self._fetch_clock_data()
+
+        if "system" in message.keys():
+            if message.get("system").get("func_status_updated"):
+                await self._fetch_func_status()
 
         for callback in self._callbacks:
             callback()
@@ -409,6 +435,17 @@ class MusicCastDevice:
                 else day_info.get('preset', {}).get('tuner_info', {})
             )
 
+    async def _fetch_func_status(self):
+        _LOGGER.debug("Fetching func status...")
+
+        self._func_status = (
+            await self.device.request_json(System.get_func_status())
+        )
+
+        if DeviceFeature.DIMMER in self.features and "dimmer" in self._func_status and self.data.dimmer:
+            self.data.dimmer.dimmer_current = self._func_status.get("dimmer")
+
+
     async def fetch(self):
         """Fetch data from musiccast device."""
         if self.device.transport is None:
@@ -532,6 +569,20 @@ class MusicCastDevice:
         for zone in self._zone_ids:
             await self._fetch_zone(zone)
 
+        ranges = self._features.get("system").get("range_step")
+        
+        if DeviceFeature.DIMMER in self.features and ranges:
+            dimmer_range = next(filter(lambda x: x.get("id") == "dimmer", ranges))
+            self.data.dimmer = Dimmer(
+                dimmer_range.get("min"),
+                dimmer_range.get("max"),
+                dimmer_range.get("step"),
+                0
+            )
+
+
+        await self._fetch_func_status()
+
     # -----Commands-----
     async def turn_on(self, zone_id):
         """Turn the media player on."""
@@ -573,6 +624,19 @@ class MusicCastDevice:
 
         await self.device.request(
             Zone.set_volume(zone_id, "down", step)
+        )
+
+    async def set_dimmer(self, dimmer: int):
+        """Set the dimmer on the device."""
+
+        if DeviceFeature.DIMMER not in self.features or not self.data.dimmer:
+            raise MusicCastUnsupportedException("Device doesn't support dimming.")
+
+        if dimmer < self.data.dimmer.dimmer_min or dimmer > self.data.dimmer.dimmer_max or dimmer % self.data.dimmer.dimmer_step != 0:
+            raise MusicCastException(f"Dimmer value {dimmer} not in allowed dimming range {self.data.dimmer.dimmer_min} to {self.data.dimmer.dimmer_max} with step size {self.data.dimmer.dimmer_step}.")
+
+        await self.device.request(
+            System.set_dimmer(dimmer)
         )
 
     async def netusb_play(self):
