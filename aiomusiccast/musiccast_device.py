@@ -98,6 +98,9 @@ class MusicCastData:
         self.group_client_list = []
         self.group_update_lock = asyncio.locks.Lock()
 
+        # Dimmer
+        self.dimmer: Dimmer | None = None
+
         # Alarm
         self.alarm_on = None
         self.alarm_volume = None
@@ -144,6 +147,20 @@ class MusicCastZoneData:
         self.sleep_time = None
         self.func_list = []
 
+class Dimmer:
+    """Dimmer. Not all devices support dimming. A value of -1 indicates auto dimming."""
+
+    dimmer_min: int
+    dimmer_max: int
+    dimmer_step: int
+    dimmer_current: int
+
+    def __init__(self, dimmer_min, dimmer_max, dimmer_step, dimmer_current):
+        self.dimmer_min = dimmer_min
+        self.dimmer_max = dimmer_max
+        self.dimmer_step = dimmer_step
+        self.dimmer_current = dimmer_current
+    
 
 class MusicCastDevice:
     """Dummy MusicCastDevice (device for HA) for Hello World example."""
@@ -435,7 +452,8 @@ class MusicCastDevice:
         if DeviceFeature.SPEAKER_B in self.features:
             self.data.speaker_b = self._func_status.get("speaker_b")
 
-
+        if DeviceFeature.DIMMER in self.features and "dimmer" in self._func_status and self.data.dimmer:
+            self.data.dimmer.dimmer_current = self._func_status.get("dimmer")
 
     async def fetch(self):
         """Fetch data from musiccast device."""
@@ -560,6 +578,17 @@ class MusicCastDevice:
         for zone in self._zone_ids:
             await self._fetch_zone(zone)
 
+        ranges = self._features.get("system").get("range_step")
+        
+        if DeviceFeature.DIMMER in self.features and ranges:
+            dimmer_range = next(filter(lambda x: x.get("id") == "dimmer", ranges))
+            self.data.dimmer = Dimmer(
+                dimmer_range.get("min"),
+                dimmer_range.get("max"),
+                dimmer_range.get("step"),
+                0
+            )
+
         await self._fetch_func_status()
 
     # -----Commands-----
@@ -603,6 +632,19 @@ class MusicCastDevice:
 
         await self.device.request(
             Zone.set_volume(zone_id, "down", step)
+        )
+
+    async def set_dimmer(self, dimmer: int):
+        """Set the dimmer on the device."""
+
+        if DeviceFeature.DIMMER not in self.features or not self.data.dimmer:
+            raise MusicCastUnsupportedException("Device doesn't support dimming.")
+
+        if dimmer < self.data.dimmer.dimmer_min or dimmer > self.data.dimmer.dimmer_max or dimmer % self.data.dimmer.dimmer_step != 0:
+            raise MusicCastException(f"Dimmer value {dimmer} not in allowed dimming range {self.data.dimmer.dimmer_min} to {self.data.dimmer.dimmer_max} with step size {self.data.dimmer.dimmer_step}.")
+
+        await self.device.request(
+            System.set_dimmer(dimmer)
         )
 
     async def netusb_play(self):
