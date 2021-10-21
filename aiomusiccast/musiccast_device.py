@@ -1,9 +1,6 @@
 from __future__ import annotations
 
 import mimetypes
-
-from aiohttp.client_reqrep import ClientResponse
-
 from aiomusiccast.const import DEVICE_FUNC_LIST_TO_FEATURE_MAPPING, DeviceFeature, ZONE_FUNC_LIST_TO_FEATURE_MAPPING, \
     ZoneFeature, MIME_TYPE_UPNP_CLASS, ALARM_WEEK_DAYS, ALARM_ONEDAY, ALARM_WEEKLY
 from aiomusiccast.exceptions import MusicCastException, MusicCastGroupException, MusicCastUnsupportedException
@@ -117,6 +114,8 @@ class MusicCastData:
         self.speaker_a: bool | None = None
         self.speaker_b: bool | None = None
 
+        self.configurables = []
+
     @property
     def fm_freq_str(self):
         """Return a formatted string with fm frequency."""
@@ -147,6 +146,8 @@ class MusicCastZoneData:
         self.sound_program = None
         self.sleep_time = None
         self.func_list = []
+        self.configurables = []
+
 
 class Dimmer:
     """Dimmer. Not all devices support dimming. A value of -1 indicates auto dimming."""

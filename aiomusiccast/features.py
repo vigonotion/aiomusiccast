@@ -3,7 +3,11 @@
 from enum import Flag, auto
 
 
-class DeviceFeature(Flag):
+class Feature(Flag):
+    pass
+
+
+class DeviceFeature(Feature):
 
     NONE = 0
 
@@ -52,7 +56,7 @@ class DeviceFeature(Flag):
 
 
 # Zone Features
-class ZoneFeature(Flag):
+class ZoneFeature(Feature):
     NONE = 0
 
     POWER = auto()
