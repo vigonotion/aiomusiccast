@@ -136,6 +136,7 @@ class MusicCastZoneData:
     def __init__(self):
         """Ctor."""
         self.power = None
+        self.name: str | None = None
         self.min_volume = 0
         self.max_volume = 100
         self.current_volume = 0
@@ -473,6 +474,13 @@ class MusicCastDevice:
             self.data.system_version = self._device_info.get("system_version")
             self.data.api_version = self._device_info.get("api_version")
 
+        self._name_text = await self.device.request_json(System.get_name_text(None))
+        zone_names = {
+            zone.get("id"): zone.get("text")
+            for zone in self._name_text.get("zone_list")
+        }
+
+
         if not self._features:
             self._features = await self.device.request_json(System.get_features())
 
@@ -500,6 +508,8 @@ class MusicCastDevice:
                 zone_data.sound_program_list = zone.get("sound_program_list", [])
                 zone_data.input_list = zone.get("input_list", [])
                 zone_data.func_list = zone.get('func_list')
+
+                zone_data.name = zone_names.get(zone_id)
 
                 for feature in zone_data.func_list:
                     feature_bit = ZONE_FUNC_LIST_TO_FEATURE_MAPPING.get(feature)
@@ -557,8 +567,6 @@ class MusicCastDevice:
                 self.data.alarm_resume_input_list = self._features.get('clock', {}).get(
                     'alarm_input_list', []
                 )
-
-        self._name_text = await self.device.request_json(System.get_name_text(None))
 
         self.data.input_names = {
             source.get("id"): source.get("text")
