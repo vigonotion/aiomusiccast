@@ -27,3 +27,21 @@ def build_zone_features(musiccast_device: MusicCastDevice, zone_id):
         )
 
     return confs
+
+
+def build_device_features(musiccast_device: MusicCastDevice):
+    confs = []
+    if DeviceFeature.DIMMER in musiccast_device.features:
+        confs.append(
+            NumberSetter(
+                "dimmer",
+                "Display Brightness",
+                EntityTypes.CONFIG,
+                lambda: musiccast_device.data.dimmer.dimmer_current,
+                musiccast_device.set_dimmer,
+                musiccast_device.data.dimmer.dimmer_min,
+                musiccast_device.data.dimmer.dimmer_max,
+                musiccast_device.data.dimmer.dimmer_step
+            )
+        )
+    return confs

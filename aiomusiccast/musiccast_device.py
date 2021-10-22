@@ -11,6 +11,7 @@ from datetime import datetime, time
 from typing import Dict, List
 from xml.sax.saxutils import escape
 
+from .configurable_features_factory import build_device_features, build_zone_features
 from .pyamaha import AsyncDevice, Clock, Dist, NetUSB, System, Tuner, Zone
 
 _LOGGER = logging.getLogger(__name__)
@@ -495,6 +496,8 @@ class MusicCastDevice:
                         "opening an issue on GitHub to tell us about this feature so we can implement it.",
                         self.data.model_name, feature)
 
+            self.data.configurables = build_device_features(self)
+
             self._zone_ids = [zone.get("id") for zone in self._features.get("zone", [])]
 
             for zone in self._features.get("zone", []):
@@ -528,6 +531,8 @@ class MusicCastDevice:
 
                     zone_data.min_volume = range_volume.get("min")
                     zone_data.max_volume = range_volume.get("max")
+
+                zone_data.configurables = build_zone_features(self, zone_id)
 
                 self.data.zones[zone_id] = zone_data
 
