@@ -496,8 +496,6 @@ class MusicCastDevice:
                         "opening an issue on GitHub to tell us about this feature so we can implement it.",
                         self.data.model_name, feature)
 
-            self.data.configurables = build_device_features(self)
-
             self._zone_ids = [zone.get("id") for zone in self._features.get("zone", [])]
 
             for zone in self._features.get("zone", []):
@@ -531,8 +529,6 @@ class MusicCastDevice:
 
                     zone_data.min_volume = range_volume.get("min")
                     zone_data.max_volume = range_volume.get("max")
-
-                zone_data.configurables = build_zone_features(self, zone_id)
 
                 self.data.zones[zone_id] = zone_data
 
@@ -602,6 +598,11 @@ class MusicCastDevice:
             )
 
         await self._fetch_func_status()
+
+        self.data.configurables = build_device_features(self)
+
+        for zone_id, zone_data in self.data.zones.items():
+            zone_data.configurables = build_zone_features(self, zone_id)
 
     # -----Commands-----
     async def turn_on(self, zone_id):

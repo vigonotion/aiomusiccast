@@ -1,9 +1,8 @@
-from . import MusicCastDevice
 from .configurables import *
 from .features import *
 
 
-def build_zone_features(musiccast_device: MusicCastDevice, zone_id):
+def build_zone_features(musiccast_device: 'MusicCastDevice', zone_id):
     confs = []
     zone_features = musiccast_device.data.zones[zone_id].features
     zone_data = musiccast_device.data.zones[zone_id]
@@ -29,7 +28,7 @@ def build_zone_features(musiccast_device: MusicCastDevice, zone_id):
     return confs
 
 
-def build_device_features(musiccast_device: MusicCastDevice):
+def build_device_features(musiccast_device: 'MusicCastDevice'):
     confs = []
     if DeviceFeature.DIMMER in musiccast_device.features:
         confs.append(
