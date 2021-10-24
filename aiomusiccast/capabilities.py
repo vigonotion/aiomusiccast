@@ -68,10 +68,10 @@ class OptionSetter(SetableCapability):
         super().__init__(id, name, entity_type, get_current, set_current)
         self.options = options
         
-    def set(self, value):
+    async def set(self, value):
         if value not in self.options.keys():
             raise ValueError("The given value is not a valid option")
-        super(OptionSetter, self).set(value)
+        await super(OptionSetter, self).set(value)
 
 
 class BinarySetter(SetableCapability):
