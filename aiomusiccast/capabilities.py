@@ -9,7 +9,7 @@ class EntityTypes(Enum):
     DIAGNOSTIC = 3
 
 
-class ConfigFeature(ABC):
+class Capability(ABC):
     id: str
     name: str
     entity_type: EntityTypes
@@ -26,7 +26,7 @@ class ConfigFeature(ABC):
         return self.get_current()
 
 
-class SetableConfigFeature(ConfigFeature, ABC):
+class SetableCapability(Capability, ABC):
     set_current: Callable
 
     def __init__(self, id, name, entity_type, get_current, set_current):
@@ -37,19 +37,19 @@ class SetableConfigFeature(ConfigFeature, ABC):
         await self.set_current(value)
 
 
-class NumberSensor(ConfigFeature):
+class NumberSensor(Capability):
     pass
 
 
-class BinarySensor(ConfigFeature):
+class BinarySensor(Capability):
     pass
 
 
-class TextSensor(ConfigFeature):
+class TextSensor(Capability):
     pass
 
 
-class NumberSetter(SetableConfigFeature):
+class NumberSetter(SetableCapability):
     min_value: float
     max_value: float
     step: float
@@ -61,7 +61,7 @@ class NumberSetter(SetableConfigFeature):
         self.step = step
 
 
-class OptionSetter(SetableConfigFeature):
+class OptionSetter(SetableCapability):
     options: Dict[str, str]
 
     def __init__(self, id, name, entity_type, get_current, set_current, options):
@@ -74,5 +74,5 @@ class OptionSetter(SetableConfigFeature):
         super(OptionSetter, self).set(value)
 
 
-class BinarySetter(SetableConfigFeature):
+class BinarySetter(SetableCapability):
     pass

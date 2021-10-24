@@ -11,7 +11,7 @@ from datetime import datetime, time
 from typing import Dict, List
 from xml.sax.saxutils import escape
 
-from .configurable_features_factory import build_device_features, build_zone_features
+from .capability_builders import build_device_capabilities, build_zone_capabilities
 from .pyamaha import AsyncDevice, Clock, Dist, NetUSB, System, Tuner, Zone
 
 _LOGGER = logging.getLogger(__name__)
@@ -115,7 +115,7 @@ class MusicCastData:
         self.speaker_a: bool | None = None
         self.speaker_b: bool | None = None
 
-        self.configurables = []
+        self.capabilities = []
 
     @property
     def fm_freq_str(self):
@@ -147,7 +147,7 @@ class MusicCastZoneData:
         self.sound_program = None
         self.sleep_time = None
         self.func_list = []
-        self.configurables = []
+        self.capabilities = []
 
 
 class Dimmer:
@@ -599,10 +599,11 @@ class MusicCastDevice:
 
         await self._fetch_func_status()
 
-        self.data.configurables = build_device_features(self)
+    def build_capabilities(self):
+        self.data.capabilities = build_device_capabilities(self)
 
         for zone_id, zone_data in self.data.zones.items():
-            zone_data.configurables = build_zone_features(self, zone_id)
+            zone_data.capabilities = build_zone_capabilities(self, zone_id)
 
     # -----Commands-----
     async def turn_on(self, zone_id):
