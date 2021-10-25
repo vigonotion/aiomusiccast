@@ -37,7 +37,7 @@ def build_device_capabilities(musiccast_device: 'MusicCastDevice'):
                 "Display Brightness",
                 EntityTypes.CONFIG,
                 lambda: musiccast_device.data.dimmer.dimmer_current,
-                musiccast_device.set_dimmer,
+                lambda value: musiccast_device.set_dimmer(int(value)),
                 musiccast_device.data.dimmer.dimmer_min,
                 musiccast_device.data.dimmer.dimmer_max,
                 musiccast_device.data.dimmer.dimmer_step
