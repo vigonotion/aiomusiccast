@@ -158,6 +158,11 @@ class MusicCastZoneData:
         self.tone_bass = None
         self.tone_treble = None
 
+        # Dialogue
+        self.dialogue_level = None
+        self.dialogue_lift = None
+        self.dts_dialogue_control = None
+
         self.tone_control_mode_list = None
         self.surr_decoder_type_list = None
         self.link_control_list = None
@@ -412,6 +417,10 @@ class MusicCastDevice:
         zone_data.tone_mode = zone.get("tone_control", {}).get("mode")
         zone_data.tone_bass = zone.get("tone_control", {}).get("bass")
         zone_data.tone_treble = zone.get("tone_control", {}).get("treble")
+
+        zone_data.dialogue_level = zone.get("dialogue_level")
+        zone_data.dialogue_lift = zone.get("dialogue_lift")
+        zone_data.dts_dialogue_control = zone.get("dts_dialogue_control")
 
         self.data.zones[zone_id] = zone_data
         await self._update_input(zone_id, zone.get("input"))
@@ -755,8 +764,50 @@ class MusicCastDevice:
                 )
             )
 
+        if ZoneFeature.DIALOGUE_LEVEL & zone_features:
+            zone_data.capabilities.append(
+                NumberSetter(
+                    "dialogue_level",
+                    "Dialogue Level",
+                    EntityTypes.CONFIG,
+                    lambda: zone_data.dialogue_level,
+                    lambda val: self.set_dialogue_level(zone_id, int(val)),
+                    zone_data.range_step["dialogue_level"].dimmer_min,
+                    zone_data.range_step["dialogue_level"].dimmer_max,
+                    zone_data.range_step["dialogue_level"].dimmer_step
+                )
+            )
+
+        if ZoneFeature.DIALOGUE_LIFT & zone_features:
+            zone_data.capabilities.append(
+                NumberSetter(
+                    "dialogue_lift",
+                    "Dialogue Lift",
+                    EntityTypes.CONFIG,
+                    lambda: zone_data.dialogue_lift,
+                    lambda val: self.set_dialogue_lift(zone_id, int(val)),
+                    zone_data.range_step["dialogue_lift"].dimmer_min,
+                    zone_data.range_step["dialogue_lift"].dimmer_max,
+                    zone_data.range_step["dialogue_lift"].dimmer_step
+                )
+            )
+    ''' # TODO undocumented API
+        if ZoneFeature.DTS_DIALOGUE_CONTROL & zone_features:
+            zone_data.capabilities.append(
+                NumberSetter(
+                    "dts_dialogue_control",
+                    "DTS Dialogue Control",
+                    EntityTypes.CONFIG,
+                    lambda: zone_data.dts_dialogue_control,
+                    lambda val: self.set_dialogue_lift(zone_id, int(val)),
+                    zone_data.range_step["dts_dialogue_control"].dimmer_min,
+                    zone_data.range_step["dts_dialogue_control"].dimmer_max,
+                    zone_data.range_step["dts_dialogue_control"].dimmer_step
+                )
+            )
+    '''
     def build_device_capabilities(self):
-        if DeviceFeature.DIMMER in self.features:
+        if DeviceFeature.DIMMER & self.features:
             self.data.capabilities.append(
                 NumberSetter(
                     "dimmer",
@@ -842,6 +893,26 @@ class MusicCastDevice:
                 low,
                 mid,
                 high
+            )
+        )
+
+    async def set_dialogue_level(self, zone_id, level):
+        if ZoneFeature.DIALOGUE_LEVEL not in self.data.zones[zone_id].features:
+            raise MusicCastUnsupportedException("Device doesn't support Dialog level.")
+        await self.device.request(
+            Zone.set_dialogue_level(
+                zone_id,
+                level
+            )
+        )
+
+    async def set_dialogue_lift(self, zone_id, level):
+        if ZoneFeature.DIALOGUE_LIFT not in self.data.zones[zone_id].features:
+            raise MusicCastUnsupportedException("Device doesn't support Dialog lift.")
+        await self.device.request(
+            Zone.set_dialogue_lift(
+                zone_id,
+                level
             )
         )
 
