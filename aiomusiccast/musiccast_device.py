@@ -11,7 +11,7 @@ from datetime import datetime, time
 from typing import Dict, List
 from xml.sax.saxutils import escape
 
-from .capability_builders import build_device_capabilities, build_zone_capabilities
+from .capabilities import NumberSetter, EntityTypes, OptionSetter
 from .pyamaha import AsyncDevice, Clock, Dist, NetUSB, System, Tuner, Zone
 
 _LOGGER = logging.getLogger(__name__)
@@ -146,16 +146,39 @@ class MusicCastZoneData:
         self.sound_program_list = []
         self.sound_program = None
         self.sleep_time = None
+
+        # Equalizer
+        self.equalizer_mode = None
+        self.equalizer_low = None
+        self.equalizer_mid = None
+        self.equalizer_high = None
+
+        # Tone Control
+        self.tone_mode = None
+        self.tone_bass = None
+        self.tone_treble = None
+
+        self.tone_control_mode_list = None
+        self.surr_decoder_type_list = None
+        self.link_control_list = None
+        self.link_audio_delay_list = None
+        self.link_audio_quality_list = None
+        self.equalizer_mode_list = None
+
+        self.range_step: dict[str, RangeStep] = {}
+
         self.func_list = []
         self.capabilities = []
 
 
-class Dimmer:
-    """Dimmer. Not all devices support dimming. A value of -1 indicates auto dimming."""
-
+class RangeStep:
     dimmer_min: int
     dimmer_max: int
     dimmer_step: int
+
+class Dimmer(RangeStep):
+    """Dimmer. Not all devices support dimming. A value of -1 indicates auto dimming."""
+
     dimmer_current: int
 
     def __init__(self, dimmer_min, dimmer_max, dimmer_step, dimmer_current):
@@ -381,6 +404,15 @@ class MusicCastDevice:
         zone_data.sound_program = zone.get("sound_program")
         zone_data.sleep_time = zone.get("sleep")
 
+        zone_data.equalizer_mode = zone.get("equalizer", {}).get("mode")
+        zone_data.equalizer_high = zone.get("equalizer", {}).get("high")
+        zone_data.equalizer_mid = zone.get("equalizer", {}).get("mid")
+        zone_data.equalizer_low = zone.get("equalizer", {}).get("low")
+
+        zone_data.tone_mode = zone.get("tone_control", {}).get("mode")
+        zone_data.tone_bass = zone.get("tone_control", {}).get("bass")
+        zone_data.tone_treble = zone.get("tone_control", {}).get("treble")
+
         self.data.zones[zone_id] = zone_data
         await self._update_input(zone_id, zone.get("input"))
 
@@ -480,7 +512,6 @@ class MusicCastDevice:
             for zone in self._name_text.get("zone_list")
         }
 
-
         if not self._features:
             self._features = await self.device.request_json(System.get_features())
 
@@ -506,6 +537,21 @@ class MusicCastDevice:
                 )
 
                 zone_data.sound_program_list = zone.get("sound_program_list", [])
+
+                zone_data.tone_control_mode_list = zone.get("tone_control_mode_list", ["manual"])
+                zone_data.surr_decoder_type_list = zone.get("surr_decoder_type_list", None)
+                zone_data.link_control_list = zone.get("link_control_list", None)
+                zone_data.link_audio_delay_list = zone.get("link_audio_delay_list", None)
+                zone_data.link_audio_quality_list = zone.get("link_audio_quality_list", None)
+                zone_data.equalizer_mode_list = zone.get("equalizer_mode_list", ["manual"])
+
+                for range_step in zone.get("range_step", []):
+                    current = RangeStep()
+                    current.dimmer_min = range_step.get("min")
+                    current.dimmer_max = range_step.get("max")
+                    current.dimmer_step = range_step.get("step")
+                    zone_data.range_step[range_step.get("id")] = current
+
                 zone_data.input_list = zone.get("input_list", [])
                 zone_data.func_list = zone.get('func_list')
 
@@ -599,11 +645,136 @@ class MusicCastDevice:
 
         await self._fetch_func_status()
 
-    def build_capabilities(self):
-        self.data.capabilities = build_device_capabilities(self)
+    def build_zone_capabilities(self, zone_id):
+        zone_features = self.data.zones[zone_id].features
+        zone_data = self.data.zones[zone_id]
 
-        for zone_id, zone_data in self.data.zones.items():
-            zone_data.capabilities = build_zone_capabilities(self, zone_id)
+        if ZoneFeature.SLEEP & zone_features:
+            zone_data.capabilities.append(
+                OptionSetter(
+                    "sleep",
+                    "Sleep Timer",
+                    EntityTypes.REGULAR,
+                    lambda: zone_data.sleep_time,
+                    lambda val: self.set_sleep_timer(zone_id, val),
+                    {
+                        0: "off",
+                        30: "30 min",
+                        60: "60 min",
+                        90: "90 min",
+                        120: "120 min"
+                    }
+                )
+            )
+
+        if ZoneFeature.EQUALIZER & zone_features:
+            zone_data.capabilities.append(
+                OptionSetter(
+                    "equalizer_mode",
+                    "Equalizer Mode",
+                    EntityTypes.CONFIG,
+                    lambda: zone_data.equalizer_mode,
+                    lambda val: self.set_equalizer(zone_id, mode=val),
+                    {
+                        key: key for key in zone_data.equalizer_mode_list
+                    }
+                )
+            )
+            zone_data.capabilities.append(
+                NumberSetter(
+                    "equalizer_low",
+                    "Low",
+                    EntityTypes.CONFIG,
+                    lambda: zone_data.equalizer_low,
+                    lambda val: self.set_equalizer(zone_id, low=int(val)),
+                    zone_data.range_step["equalizer"].dimmer_min,
+                    zone_data.range_step["equalizer"].dimmer_max,
+                    zone_data.range_step["equalizer"].dimmer_step
+                )
+            )
+            zone_data.capabilities.append(
+                NumberSetter(
+                    "equalizer_mid",
+                    "Mid",
+                    EntityTypes.CONFIG,
+                    lambda: zone_data.equalizer_low,
+                    lambda val: self.set_equalizer(zone_id, mid=int(val)),
+                    zone_data.range_step["equalizer"].dimmer_min,
+                    zone_data.range_step["equalizer"].dimmer_max,
+                    zone_data.range_step["equalizer"].dimmer_step
+                )
+            )
+            zone_data.capabilities.append(
+                NumberSetter(
+                    "equalizer_high",
+                    "High",
+                    EntityTypes.CONFIG,
+                    lambda: zone_data.equalizer_low,
+                    lambda val: self.set_equalizer(zone_id, high=int(val)),
+                    zone_data.range_step["equalizer"].dimmer_min,
+                    zone_data.range_step["equalizer"].dimmer_max,
+                    zone_data.range_step["equalizer"].dimmer_step
+                )
+            )
+
+        if ZoneFeature.TONE_CONTROL & zone_features:
+            zone_data.capabilities.append(
+                OptionSetter(
+                    "tone_control_mode",
+                    "Tone Mode",
+                    EntityTypes.CONFIG,
+                    lambda: zone_data.tone_mode,
+                    lambda val: self.set_tone_control(zone_id, mode=val),
+                    {
+                        key: key for key in zone_data.tone_control_mode_list
+                    }
+                )
+            )
+            zone_data.capabilities.append(
+                NumberSetter(
+                    "tone_bass",
+                    "Bass",
+                    EntityTypes.CONFIG,
+                    lambda: zone_data.tone_bass,
+                    lambda val: self.set_tone_control(zone_id, bass=int(val)),
+                    zone_data.range_step["tone_control"].dimmer_min,
+                    zone_data.range_step["tone_control"].dimmer_max,
+                    zone_data.range_step["tone_control"].dimmer_step
+                )
+            )
+            zone_data.capabilities.append(
+                NumberSetter(
+                    "tone_treble",
+                    "Treble",
+                    EntityTypes.CONFIG,
+                    lambda: zone_data.tone_treble,
+                    lambda val: self.set_tone_control(zone_id, treble=int(val)),
+                    zone_data.range_step["tone_control"].dimmer_min,
+                    zone_data.range_step["tone_control"].dimmer_max,
+                    zone_data.range_step["tone_control"].dimmer_step
+                )
+            )
+
+    def build_device_capabilities(self):
+        if DeviceFeature.DIMMER in self.features:
+            self.data.capabilities.append(
+                NumberSetter(
+                    "dimmer",
+                    "Display Brightness",
+                    EntityTypes.CONFIG,
+                    lambda: self.data.dimmer.dimmer_current,
+                    lambda value: self.set_dimmer(int(value)),
+                    self.data.dimmer.dimmer_min,
+                    self.data.dimmer.dimmer_max,
+                    self.data.dimmer.dimmer_step
+                )
+            )
+
+    def build_capabilities(self):
+        self.build_device_capabilities()
+
+        for zone_id in self.data.zones.keys():
+            self.build_zone_capabilities(zone_id)
 
     # -----Commands-----
     async def turn_on(self, zone_id):
@@ -646,6 +817,32 @@ class MusicCastDevice:
 
         await self.device.request(
             Zone.set_volume(zone_id, "down", step)
+        )
+
+    async def set_tone_control(self, zone_id, mode=None, bass=None, treble=None):
+        """Set bass using tone_control."""
+        if ZoneFeature.TONE_CONTROL not in self.data.zones[zone_id].features:
+            raise MusicCastUnsupportedException("Device doesn't support Tone Control.")
+        await self.device.request(
+            Zone.set_tone_control(
+                zone_id,
+                mode,
+                bass,
+                treble
+            )
+        )
+
+    async def set_equalizer(self, zone_id, mode=None, low=None, mid=None, high=None):
+        if ZoneFeature.EQUALIZER not in self.data.zones[zone_id].features:
+            raise MusicCastUnsupportedException("Device doesn't support Tone Control.")
+        await self.device.request(
+            Zone.set_equalizer(
+                zone_id,
+                mode,
+                low,
+                mid,
+                high
+            )
         )
 
     async def set_dimmer(self, dimmer: int):

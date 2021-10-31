@@ -1,12 +1,15 @@
 # taken from github.com/rsc-dev/pyamaha, which is licensed under the MIT License
 from __future__ import annotations
+
+import urllib
 from asyncio.transports import BaseTransport
-from typing import Awaitable
+from typing import Awaitable, Tuple
 from urllib.parse import urlparse
 import xml.etree.ElementTree as ET
 
 import aiohttp
-from aiomusiccast.exceptions import MusicCastConnectionException, MusicCastConfigurationException
+from aiomusiccast.exceptions import MusicCastConnectionException, MusicCastConfigurationException, \
+    MusicCastParamException
 import json
 import logging
 import queue
@@ -104,6 +107,25 @@ class MusicCastUdpProtocol(asyncio.DatagramProtocol):
             _LOGGER.exception("An unexpected error occurred while handling an UDP message.")
         finally:
             asyncio.create_task(self.handle_event(message_data))
+
+
+class UrlBuilder:
+    @classmethod
+    def build_query_str(cls, query_params: dict[str, str], **kwargs):
+        if not all([param in query_params.keys() for param in kwargs.keys()]):
+            raise MusicCastParamException("Unknown parameter while building query string.")
+        if not all(param in kwargs for param, req in query_params.items() if req):
+            raise MusicCastParamException("Not all required params were provided.")
+        return urllib.parse.urlencode({key: val for key, val in kwargs.items() if val is not None})
+
+    @classmethod
+    def build_url(cls, url: Tuple, **kwargs):
+        return f"{url[0]}?{cls.build_query_str(url[1], **kwargs)}"
+
+    @classmethod
+    def build_zone_url(cls, url: Tuple, zone: str, **kwargs):
+        base_url = url[0].format(host="{host}", zone=zone)
+        return f"{base_url}?{cls.build_query_str(url[1], **kwargs)}"
 
 
 class AsyncDevice:
@@ -966,9 +988,15 @@ class Zone:
         'SET_PURE_DIRECT': 'http://{host}/YamahaExtendedControl/v1/{zone}/setPureDirect?enable={enable}',
         'SET_ENHANCER': 'http://{host}/YamahaExtendedControl/v1/{zone}/setEnhancer?enable={enable}',
         'SET_TONE_CONTROL':
-            'http://{host}/YamahaExtendedControl/v1/{zone}/setToneControl?mode={mode}&bass={bass}&treble={treble}',
+            (
+                'http://{host}/YamahaExtendedControl/v1/{zone}/setToneControl',
+                {'mode': False, 'bass': False, 'treble': False}
+            ),
         'SET_EQUALIZER':
-            'http://{host}/YamahaExtendedControl/v1/{zone}/setEqualizer?mode={mode}&low={low}&mid={mid}&high={high}',
+            (
+                'http://{host}/YamahaExtendedControl/v1/{zone}/setEqualizer',
+                {'mode': False, 'low': False, 'mid': False, 'high': False}
+            ),
         'SET_BALANCE': 'http://{host}/YamahaExtendedControl/v1/{zone}/setBalance?value={value}',
         'SET_DIALOGUE_LEVEL': 'http://{host}/YamahaExtendedControl/v1/{zone}/setDialogueLevel?value={value}',
         'SET_DIALOGUE_LIFT': 'http://{host}/YamahaExtendedControl/v1/{zone}/setDialogueLift?value={value}',
@@ -1224,9 +1252,7 @@ class Zone:
                       gotten via /system/getFeatures
         """
         assert zone in ZONES, 'Invalid ZONE value!'
-        return Zone.URI['SET_TONE_CONTROL'].format(
-            host='{host}', zone=zone, mode=mode, bass=bass, treble=treble
-        )
+        return UrlBuilder.build_zone_url(Zone.URI["SET_TONE_CONTROL"], zone, mode=mode, bass=bass, treble=treble)
 
     # end-of-method set_tone_control
 
@@ -1253,9 +1279,7 @@ class Zone:
                     gotten via /system/getFeatures
         """
         assert zone in ZONES, 'Invalid ZONE value!'
-        return Zone.URI['SET_EQUALIZER'].format(
-            host='{host}', zone=zone, mode=mode, low=low, mid=mid, high=high
-        )
+        return UrlBuilder.build_zone_url(Zone.URI["SET_EQUALIZER"], zone, mode=mode, low=low, mid=mid, high=high)
 
     # end-of-method set_equalizer
 
