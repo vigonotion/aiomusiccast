@@ -663,7 +663,7 @@ class MusicCastDevice:
                     }
                 )
             )
-    ''' # TODO undocumented API
+
         if ZoneFeature.DTS_DIALOGUE_CONTROL & zone_features:
             zone_data.capabilities.append(
                 NumberSetter(
@@ -671,13 +671,13 @@ class MusicCastDevice:
                     "DTS Dialogue Control",
                     EntityTypes.CONFIG,
                     lambda: zone_data.dts_dialogue_control,
-                    lambda val: self.set_dialogue_lift(zone_id, int(val)),
+                    lambda val: self.set_dts_dialogue_control(zone_id, int(val)),
                     zone_data.range_step["dts_dialogue_control"].dimmer_min,
                     zone_data.range_step["dts_dialogue_control"].dimmer_max,
                     zone_data.range_step["dts_dialogue_control"].dimmer_step
                 )
             )
-    '''
+
     def build_device_capabilities(self):
         if DeviceFeature.DIMMER & self.features:
             self.data.capabilities.append(
@@ -785,6 +785,16 @@ class MusicCastDevice:
             Zone.set_dialogue_lift(
                 zone_id,
                 level
+            )
+        )
+
+    async def set_dts_dialogue_control(self, zone_id, value):
+        if ZoneFeature.DTS_DIALOGUE_CONTROL not in self.data.zones[zone_id].features:
+            raise MusicCastUnsupportedException("Zone doesn't support DTS dialogue control.")
+        await self.device.request(
+            Zone.set_dts_dialogue_control(
+                zone_id,
+                value
             )
         )
 

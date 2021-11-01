@@ -1000,6 +1000,7 @@ class Zone:
         'SET_BALANCE': 'http://{host}/YamahaExtendedControl/v1/{zone}/setBalance?value={value}',
         'SET_DIALOGUE_LEVEL': 'http://{host}/YamahaExtendedControl/v1/{zone}/setDialogueLevel?value={value}',
         'SET_DIALOGUE_LIFT': 'http://{host}/YamahaExtendedControl/v1/{zone}/setDialogueLift?value={value}',
+        'SET_DTS_DIALOGUE_CONTROL': 'http://{host}/YamahaExtendedControl/v1/{zone}/setDtsDialogueControl?num={value}',
         'SET_CLEAR_VOICE': 'http://{host}/YamahaExtendedControl/v1/{zone}/setClearVoice?enable={enable}',
         'SET_SUBWOOFER_VOLUME': 'http://{host}/YamahaExtendedControl/v1/{zone}/setSubwooferVolume?volume={volume}',
         'SET_BASS_EXTENSION': 'http://{host}/YamahaExtendedControl/v1/{zone}/setBassExtension?enable={enable}',
@@ -1336,6 +1337,25 @@ class Zone:
         )
 
     # end-of-method set_dialogue_lift
+
+    @staticmethod
+    def set_dts_dialogue_control(zone, value):
+        """For setting DTS Dialogue Control in each Zone. Values of specifying range and steps are different.
+        Undocumented method.
+
+        Arguments:
+            @param zone: Specifies target Zone.
+                    Values: 'main', 'zone2', 'zone3', 'zone4'
+            @param value: Specifies DTS Dialogue Control value
+                     Values: Value range calculated by minimum/maximum/step values
+                     gotten via /system/getFeatures
+        """
+        assert zone in ZONES, 'Invalid ZONE value!'
+        return Zone.URI['SET_DTS_DIALOGUE_CONTROL'].format(
+            host='{host}', zone=zone, value=value
+        )
+
+    # end-of-method set_dts_dialogue_control
 
     @staticmethod
     def set_clear_voice(zone, value):
