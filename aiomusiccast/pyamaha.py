@@ -1006,6 +1006,7 @@ class Zone:
         'GET_SIGNAL_INFO': 'http://{host}/YamahaExtendedControl/v1/{zone}/getSignalInfo',
         'SET_LINK_CONTROL': 'http://{host}/YamahaExtendedControl/v1/{zone}/setLinkControl?control={control}',
         'SET_LINK_AUDIO_DELAY': 'http://{host}/YamahaExtendedControl/v1/{zone}/setLinkAudioDelay?delay={delay}',
+        'SET_LINK_AUDIO_QUALITY': 'http://{host}/YamahaExtendedControl/v1/{zone}/setLinkAudioQuality?mode={mode}',
     }
 
     @staticmethod
@@ -1428,6 +1429,23 @@ class Zone:
         assert zone in ZONES, 'Invalid ZONE value!'
         return Zone.URI['SET_LINK_AUDIO_DELAY'].format(
             host='{host}', zone=zone, delay=delay
+        )
+
+    # end-of-method set_link_audio_delay
+
+    @staticmethod
+    def set_link_audio_quality(zone, quality):
+        """For setting Link Audio Quality in each Zone.
+
+        Arguments:
+            @param zone: Specifies target Zone.
+                    Values: 'main', 'zone2', 'zone3', 'zone4'
+            @param quality: Specifies Link Audio Quality setting
+                    Values: Values gotten via /system/getFeatures
+        """
+        assert zone in ZONES, 'Invalid ZONE value!'
+        return Zone.URI['SET_LINK_AUDIO_QUALITY'].format(
+            host='{host}', zone=zone, mode=quality
         )
 
     # end-of-method set_link_audio_delay

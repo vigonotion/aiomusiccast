@@ -1,7 +1,7 @@
 import asyncio
 from typing import Dict
 
-from aiomusiccast import ZoneFeature
+from .features import ZoneFeature
 
 
 class MusicCastAlarmDetails:
@@ -143,6 +143,10 @@ class MusicCastZoneData:
         self.dialogue_level = None
         self.dialogue_lift = None
         self.dts_dialogue_control = None
+
+        self.link_audio_delay = None
+        self.link_audio_quality = None
+        self.link_control = None
 
         self.tone_control_mode_list = None
         self.surr_decoder_type_list = None

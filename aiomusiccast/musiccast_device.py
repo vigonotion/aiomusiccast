@@ -11,9 +11,8 @@ from datetime import datetime, time
 from typing import Dict, List
 from xml.sax.saxutils import escape
 
-from . import MusicCastData, MusicCastZoneData
 from .capabilities import NumberSetter, EntityTypes, OptionSetter
-from .musiccast_data import MusicCastAlarmDetails, RangeStep, Dimmer
+from .musiccast_data import MusicCastAlarmDetails, RangeStep, Dimmer, MusicCastData, MusicCastZoneData
 from .pyamaha import AsyncDevice, Clock, Dist, NetUSB, System, Tuner, Zone
 
 _LOGGER = logging.getLogger(__name__)
@@ -248,6 +247,10 @@ class MusicCastDevice:
         zone_data.dialogue_level = zone.get("dialogue_level")
         zone_data.dialogue_lift = zone.get("dialogue_lift")
         zone_data.dts_dialogue_control = zone.get("dts_dialogue_control")
+
+        zone_data.link_audio_delay = zone.get("link_audio_delay")
+        zone_data.link_audio_quality = zone.get("link_audio_quality")
+        zone_data.link_control = zone.get("link_control")
 
         self.data.zones[zone_id] = zone_data
         await self._update_input(zone_id, zone.get("input"))
@@ -618,6 +621,48 @@ class MusicCastDevice:
                     zone_data.range_step["dialogue_lift"].dimmer_step
                 )
             )
+
+        if ZoneFeature.LINK_AUDIO_DELAY & zone_features:
+            zone_data.capabilities.append(
+                OptionSetter(
+                    "link_audio_delay",
+                    "Link Audio Delay",
+                    EntityTypes.CONFIG,
+                    lambda: zone_data.link_audio_delay,
+                    lambda val: self.set_link_audio_delay(zone_id, val),
+                    {
+                        key: key for key in zone_data.link_audio_delay_list
+                    }
+                )
+            )
+
+        if ZoneFeature.LINK_CONTROL & zone_features:
+            zone_data.capabilities.append(
+                OptionSetter(
+                    "link_control",
+                    "Link Control",
+                    EntityTypes.CONFIG,
+                    lambda: zone_data.link_control,
+                    lambda val: self.set_dialogue_lift(zone_id, val),
+                    {
+                        key: key for key in zone_data.link_control_list
+                    }
+                )
+            )
+
+        if ZoneFeature.LINK_AUDIO_QUALITY & zone_features:
+            zone_data.capabilities.append(
+                OptionSetter(
+                    "link_audio_quality",
+                    "Link Audio Quality",
+                    EntityTypes.CONFIG,
+                    lambda: zone_data.link_audio_quality,
+                    lambda val: self.set_dialogue_lift(zone_id, val),
+                    {
+                        key: key for key in zone_data.link_audio_quality_list
+                    }
+                )
+            )
     ''' # TODO undocumented API
         if ZoneFeature.DTS_DIALOGUE_CONTROL & zone_features:
             zone_data.capabilities.append(
@@ -725,7 +770,7 @@ class MusicCastDevice:
 
     async def set_dialogue_level(self, zone_id, level):
         if ZoneFeature.DIALOGUE_LEVEL not in self.data.zones[zone_id].features:
-            raise MusicCastUnsupportedException("Device doesn't support Dialog level.")
+            raise MusicCastUnsupportedException("Zone doesn't support Dialog level.")
         await self.device.request(
             Zone.set_dialogue_level(
                 zone_id,
@@ -735,11 +780,41 @@ class MusicCastDevice:
 
     async def set_dialogue_lift(self, zone_id, level):
         if ZoneFeature.DIALOGUE_LIFT not in self.data.zones[zone_id].features:
-            raise MusicCastUnsupportedException("Device doesn't support Dialog lift.")
+            raise MusicCastUnsupportedException("Zone doesn't support Dialog lift.")
         await self.device.request(
             Zone.set_dialogue_lift(
                 zone_id,
                 level
+            )
+        )
+
+    async def set_link_audio_delay(self, zone_id, option):
+        if ZoneFeature.LINK_AUDIO_DELAY not in self.data.zones[zone_id].features:
+            raise MusicCastUnsupportedException("Zone does not support Link Audio Delay.")
+        await self.device.request(
+            Zone.set_link_audio_delay(
+                zone_id,
+                option
+            )
+        )
+
+    async def set_link_audio_quality(self, zone_id, option):
+        if ZoneFeature.LINK_AUDIO_QUALITY not in self.data.zones[zone_id].features:
+            raise MusicCastUnsupportedException("Zone does not support Link Audio Quality.")
+        await self.device.request(
+            Zone.set_link_audio_quality(
+                zone_id,
+                option
+            )
+        )
+
+    async def set_link_control(self, zone_id, option):
+        if ZoneFeature.LINK_CONTROL not in self.data.zones[zone_id].features:
+            raise MusicCastUnsupportedException("Zone does not support Link Control.")
+        await self.device.request(
+            Zone.set_link_control(
+                zone_id,
+                option
             )
         )
 
