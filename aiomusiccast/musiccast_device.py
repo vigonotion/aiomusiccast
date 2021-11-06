@@ -458,8 +458,6 @@ class MusicCastDevice:
 
     async def fetch(self):
         """Fetch data from musiccast device."""
-        if self.device.transport is None:
-            await self.device.enable_polling()
         if not self._network_status:
             self._network_status = await self.device.request_json(System.get_network_status())
 

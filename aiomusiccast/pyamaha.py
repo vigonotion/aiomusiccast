@@ -173,6 +173,7 @@ class AsyncDevice:
         self._headers = {}
 
         self._transport.close()
+        self._transport = None
 
     async def request(self, *args):
         """Request YamahaExtendedControl API URI.
