@@ -6,9 +6,13 @@ categories:
   - title: 🚀 Features
     label: feature
   - title: 🐛 Bug Fixes
-    label: fix
+    labels: 
+      - fix
+      - bug
   - title: 🧰 Maintenance
     label: chore
+  - title: 🚨 Breaking Changes
+    label: breaking
 
 version-resolver:
   major:
