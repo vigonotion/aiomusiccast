@@ -169,6 +169,8 @@ class AsyncDevice:
             {"X-AppName": "MusicCast/1.0", "X-AppPort": str(port)}
         )
 
+        await self.request_json(System.get_device_info())
+
     def disable_polling(self):
         self._headers = {}
 
