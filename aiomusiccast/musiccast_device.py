@@ -536,7 +536,7 @@ class MusicCastDevice:
                     "equalizer_mid",
                     "Mid",
                     EntityTypes.CONFIG,
-                    lambda: zone_data.equalizer_low,
+                    lambda: zone_data.equalizer_mid,
                     lambda val: self.set_equalizer(zone_id, mid=int(val)),
                     zone_data.range_step["equalizer"].dimmer_min,
                     zone_data.range_step["equalizer"].dimmer_max,
@@ -548,7 +548,7 @@ class MusicCastDevice:
                     "equalizer_high",
                     "High",
                     EntityTypes.CONFIG,
-                    lambda: zone_data.equalizer_low,
+                    lambda: zone_data.equalizer_high,
                     lambda val: self.set_equalizer(zone_id, high=int(val)),
                     zone_data.range_step["equalizer"].dimmer_min,
                     zone_data.range_step["equalizer"].dimmer_max,
@@ -643,7 +643,7 @@ class MusicCastDevice:
                     "Link Control",
                     EntityTypes.CONFIG,
                     lambda: zone_data.link_control,
-                    lambda val: self.set_dialogue_lift(zone_id, val),
+                    lambda val: self.set_link_control(zone_id, val),
                     {
                         key: key for key in zone_data.link_control_list
                     }
@@ -657,7 +657,7 @@ class MusicCastDevice:
                     "Link Audio Quality",
                     EntityTypes.CONFIG,
                     lambda: zone_data.link_audio_quality,
-                    lambda val: self.set_dialogue_lift(zone_id, val),
+                    lambda val: self.set_link_audio_quality(zone_id, val),
                     {
                         key: key for key in zone_data.link_audio_quality_list
                     }
