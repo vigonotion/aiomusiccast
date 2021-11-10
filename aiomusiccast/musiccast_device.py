@@ -493,7 +493,7 @@ class MusicCastDevice:
                 OptionSetter(
                     "sleep",
                     "Sleep Timer",
-                    EntityTypes.REGULAR,
+                    EntityTypes.CONFIG,
                     lambda: zone_data.sleep_time,
                     lambda val: self.set_sleep_timer(zone_id, val),
                     {
