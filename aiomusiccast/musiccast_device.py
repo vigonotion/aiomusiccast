@@ -739,7 +739,7 @@ class MusicCastDevice:
                     "Adaptive DRC",
                     EntityTypes.CONFIG,
                     lambda: zone_data.adaptive_drc,
-                    lambda val: self.set_bass_extension(zone_id, val)
+                    lambda val: self.set_adaptive_drc(zone_id, val)
                 )
             )
 
