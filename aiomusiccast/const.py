@@ -76,7 +76,6 @@ ZONE_FUNC_LIST_TO_FEATURE_MAPPING = {
     "adaptive_drc": ZoneFeature.ADAPTIVE_DRC,
     "dts_dialogue_control": ZoneFeature.DTS_DIALOGUE_CONTROL,
     "adaptive_dsp_level": ZoneFeature.ADAPTIVE_DSP_LEVEL,
-    "extra_bass": ZoneFeature.EXTRA_BASS,
     "mono": ZoneFeature.MONO,
 }
 

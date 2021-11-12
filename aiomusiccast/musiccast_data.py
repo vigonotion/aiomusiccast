@@ -96,6 +96,8 @@ class MusicCastData:
         self.speaker_a: bool | None = None
         self.speaker_b: bool | None = None
 
+        self.party_enable: bool | None = None
+
         self.capabilities = []
 
     @property
@@ -159,6 +161,14 @@ class MusicCastZoneData:
 
         self.func_list = []
         self.capabilities = []
+
+        self.extra_bass: bool | None = None
+        self.bass_extension: bool | None = None
+        self.adaptive_drc: bool | None = None
+        self.enhancer: bool | None = None
+        self.pure_direct: bool | None = None
+
+        self.surr_decoder_type: str | None = None
 
 
 class RangeStep:

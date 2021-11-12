@@ -1004,10 +1004,12 @@ class Zone:
         'SET_CLEAR_VOICE': 'http://{host}/YamahaExtendedControl/v1/{zone}/setClearVoice?enable={enable}',
         'SET_SUBWOOFER_VOLUME': 'http://{host}/YamahaExtendedControl/v1/{zone}/setSubwooferVolume?volume={volume}',
         'SET_BASS_EXTENSION': 'http://{host}/YamahaExtendedControl/v1/{zone}/setBassExtension?enable={enable}',
+        'SET_EXTRA_BASS': 'http://{host}/YamahaExtendedControl/v1/{zone}/setExtraBass?enable={enable}',
         'GET_SIGNAL_INFO': 'http://{host}/YamahaExtendedControl/v1/{zone}/getSignalInfo',
         'SET_LINK_CONTROL': 'http://{host}/YamahaExtendedControl/v1/{zone}/setLinkControl?control={control}',
         'SET_LINK_AUDIO_DELAY': 'http://{host}/YamahaExtendedControl/v1/{zone}/setLinkAudioDelay?delay={delay}',
         'SET_LINK_AUDIO_QUALITY': 'http://{host}/YamahaExtendedControl/v1/{zone}/setLinkAudioQuality?mode={mode}',
+        'SET_ADAPTIVE_DRC': 'http://{host}/YamahaExtendedControl/v1/{zone}/setAdaptiveDrc?enable={enable}',
     }
 
     @staticmethod
@@ -1406,6 +1408,22 @@ class Zone:
     # end-of-method set_bass_extension
 
     @staticmethod
+    def set_extra_bass(zone, enable):
+        """For setting Extra Bass in each Zone.
+
+        Arguments:
+            @param zone: Specifies target Zone.
+                    Values: 'main', 'zone2', 'zone3', 'zone4'
+            @param enable: Specifies Extra Bass setting
+        """
+        assert zone in ZONES, 'Invalid ZONE value!'
+        return Zone.URI['SET_EXTRA_BASS'].format(
+            host='{host}', zone=zone, enable=_bool_to_str(enable)
+        )
+
+    # end-of-method set_bass_extension
+
+    @staticmethod
     def get_signal_info(zone):
         """For retrieving current playback signal information in each Zone.
 
@@ -1470,8 +1488,19 @@ class Zone:
 
     # end-of-method set_link_audio_delay
 
-    pass
+    @classmethod
+    def set_adaptive_drc(cls, zone, value):
+        """For setting Link Audio Quality in each Zone.
 
+        Arguments:
+            @param zone: Specifies target Zone.
+                    Values: 'main', 'zone2', 'zone3', 'zone4'
+            @param value: Specifies drc enable
+        """
+        assert zone in ZONES, 'Invalid ZONE value!'
+        return Zone.URI['SET_ADAPTIVE_DRC'].format(
+            host='{host}', zone=zone, enable=_bool_to_str(value)
+        )
 
 # end-of-class Zone
 

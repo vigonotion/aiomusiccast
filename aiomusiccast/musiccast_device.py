@@ -11,7 +11,7 @@ from datetime import datetime, time
 from typing import Dict, List
 from xml.sax.saxutils import escape
 
-from .capabilities import NumberSetter, EntityTypes, OptionSetter
+from .capabilities import NumberSetter, EntityTypes, OptionSetter, BinarySetter
 from .musiccast_data import MusicCastAlarmDetails, RangeStep, Dimmer, MusicCastData, MusicCastZoneData
 from .pyamaha import AsyncDevice, Clock, Dist, NetUSB, System, Tuner, Zone
 
@@ -229,11 +229,21 @@ class MusicCastDevice:
         zone = await self.device.request_json(Zone.get_status(zone_id))
         zone_data: MusicCastZoneData = self.data.zones.get(zone_id, MusicCastZoneData())
 
+        self.data.party_enable = zone.get("party_enable")
+
         zone_data.power = zone.get("power")
         zone_data.current_volume = zone.get("volume")
         zone_data.mute = zone.get("mute")
         zone_data.sound_program = zone.get("sound_program")
         zone_data.sleep_time = zone.get("sleep")
+
+        zone_data.extra_bass = zone.get("extra_bass")
+        zone_data.bass_extension = zone.get("bass_extension")
+        zone_data.adaptive_drc = zone.get("adaptive_drc")
+        zone_data.enhancer = zone.get("enhancer")
+        zone_data.pure_direct = zone.get("pure_direct")
+
+        zone_data.surr_decoder_type = zone.get("surr_decoder_type")
 
         zone_data.equalizer_mode = zone.get("equalizer", {}).get("mode")
         zone_data.equalizer_high = zone.get("equalizer", {}).get("high")
@@ -678,6 +688,61 @@ class MusicCastDevice:
                 )
             )
 
+        if ZoneFeature.BASS_EXTENSION & zone_features:
+            zone_data.capabilities.append(
+                BinarySetter(
+                    "bass_extension",
+                    "Bass Extension",
+                    EntityTypes.CONFIG,
+                    lambda: zone_data.bass_extension,
+                    lambda val: self.set_bass_extension(zone_id, val)
+                )
+            )
+
+        if ZoneFeature.EXTRA_BASS & zone_features:
+            zone_data.capabilities.append(
+                BinarySetter(
+                    "extra_bass",
+                    "Extra Bass",
+                    EntityTypes.CONFIG,
+                    lambda: zone_data.extra_bass,
+                    lambda val: self.set_extra_bass(zone_id, val)
+                )
+            )
+
+        if ZoneFeature.ENHANCER & zone_features:
+            zone_data.capabilities.append(
+                BinarySetter(
+                    "enhancer",
+                    "Enhancer",
+                    EntityTypes.CONFIG,
+                    lambda: zone_data.enhancer,
+                    lambda val: self.set_enhancer(zone_id, val)
+                )
+            )
+
+        if ZoneFeature.PURE_DIRECT & zone_features:
+            zone_data.capabilities.append(
+                BinarySetter(
+                    "pure_direct",
+                    "Pure Direct",
+                    EntityTypes.CONFIG,
+                    lambda: zone_data.bass_extension,
+                    lambda val: self.set_bass_extension(zone_id, val)
+                )
+            )
+
+        if ZoneFeature.ADAPTIVE_DRC & zone_features:
+            zone_data.capabilities.append(
+                BinarySetter(
+                    "set_adaptive_drc",
+                    "Adaptive DRC",
+                    EntityTypes.CONFIG,
+                    lambda: zone_data.adaptive_drc,
+                    lambda val: self.set_bass_extension(zone_id, val)
+                )
+            )
+
     def build_device_capabilities(self):
         if DeviceFeature.DIMMER & self.features:
             self.data.capabilities.append(
@@ -690,6 +755,39 @@ class MusicCastDevice:
                     self.data.dimmer.dimmer_min,
                     self.data.dimmer.dimmer_max,
                     self.data.dimmer.dimmer_step
+                )
+            )
+
+        if DeviceFeature.SPEAKER_A & self.features:
+            self.data.capabilities.append(
+                BinarySetter(
+                    "speaker_a",
+                    "Speaker A",
+                    EntityTypes.CONFIG,
+                    lambda: self.data.speaker_a,
+                    lambda val: self.set_speaker_a(val)
+                )
+            )
+
+        if DeviceFeature.SPEAKER_B & self.features:
+            self.data.capabilities.append(
+                BinarySetter(
+                    "speaker_b",
+                    "Speaker B",
+                    EntityTypes.CONFIG,
+                    lambda: self.data.speaker_b,
+                    lambda val: self.set_speaker_b(val)
+                )
+            )
+
+        if DeviceFeature.PARTY_MODE & self.features:
+            self.data.capabilities.append(
+                BinarySetter(
+                    "party_mode",
+                    "Party Mode",
+                    EntityTypes.CONFIG,
+                    lambda: self.data.party_enable,
+                    lambda val: self.set_party_mode(val)
                 )
             )
 
@@ -793,6 +891,53 @@ class MusicCastDevice:
             raise MusicCastUnsupportedException("Zone doesn't support DTS dialogue control.")
         await self.device.request(
             Zone.set_dts_dialogue_control(
+                zone_id,
+                value
+            )
+        )
+
+    async def set_extra_bass(self, zone_id, value):
+        await self.device.request(
+            Zone.set_extra_bass(
+                zone_id,
+                value
+            )
+        )
+
+    async def set_bass_extension(self, zone_id, value):
+        await self.device.request(
+            Zone.set_bass_extension(
+                zone_id,
+                value
+            )
+        )
+
+    async def set_enhancer(self, zone_id, value):
+        await self.device.request(
+            Zone.set_enhancer(
+                zone_id,
+                value
+            )
+        )
+
+    async def set_party_mode(self, value):
+        await self.device.request(
+            System.set_partymode(
+                value
+            )
+        )
+
+    async def set_adaptive_drc(self, zone_id, value):
+        await self.device.request(
+            Zone.set_adaptive_drc(
+                zone_id,
+                value
+            )
+        )
+
+    async def set_pure_direct(self, zone_id, value):
+        await self.device.request(
+            Zone.set_pure_direct(
                 zone_id,
                 value
             )
