@@ -424,9 +424,9 @@ class MusicCastDevice:
 
                 for range_step in zone.get("range_step", []):
                     current = RangeStep()
-                    current.dimmer_min = range_step.get("min")
-                    current.dimmer_max = range_step.get("max")
-                    current.dimmer_step = range_step.get("step")
+                    current.minimum = range_step.get("min")
+                    current.maximum = range_step.get("max")
+                    current.step = range_step.get("step")
                     zone_data.range_step[range_step.get("id")] = current
 
                 zone_data.input_list = zone.get("input_list", [])
@@ -564,9 +564,9 @@ class MusicCastDevice:
                     EntityTypes.CONFIG,
                     lambda: zone_data.equalizer_low,
                     lambda val: self.set_equalizer(zone_id, low=int(val)),
-                    zone_data.range_step["equalizer"].dimmer_min,
-                    zone_data.range_step["equalizer"].dimmer_max,
-                    zone_data.range_step["equalizer"].dimmer_step
+                    zone_data.range_step["equalizer"].minimum,
+                    zone_data.range_step["equalizer"].maximum,
+                    zone_data.range_step["equalizer"].step
                 )
             )
             zone_data.capabilities.append(
@@ -576,9 +576,9 @@ class MusicCastDevice:
                     EntityTypes.CONFIG,
                     lambda: zone_data.equalizer_mid,
                     lambda val: self.set_equalizer(zone_id, mid=int(val)),
-                    zone_data.range_step["equalizer"].dimmer_min,
-                    zone_data.range_step["equalizer"].dimmer_max,
-                    zone_data.range_step["equalizer"].dimmer_step
+                    zone_data.range_step["equalizer"].minimum,
+                    zone_data.range_step["equalizer"].maximum,
+                    zone_data.range_step["equalizer"].step
                 )
             )
             zone_data.capabilities.append(
@@ -588,9 +588,9 @@ class MusicCastDevice:
                     EntityTypes.CONFIG,
                     lambda: zone_data.equalizer_high,
                     lambda val: self.set_equalizer(zone_id, high=int(val)),
-                    zone_data.range_step["equalizer"].dimmer_min,
-                    zone_data.range_step["equalizer"].dimmer_max,
-                    zone_data.range_step["equalizer"].dimmer_step
+                    zone_data.range_step["equalizer"].minimum,
+                    zone_data.range_step["equalizer"].maximum,
+                    zone_data.range_step["equalizer"].step
                 )
             )
 
@@ -614,9 +614,9 @@ class MusicCastDevice:
                     EntityTypes.CONFIG,
                     lambda: zone_data.tone_bass,
                     lambda val: self.set_tone_control(zone_id, bass=int(val)),
-                    zone_data.range_step["tone_control"].dimmer_min,
-                    zone_data.range_step["tone_control"].dimmer_max,
-                    zone_data.range_step["tone_control"].dimmer_step
+                    zone_data.range_step["tone_control"].minimum,
+                    zone_data.range_step["tone_control"].maximum,
+                    zone_data.range_step["tone_control"].step
                 )
             )
             zone_data.capabilities.append(
@@ -626,9 +626,9 @@ class MusicCastDevice:
                     EntityTypes.CONFIG,
                     lambda: zone_data.tone_treble,
                     lambda val: self.set_tone_control(zone_id, treble=int(val)),
-                    zone_data.range_step["tone_control"].dimmer_min,
-                    zone_data.range_step["tone_control"].dimmer_max,
-                    zone_data.range_step["tone_control"].dimmer_step
+                    zone_data.range_step["tone_control"].minimum,
+                    zone_data.range_step["tone_control"].maximum,
+                    zone_data.range_step["tone_control"].step
                 )
             )
 
@@ -640,9 +640,9 @@ class MusicCastDevice:
                     EntityTypes.CONFIG,
                     lambda: zone_data.dialogue_level,
                     lambda val: self.set_dialogue_level(zone_id, int(val)),
-                    zone_data.range_step["dialogue_level"].dimmer_min,
-                    zone_data.range_step["dialogue_level"].dimmer_max,
-                    zone_data.range_step["dialogue_level"].dimmer_step
+                    zone_data.range_step["dialogue_level"].minimum,
+                    zone_data.range_step["dialogue_level"].maximum,
+                    zone_data.range_step["dialogue_level"].step
                 )
             )
 
@@ -654,9 +654,9 @@ class MusicCastDevice:
                     EntityTypes.CONFIG,
                     lambda: zone_data.dialogue_lift,
                     lambda val: self.set_dialogue_lift(zone_id, int(val)),
-                    zone_data.range_step["dialogue_lift"].dimmer_min,
-                    zone_data.range_step["dialogue_lift"].dimmer_max,
-                    zone_data.range_step["dialogue_lift"].dimmer_step
+                    zone_data.range_step["dialogue_lift"].minimum,
+                    zone_data.range_step["dialogue_lift"].maximum,
+                    zone_data.range_step["dialogue_lift"].step
                 )
             )
 
@@ -724,9 +724,9 @@ class MusicCastDevice:
                     EntityTypes.CONFIG,
                     lambda: zone_data.dts_dialogue_control,
                     lambda val: self.set_dts_dialogue_control(zone_id, int(val)),
-                    zone_data.range_step["dts_dialogue_control"].dimmer_min,
-                    zone_data.range_step["dts_dialogue_control"].dimmer_max,
-                    zone_data.range_step["dts_dialogue_control"].dimmer_step
+                    zone_data.range_step["dts_dialogue_control"].minimum,
+                    zone_data.range_step["dts_dialogue_control"].maximum,
+                    zone_data.range_step["dts_dialogue_control"].step
                 )
             )
 
@@ -794,9 +794,9 @@ class MusicCastDevice:
                     EntityTypes.CONFIG,
                     lambda: self.data.dimmer.dimmer_current,
                     lambda value: self.set_dimmer(int(value)),
-                    self.data.dimmer.dimmer_min,
-                    self.data.dimmer.dimmer_max,
-                    self.data.dimmer.dimmer_step
+                    self.data.dimmer.minimum,
+                    self.data.dimmer.maximum,
+                    self.data.dimmer.step
                 )
             )
 
@@ -1025,12 +1025,7 @@ class MusicCastDevice:
     @_check_feature(DeviceFeature.DIMMER)
     async def set_dimmer(self, dimmer: int):
         """Set the dimmer on the device."""
-
-        if DeviceFeature.DIMMER not in self.features or not self.data.dimmer:
-            raise MusicCastUnsupportedException("Device doesn't support dimming.")
-
-        if dimmer < self.data.dimmer.dimmer_min or dimmer > self.data.dimmer.dimmer_max or dimmer % self.data.dimmer.dimmer_step != 0:
-            raise MusicCastException(f"Dimmer value {dimmer} not in allowed dimming range {self.data.dimmer.dimmer_min} to {self.data.dimmer.dimmer_max} with step size {self.data.dimmer.dimmer_step}.")
+        self.data.dimmer.check(dimmer)
 
         await self.device.request(
             System.set_dimmer(dimmer)

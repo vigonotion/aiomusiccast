@@ -1,6 +1,7 @@
 import asyncio
 from typing import Dict
 
+from . import MusicCastException
 from .features import ZoneFeature
 
 
@@ -172,9 +173,14 @@ class MusicCastZoneData:
 
 
 class RangeStep:
-    dimmer_min: int
-    dimmer_max: int
-    dimmer_step: int
+    minimum: int = 0
+    maximum: int = 0
+    step: int = 1
+
+    def check(self, value):
+        if value not in range(self.minimum, self.maximum + 1, self.step):
+            raise MusicCastException("Given value %s is not in range of %s,%s,%s",
+                                     value, self.minimum, self.maximum, self.step)
 
 
 class Dimmer(RangeStep):
@@ -183,7 +189,7 @@ class Dimmer(RangeStep):
     dimmer_current: int
 
     def __init__(self, dimmer_min, dimmer_max, dimmer_step, dimmer_current):
-        self.dimmer_min = dimmer_min
-        self.dimmer_max = dimmer_max
-        self.dimmer_step = dimmer_step
+        self.minimum = dimmer_min
+        self.maximum = dimmer_max
+        self.step = dimmer_step
         self.dimmer_current = dimmer_current

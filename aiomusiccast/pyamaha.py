@@ -1010,6 +1010,7 @@ class Zone:
         'SET_LINK_AUDIO_DELAY': 'http://{host}/YamahaExtendedControl/v1/{zone}/setLinkAudioDelay?delay={delay}',
         'SET_LINK_AUDIO_QUALITY': 'http://{host}/YamahaExtendedControl/v1/{zone}/setLinkAudioQuality?mode={mode}',
         'SET_ADAPTIVE_DRC': 'http://{host}/YamahaExtendedControl/v1/{zone}/setAdaptiveDrc?enable={enable}',
+        'SET_SURR_DECODER_TYPE': 'http://{host}/YamahaExtendedControl/v1/{zone}/setSurroundDecoderType?type={option}',
     }
 
     @staticmethod
@@ -1500,6 +1501,20 @@ class Zone:
         assert zone in ZONES, 'Invalid ZONE value!'
         return Zone.URI['SET_ADAPTIVE_DRC'].format(
             host='{host}', zone=zone, enable=_bool_to_str(value)
+        )
+
+    @classmethod
+    def set_surr_decoder_type(cls, zone, option):
+        """For setting Surround decoder type in each Zone.
+
+        Arguments:
+            @param zone: Specifies target Zone.
+                    Values: 'main', 'zone2', 'zone3', 'zone4'
+            @param option: the surround decoder type to set
+        """
+        assert zone in ZONES, 'Invalid ZONE value!'
+        return Zone.URI['SET_SURR_DECODER_TYPE'].format(
+            host='{host}', zone=zone, option=option
         )
 
 # end-of-class Zone
