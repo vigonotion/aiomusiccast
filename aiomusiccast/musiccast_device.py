@@ -34,7 +34,6 @@ def _check_feature(feature: Feature):
                 return func(self, zone_id, *xs, **kws)
         elif isinstance(feature, DeviceFeature):
             def inner(self: MusicCastDevice, *xs, **kws):
-                print("Checking " + feature.name)
                 if not feature & self.features:
                     raise MusicCastUnsupportedException("Device doesn't support %s.", feature.name)
 
@@ -883,10 +882,9 @@ class MusicCastDevice:
             Zone.set_volume(zone_id, "down", step)
         )
 
+    @_check_feature(ZoneFeature.TONE_CONTROL)
     async def set_tone_control(self, zone_id, mode=None, bass=None, treble=None):
         """Set bass using tone_control."""
-        if ZoneFeature.TONE_CONTROL not in self.data.zones[zone_id].features:
-            raise MusicCastUnsupportedException("Device doesn't support Tone Control.")
         await self.device.request(
             Zone.set_tone_control(
                 zone_id,
@@ -896,9 +894,8 @@ class MusicCastDevice:
             )
         )
 
+    @_check_feature(ZoneFeature.EQUALIZER)
     async def set_equalizer(self, zone_id, mode=None, low=None, mid=None, high=None):
-        if ZoneFeature.EQUALIZER not in self.data.zones[zone_id].features:
-            raise MusicCastUnsupportedException("Device doesn't support Tone Control.")
         await self.device.request(
             Zone.set_equalizer(
                 zone_id,
@@ -909,9 +906,8 @@ class MusicCastDevice:
             )
         )
 
+    @_check_feature(ZoneFeature.DIALOGUE_LEVEL)
     async def set_dialogue_level(self, zone_id, level):
-        if ZoneFeature.DIALOGUE_LEVEL not in self.data.zones[zone_id].features:
-            raise MusicCastUnsupportedException("Zone doesn't support Dialog level.")
         await self.device.request(
             Zone.set_dialogue_level(
                 zone_id,
@@ -919,9 +915,8 @@ class MusicCastDevice:
             )
         )
 
+    @_check_feature(ZoneFeature.DIALOGUE_LIFT)
     async def set_dialogue_lift(self, zone_id, level):
-        if ZoneFeature.DIALOGUE_LIFT not in self.data.zones[zone_id].features:
-            raise MusicCastUnsupportedException("Zone doesn't support Dialog lift.")
         await self.device.request(
             Zone.set_dialogue_lift(
                 zone_id,
@@ -929,9 +924,8 @@ class MusicCastDevice:
             )
         )
 
+    @_check_feature(ZoneFeature.DTS_DIALOGUE_CONTROL)
     async def set_dts_dialogue_control(self, zone_id, value):
-        if ZoneFeature.DTS_DIALOGUE_CONTROL not in self.data.zones[zone_id].features:
-            raise MusicCastUnsupportedException("Zone doesn't support DTS dialogue control.")
         await self.device.request(
             Zone.set_dts_dialogue_control(
                 zone_id,
@@ -939,6 +933,7 @@ class MusicCastDevice:
             )
         )
 
+    @_check_feature(ZoneFeature.EXTRA_BASS)
     async def set_extra_bass(self, zone_id, value):
         await self.device.request(
             Zone.set_extra_bass(
@@ -947,6 +942,7 @@ class MusicCastDevice:
             )
         )
 
+    @_check_feature(ZoneFeature.BASS_EXTENSION)
     async def set_bass_extension(self, zone_id, value):
         await self.device.request(
             Zone.set_bass_extension(
@@ -955,6 +951,7 @@ class MusicCastDevice:
             )
         )
 
+    @_check_feature(ZoneFeature.ENHANCER)
     async def set_enhancer(self, zone_id, value):
         await self.device.request(
             Zone.set_enhancer(
@@ -963,6 +960,7 @@ class MusicCastDevice:
             )
         )
 
+    @_check_feature(DeviceFeature.PARTY_MODE)
     async def set_party_mode(self, value):
         await self.device.request(
             System.set_partymode(
@@ -970,6 +968,7 @@ class MusicCastDevice:
             )
         )
 
+    @_check_feature(ZoneFeature.ADAPTIVE_DRC)
     async def set_adaptive_drc(self, zone_id, value):
         await self.device.request(
             Zone.set_adaptive_drc(
@@ -978,6 +977,7 @@ class MusicCastDevice:
             )
         )
 
+    @_check_feature(ZoneFeature.PURE_DIRECT)
     async def set_pure_direct(self, zone_id, value):
         await self.device.request(
             Zone.set_pure_direct(
@@ -986,9 +986,8 @@ class MusicCastDevice:
             )
         )
 
+    @_check_feature(ZoneFeature.LINK_AUDIO_DELAY)
     async def set_link_audio_delay(self, zone_id, option):
-        if ZoneFeature.LINK_AUDIO_DELAY not in self.data.zones[zone_id].features:
-            raise MusicCastUnsupportedException("Zone does not support Link Audio Delay.")
         await self.device.request(
             Zone.set_link_audio_delay(
                 zone_id,
@@ -996,9 +995,8 @@ class MusicCastDevice:
             )
         )
 
+    @_check_feature(ZoneFeature.LINK_AUDIO_QUALITY)
     async def set_link_audio_quality(self, zone_id, option):
-        if ZoneFeature.LINK_AUDIO_QUALITY not in self.data.zones[zone_id].features:
-            raise MusicCastUnsupportedException("Zone does not support Link Audio Quality.")
         await self.device.request(
             Zone.set_link_audio_quality(
                 zone_id,
@@ -1006,9 +1004,8 @@ class MusicCastDevice:
             )
         )
 
+    @_check_feature(ZoneFeature.LINK_CONTROL)
     async def set_link_control(self, zone_id, option):
-        if ZoneFeature.LINK_CONTROL not in self.data.zones[zone_id].features:
-            raise MusicCastUnsupportedException("Zone does not support Link Control.")
         await self.device.request(
             Zone.set_link_control(
                 zone_id,
@@ -1055,22 +1052,16 @@ class MusicCastDevice:
         else:
             await self.device.request(NetUSB.set_shuffle("on" if shuffle else "off"))
 
+    @_check_feature(DeviceFeature.SPEAKER_A)
     async def set_speaker_a(self, speaker_a: bool):
         """Set speaker a."""
-
-        if DeviceFeature.SPEAKER_A not in self.features:
-            raise MusicCastUnsupportedException("Device doesn't support Speaker A.")
-
         await self.device.request(
             System.set_speaker_a(speaker_a)
         )
 
+    @_check_feature(DeviceFeature.SPEAKER_B)
     async def set_speaker_b(self, speaker_b: bool):
         """Set speaker b."""
-
-        if DeviceFeature.SPEAKER_B not in self.features:
-            raise MusicCastUnsupportedException("Device doesn't support Speaker B.")
-
         await self.device.request(
             System.set_speaker_b(speaker_b)
         )
