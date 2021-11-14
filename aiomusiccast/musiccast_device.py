@@ -8,14 +8,43 @@ import asyncio
 import logging
 import math
 from datetime import datetime, time
-from typing import Dict, List
+from typing import Dict, List, Callable
 from xml.sax.saxutils import escape
 
 from .capabilities import NumberSetter, EntityTypes, OptionSetter, BinarySetter
+from .features import Feature
 from .musiccast_data import MusicCastAlarmDetails, RangeStep, Dimmer, MusicCastData, MusicCastZoneData
 from .pyamaha import AsyncDevice, Clock, Dist, NetUSB, System, Tuner, Zone
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _check_feature(feature: Feature):
+    """Decorator to check, if a feature is supported. Should be used for all methods of, which rely on features.
+    A decorated function relying on a Zone feature has to have the zone_id as first parameter.
+    """
+    def aux(func: Callable):
+        if isinstance(feature, ZoneFeature):
+            def inner(self: MusicCastDevice, zone_id, *xs, **kws):
+                if zone_id not in self.data.zones.keys():
+                    raise MusicCastException("Zone %s does not exist.", zone_id)
+                if not feature & self.data.zones[zone_id].features:
+                    raise MusicCastUnsupportedException("Zone %s doesn't support %s.", zone_id, feature.name)
+
+                return func(self, zone_id, *xs, **kws)
+        elif isinstance(feature, DeviceFeature):
+            def inner(self: MusicCastDevice, *xs, **kws):
+                print("Checking " + feature.name)
+                if not feature & self.features:
+                    raise MusicCastUnsupportedException("Device doesn't support %s.", feature.name)
+
+                return func(self, *xs, **kws)
+        else:
+            raise MusicCastException("Unknown feature type ")
+
+        return inner
+
+    return aux
 
 
 class MusicCastDevice:
@@ -674,6 +703,20 @@ class MusicCastDevice:
                 )
             )
 
+        if ZoneFeature.SURR_DECODER_TYPE & zone_features:
+            zone_data.capabilities.append(
+                OptionSetter(
+                    "surr_decoder_type",
+                    "Surround Decoder Device",
+                    EntityTypes.CONFIG,
+                    lambda: zone_data.surr_decoder_type,
+                    lambda val: self.set_surround_decoder(zone_id, val),
+                    {
+                        key: key for key in zone_data.surr_decoder_type_list
+                    }
+                )
+            )
+
         if ZoneFeature.DTS_DIALOGUE_CONTROL & zone_features:
             zone_data.capabilities.append(
                 NumberSetter(
@@ -973,6 +1016,16 @@ class MusicCastDevice:
             )
         )
 
+    @_check_feature(ZoneFeature.SURR_DECODER_TYPE)
+    async def set_surround_decoder(self, zone_id, option):
+        await self.device.request(
+            Zone.set_surr_decoder_type(
+                zone_id,
+                option
+            )
+        )
+
+    @_check_feature(DeviceFeature.DIMMER)
     async def set_dimmer(self, dimmer: int):
         """Set the dimmer on the device."""
 
