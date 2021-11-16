@@ -15,8 +15,8 @@ class Capability(ABC):
     entity_type: EntityTypes
     get_current: Callable
 
-    def __init__(self, id, name, entity_type, get_current):
-        self.id = id
+    def __init__(self, name, entity_type, get_current):
+        self.id = ""
         self.name = name
         self.entity_type = entity_type
         self.get_current = get_current
@@ -29,8 +29,8 @@ class Capability(ABC):
 class SetableCapability(Capability, ABC):
     set_current: Callable
 
-    def __init__(self, id, name, entity_type, get_current, set_current):
-        super().__init__(id, name, entity_type, get_current)
+    def __init__(self, name, entity_type, get_current, set_current):
+        super().__init__(name, entity_type, get_current)
         self.set_current = set_current
 
     async def set(self, value):
@@ -54,8 +54,8 @@ class NumberSetter(SetableCapability):
     max_value: float
     step: float
 
-    def __init__(self, id, name, entity_type, get_current, set_current, min_value, max_value, step):
-        super().__init__(id, name, entity_type, get_current, set_current)
+    def __init__(self, name, entity_type, get_current, set_current, min_value, max_value, step):
+        super().__init__(name, entity_type, get_current, set_current)
         self.min_value = min_value
         self.max_value = max_value
         self.step = step
@@ -64,8 +64,8 @@ class NumberSetter(SetableCapability):
 class OptionSetter(SetableCapability):
     options: Dict[str, str]
 
-    def __init__(self, id, name, entity_type, get_current, set_current, options):
-        super().__init__(id, name, entity_type, get_current, set_current)
+    def __init__(self, name, entity_type, get_current, set_current, options):
+        super().__init__(name, entity_type, get_current, set_current)
         self.options = options
         
     async def set(self, value):

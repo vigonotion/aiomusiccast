@@ -12,6 +12,7 @@ from typing import Dict, List, Callable
 from xml.sax.saxutils import escape
 
 from .capabilities import NumberSetter, EntityTypes, OptionSetter, BinarySetter
+from .capability_registry import zone_capabilities, device_capabilities
 from .features import Feature
 from .musiccast_data import MusicCastAlarmDetails, RangeStep, Dimmer, MusicCastData, MusicCastZoneData
 from .pyamaha import AsyncDevice, Clock, Dist, NetUSB, System, Tuner, Zone
@@ -20,7 +21,9 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def _check_feature(feature: Feature):
-    """Decorator to check, if a feature is supported. Should be used for all methods of, which rely on features.
+    """Decorator to check, if a feature is supported.
+
+    Should be used for all methods of MusicCastDevice, which rely on features.
     A decorated function relying on a Zone feature has to have the zone_id as first parameter.
     """
     def aux(func: Callable):
@@ -523,315 +526,32 @@ class MusicCastDevice:
         await self._fetch_func_status()
 
     def build_zone_capabilities(self, zone_id):
-        zone_features = self.data.zones[zone_id].features
         zone_data = self.data.zones[zone_id]
 
-        if ZoneFeature.SLEEP & zone_features:
-            zone_data.capabilities.append(
-                OptionSetter(
-                    "sleep",
-                    "Sleep Timer",
-                    EntityTypes.CONFIG,
-                    lambda: zone_data.sleep_time,
-                    lambda val: self.set_sleep_timer(zone_id, val),
-                    {
-                        0: "off",
-                        30: "30 min",
-                        60: "60 min",
-                        90: "90 min",
-                        120: "120 min"
-                    }
-                )
-            )
-
-        if ZoneFeature.EQUALIZER & zone_features:
-            zone_data.capabilities.append(
-                OptionSetter(
-                    "equalizer_mode",
-                    "Equalizer Mode",
-                    EntityTypes.CONFIG,
-                    lambda: zone_data.equalizer_mode,
-                    lambda val: self.set_equalizer(zone_id, mode=val),
-                    {
-                        key: key for key in zone_data.equalizer_mode_list
-                    }
-                )
-            )
-            zone_data.capabilities.append(
-                NumberSetter(
-                    "equalizer_low",
-                    "Low",
-                    EntityTypes.CONFIG,
-                    lambda: zone_data.equalizer_low,
-                    lambda val: self.set_equalizer(zone_id, low=int(val)),
-                    zone_data.range_step["equalizer"].minimum,
-                    zone_data.range_step["equalizer"].maximum,
-                    zone_data.range_step["equalizer"].step
-                )
-            )
-            zone_data.capabilities.append(
-                NumberSetter(
-                    "equalizer_mid",
-                    "Mid",
-                    EntityTypes.CONFIG,
-                    lambda: zone_data.equalizer_mid,
-                    lambda val: self.set_equalizer(zone_id, mid=int(val)),
-                    zone_data.range_step["equalizer"].minimum,
-                    zone_data.range_step["equalizer"].maximum,
-                    zone_data.range_step["equalizer"].step
-                )
-            )
-            zone_data.capabilities.append(
-                NumberSetter(
-                    "equalizer_high",
-                    "High",
-                    EntityTypes.CONFIG,
-                    lambda: zone_data.equalizer_high,
-                    lambda val: self.set_equalizer(zone_id, high=int(val)),
-                    zone_data.range_step["equalizer"].minimum,
-                    zone_data.range_step["equalizer"].maximum,
-                    zone_data.range_step["equalizer"].step
-                )
-            )
-
-        if ZoneFeature.TONE_CONTROL & zone_features:
-            zone_data.capabilities.append(
-                OptionSetter(
-                    "tone_control_mode",
-                    "Tone Mode",
-                    EntityTypes.CONFIG,
-                    lambda: zone_data.tone_mode,
-                    lambda val: self.set_tone_control(zone_id, mode=val),
-                    {
-                        key: key for key in zone_data.tone_control_mode_list
-                    }
-                )
-            )
-            zone_data.capabilities.append(
-                NumberSetter(
-                    "tone_bass",
-                    "Bass",
-                    EntityTypes.CONFIG,
-                    lambda: zone_data.tone_bass,
-                    lambda val: self.set_tone_control(zone_id, bass=int(val)),
-                    zone_data.range_step["tone_control"].minimum,
-                    zone_data.range_step["tone_control"].maximum,
-                    zone_data.range_step["tone_control"].step
-                )
-            )
-            zone_data.capabilities.append(
-                NumberSetter(
-                    "tone_treble",
-                    "Treble",
-                    EntityTypes.CONFIG,
-                    lambda: zone_data.tone_treble,
-                    lambda val: self.set_tone_control(zone_id, treble=int(val)),
-                    zone_data.range_step["tone_control"].minimum,
-                    zone_data.range_step["tone_control"].maximum,
-                    zone_data.range_step["tone_control"].step
-                )
-            )
-
-        if ZoneFeature.DIALOGUE_LEVEL & zone_features:
-            zone_data.capabilities.append(
-                NumberSetter(
-                    "dialogue_level",
-                    "Dialogue Level",
-                    EntityTypes.CONFIG,
-                    lambda: zone_data.dialogue_level,
-                    lambda val: self.set_dialogue_level(zone_id, int(val)),
-                    zone_data.range_step["dialogue_level"].minimum,
-                    zone_data.range_step["dialogue_level"].maximum,
-                    zone_data.range_step["dialogue_level"].step
-                )
-            )
-
-        if ZoneFeature.DIALOGUE_LIFT & zone_features:
-            zone_data.capabilities.append(
-                NumberSetter(
-                    "dialogue_lift",
-                    "Dialogue Lift",
-                    EntityTypes.CONFIG,
-                    lambda: zone_data.dialogue_lift,
-                    lambda val: self.set_dialogue_lift(zone_id, int(val)),
-                    zone_data.range_step["dialogue_lift"].minimum,
-                    zone_data.range_step["dialogue_lift"].maximum,
-                    zone_data.range_step["dialogue_lift"].step
-                )
-            )
-
-        if ZoneFeature.LINK_AUDIO_DELAY & zone_features:
-            zone_data.capabilities.append(
-                OptionSetter(
-                    "link_audio_delay",
-                    "Link Audio Delay",
-                    EntityTypes.CONFIG,
-                    lambda: zone_data.link_audio_delay,
-                    lambda val: self.set_link_audio_delay(zone_id, val),
-                    {
-                        key: key for key in zone_data.link_audio_delay_list
-                    }
-                )
-            )
-
-        if ZoneFeature.LINK_CONTROL & zone_features:
-            zone_data.capabilities.append(
-                OptionSetter(
-                    "link_control",
-                    "Link Control",
-                    EntityTypes.CONFIG,
-                    lambda: zone_data.link_control,
-                    lambda val: self.set_link_control(zone_id, val),
-                    {
-                        key: key for key in zone_data.link_control_list
-                    }
-                )
-            )
-
-        if ZoneFeature.LINK_AUDIO_QUALITY & zone_features:
-            zone_data.capabilities.append(
-                OptionSetter(
-                    "link_audio_quality",
-                    "Link Audio Quality",
-                    EntityTypes.CONFIG,
-                    lambda: zone_data.link_audio_quality,
-                    lambda val: self.set_link_audio_quality(zone_id, val),
-                    {
-                        key: key for key in zone_data.link_audio_quality_list
-                    }
-                )
-            )
-
-        if ZoneFeature.SURR_DECODER_TYPE & zone_features:
-            zone_data.capabilities.append(
-                OptionSetter(
-                    "surr_decoder_type",
-                    "Surround Decoder Device",
-                    EntityTypes.CONFIG,
-                    lambda: zone_data.surr_decoder_type,
-                    lambda val: self.set_surround_decoder(zone_id, val),
-                    {
-                        key: key for key in zone_data.surr_decoder_type_list
-                    }
-                )
-            )
-
-        if ZoneFeature.DTS_DIALOGUE_CONTROL & zone_features:
-            zone_data.capabilities.append(
-                NumberSetter(
-                    "dts_dialogue_control",
-                    "DTS Dialogue Control",
-                    EntityTypes.CONFIG,
-                    lambda: zone_data.dts_dialogue_control,
-                    lambda val: self.set_dts_dialogue_control(zone_id, int(val)),
-                    zone_data.range_step["dts_dialogue_control"].minimum,
-                    zone_data.range_step["dts_dialogue_control"].maximum,
-                    zone_data.range_step["dts_dialogue_control"].step
-                )
-            )
-
-        if ZoneFeature.BASS_EXTENSION & zone_features:
-            zone_data.capabilities.append(
-                BinarySetter(
-                    "bass_extension",
-                    "Bass Extension",
-                    EntityTypes.CONFIG,
-                    lambda: zone_data.bass_extension,
-                    lambda val: self.set_bass_extension(zone_id, val)
-                )
-            )
-
-        if ZoneFeature.EXTRA_BASS & zone_features:
-            zone_data.capabilities.append(
-                BinarySetter(
-                    "extra_bass",
-                    "Extra Bass",
-                    EntityTypes.CONFIG,
-                    lambda: zone_data.extra_bass,
-                    lambda val: self.set_extra_bass(zone_id, val)
-                )
-            )
-
-        if ZoneFeature.ENHANCER & zone_features:
-            zone_data.capabilities.append(
-                BinarySetter(
-                    "enhancer",
-                    "Enhancer",
-                    EntityTypes.CONFIG,
-                    lambda: zone_data.enhancer,
-                    lambda val: self.set_enhancer(zone_id, val)
-                )
-            )
-
-        if ZoneFeature.PURE_DIRECT & zone_features:
-            zone_data.capabilities.append(
-                BinarySetter(
-                    "pure_direct",
-                    "Pure Direct",
-                    EntityTypes.CONFIG,
-                    lambda: zone_data.bass_extension,
-                    lambda val: self.set_bass_extension(zone_id, val)
-                )
-            )
-
-        if ZoneFeature.ADAPTIVE_DRC & zone_features:
-            zone_data.capabilities.append(
-                BinarySetter(
-                    "set_adaptive_drc",
-                    "Adaptive DRC",
-                    EntityTypes.CONFIG,
-                    lambda: zone_data.adaptive_drc,
-                    lambda val: self.set_adaptive_drc(zone_id, val)
-                )
-            )
+        for feature in [f for f in ZoneFeature if f in zone_data.features]:
+            capability_callable = zone_capabilities.get(feature)
+            if capability_callable is not None:
+                capability = capability_callable(self, zone_id)
+                if isinstance(capability, dict):
+                    for suffix, c in capability.items():
+                        c.id = f"zone_{feature.name.lower()}_{suffix}"
+                        zone_data.capabilities.append(c)
+                else:
+                    capability.id = f"zone_{feature.name.lower()}"
+                    zone_data.capabilities.append(capability)
 
     def build_device_capabilities(self):
-        if DeviceFeature.DIMMER & self.features:
-            self.data.capabilities.append(
-                NumberSetter(
-                    "dimmer",
-                    "Display Brightness",
-                    EntityTypes.CONFIG,
-                    lambda: self.data.dimmer.dimmer_current,
-                    lambda value: self.set_dimmer(int(value)),
-                    self.data.dimmer.minimum,
-                    self.data.dimmer.maximum,
-                    self.data.dimmer.step
-                )
-            )
-
-        if DeviceFeature.SPEAKER_A & self.features:
-            self.data.capabilities.append(
-                BinarySetter(
-                    "speaker_a",
-                    "Speaker A",
-                    EntityTypes.CONFIG,
-                    lambda: self.data.speaker_a,
-                    lambda val: self.set_speaker_a(val)
-                )
-            )
-
-        if DeviceFeature.SPEAKER_B & self.features:
-            self.data.capabilities.append(
-                BinarySetter(
-                    "speaker_b",
-                    "Speaker B",
-                    EntityTypes.CONFIG,
-                    lambda: self.data.speaker_b,
-                    lambda val: self.set_speaker_b(val)
-                )
-            )
-
-        if DeviceFeature.PARTY_MODE & self.features:
-            self.data.capabilities.append(
-                BinarySetter(
-                    "party_mode",
-                    "Party Mode",
-                    EntityTypes.CONFIG,
-                    lambda: self.data.party_enable,
-                    lambda val: self.set_party_mode(val)
-                )
-            )
+        for feature in [f for f in DeviceFeature if f in self.features]:
+            capability_callable = device_capabilities.get(feature)
+            if capability_callable is not None:
+                capability = capability_callable(self)
+                if isinstance(capability, dict):
+                    for suffix, c in capability.items():
+                        c.id = f"{feature.name.lower()}_{suffix}"
+                        self.data.capabilities.append(c)
+                else:
+                    capability.id = feature.name.lower()
+                    self.data.capabilities.append(capability)
 
     def build_capabilities(self):
         self.build_device_capabilities()

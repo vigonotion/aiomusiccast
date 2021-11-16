@@ -1,7 +1,7 @@
 import asyncio
 from typing import Dict
 
-from . import MusicCastException
+from .exceptions import MusicCastException
 from .features import ZoneFeature
 
 
@@ -178,8 +178,8 @@ class RangeStep:
     step: int = 1
 
     def check(self, value):
-        if value not in range(self.minimum, self.maximum + 1, self.step):
-            raise MusicCastException("Given value %s is not in range of %s,%s,%s",
+        if value > self.maximum or value < self.minimum or value % self.step:
+            raise MusicCastException("Given value %s is not in range of %s to %s with step %s",
                                      value, self.minimum, self.maximum, self.step)
 
 
