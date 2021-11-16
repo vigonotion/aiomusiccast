@@ -7,6 +7,7 @@ class EntityTypes(Enum):
     REGULAR = 1
     CONFIG = 2
     DIAGNOSTIC = 3
+    SYSTEM = 4
 
 
 class Capability(ABC):

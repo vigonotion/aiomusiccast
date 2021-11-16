@@ -11,7 +11,6 @@ from datetime import datetime, time
 from typing import Dict, List, Callable
 from xml.sax.saxutils import escape
 
-from .capabilities import NumberSetter, EntityTypes, OptionSetter, BinarySetter
 from .capability_registry import zone_capabilities, device_capabilities
 from .features import Feature
 from .musiccast_data import MusicCastAlarmDetails, RangeStep, Dimmer, MusicCastData, MusicCastZoneData
