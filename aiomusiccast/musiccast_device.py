@@ -11,7 +11,7 @@ from datetime import datetime, time
 from typing import Dict, List, Callable
 from xml.sax.saxutils import escape
 
-from .capability_registry import zone_capabilities, device_capabilities
+from .capability_registry import build_device_capabilities, build_zone_capabilities
 from .features import Feature
 from .musiccast_data import MusicCastAlarmDetails, RangeStep, Dimmer, MusicCastData, MusicCastZoneData
 from .pyamaha import AsyncDevice, Clock, Dist, NetUSB, System, Tuner, Zone
@@ -524,39 +524,11 @@ class MusicCastDevice:
 
         await self._fetch_func_status()
 
-    def build_zone_capabilities(self, zone_id):
-        zone_data = self.data.zones[zone_id]
-
-        for feature in [f for f in ZoneFeature if f in zone_data.features]:
-            capability_callable = zone_capabilities.get(feature)
-            if capability_callable is not None:
-                capability = capability_callable(self, zone_id)
-                if isinstance(capability, dict):
-                    for suffix, c in capability.items():
-                        c.id = f"zone_{feature.name.lower()}_{suffix}"
-                        zone_data.capabilities.append(c)
-                else:
-                    capability.id = f"zone_{feature.name.lower()}"
-                    zone_data.capabilities.append(capability)
-
-    def build_device_capabilities(self):
-        for feature in [f for f in DeviceFeature if f in self.features]:
-            capability_callable = device_capabilities.get(feature)
-            if capability_callable is not None:
-                capability = capability_callable(self)
-                if isinstance(capability, dict):
-                    for suffix, c in capability.items():
-                        c.id = f"{feature.name.lower()}_{suffix}"
-                        self.data.capabilities.append(c)
-                else:
-                    capability.id = feature.name.lower()
-                    self.data.capabilities.append(capability)
-
     def build_capabilities(self):
-        self.build_device_capabilities()
+        self.data.capabilities = build_device_capabilities(self)
 
         for zone_id in self.data.zones.keys():
-            self.build_zone_capabilities(zone_id)
+            self.data.zones[zone_id].capabilities = build_zone_capabilities(self, zone_id)
 
     # -----Commands-----
     async def turn_on(self, zone_id):
