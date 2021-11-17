@@ -1,7 +1,9 @@
-from .features import ZoneFeature, DeviceFeature, Feature
-from .capabilities import OptionSetter, EntityTypes, NumberSetter, BinarySetter
+from .features import ZoneFeature, DeviceFeature
+from .capabilities import OptionSetter, EntityTypes, NumberSetter, BinarySetter, Capability
 
-device_capabilities = {
+"""Dictionary of all DeviceFeatures with a callable as value. 
+The callable expects an ID and a MusicCastDevice as parameters."""
+_device_capabilities = {
     DeviceFeature.DIMMER: lambda capability_id, device: NumberSetter(
         capability_id,
         "Display Brightness",
@@ -36,7 +38,9 @@ device_capabilities = {
 }
 
 
-zone_capabilities = {
+"""Dictionary of all ZoneFeatures with a callable as value. 
+The callable expects an ID, a MusicCastDevice and a zone_id as parameters."""
+_zone_capabilities = {
     ZoneFeature.SURR_DECODER_TYPE: lambda capability_id, device, zone_id: OptionSetter(
         capability_id,
         "Surround Decoder Device",
@@ -215,10 +219,16 @@ zone_capabilities = {
 }
 
 
-def build_device_capabilities(device: "MusicCastDevice"):
+def build_device_capabilities(device: "MusicCastDevice") -> list[Capability]:
+    """
+    Function to build all Capabilities of a given device.
+    The ID of the capabilities will be set to '{feature.name.lower()}_{key}'
+    @param device: The MusicCastDevice to generate the capabilities for
+    @return: the list of capabilities of the device
+    """
     result = []
     for feature in [f for f in DeviceFeature if f in device.features]:
-        feature_entry = device_capabilities.get(feature)
+        feature_entry = _device_capabilities.get(feature)
         if feature_entry is not None:
             if isinstance(feature_entry, dict):
                 for key, capability in feature_entry.items():
@@ -229,10 +239,17 @@ def build_device_capabilities(device: "MusicCastDevice"):
     return result
 
 
-def build_zone_capabilities(device: "MusicCastDevice", zone_id):
+def build_zone_capabilities(device: "MusicCastDevice", zone_id) -> list[Capability]:
+    """
+    Function to build all Capabilities of a given zone of a device.
+    The ID of the capabilities will be set to 'zone_{feature.name.lower()}_{key}'
+    @param device: The MusicCastDevice to generate the capabilities for
+    @param zone_id: The zone to generate the capabilities for
+    @return: The list of capabilities of the given zone
+    """
     result = []
     for feature in [f for f in ZoneFeature if f in device.data.zones[zone_id].features]:
-        feature_entry = zone_capabilities.get(feature)
+        feature_entry = _zone_capabilities.get(feature)
         if feature_entry is not None:
             if isinstance(feature_entry, dict):
                 for key, capability in feature_entry.items():

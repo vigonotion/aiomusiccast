@@ -525,6 +525,7 @@ class MusicCastDevice:
         await self._fetch_func_status()
 
     def build_capabilities(self):
+        """This function generates the capabilities of a device and its zones."""
         self.data.capabilities = build_device_capabilities(self)
 
         for zone_id in self.data.zones.keys():
@@ -575,7 +576,7 @@ class MusicCastDevice:
 
     @_check_feature(ZoneFeature.TONE_CONTROL)
     async def set_tone_control(self, zone_id, mode=None, bass=None, treble=None):
-        """Set bass using tone_control."""
+        """Set treble, bass, mode using tone_control."""
         await self.device.request(
             Zone.set_tone_control(
                 zone_id,
