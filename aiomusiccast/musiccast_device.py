@@ -588,6 +588,7 @@ class MusicCastDevice:
 
     @_check_feature(ZoneFeature.EQUALIZER)
     async def set_equalizer(self, zone_id, mode=None, low=None, mid=None, high=None):
+        """Set low, mid, high, mode using equalizer."""
         await self.device.request(
             Zone.set_equalizer(
                 zone_id,
@@ -600,6 +601,7 @@ class MusicCastDevice:
 
     @_check_feature(ZoneFeature.DIALOGUE_LEVEL)
     async def set_dialogue_level(self, zone_id, level):
+        """Set the level by which the dialogues should be increased/lowered"""
         await self.device.request(
             Zone.set_dialogue_level(
                 zone_id,
@@ -609,6 +611,7 @@ class MusicCastDevice:
 
     @_check_feature(ZoneFeature.DIALOGUE_LIFT)
     async def set_dialogue_lift(self, zone_id, level):
+        """Set the vertical position of the dialogues."""
         await self.device.request(
             Zone.set_dialogue_lift(
                 zone_id,
@@ -618,6 +621,7 @@ class MusicCastDevice:
 
     @_check_feature(ZoneFeature.DTS_DIALOGUE_CONTROL)
     async def set_dts_dialogue_control(self, zone_id, value):
+        """Set the level by which the dialogues should be increased/lowered - for DTS sound programs"""
         await self.device.request(
             Zone.set_dts_dialogue_control(
                 zone_id,
@@ -627,6 +631,7 @@ class MusicCastDevice:
 
     @_check_feature(ZoneFeature.EXTRA_BASS)
     async def set_extra_bass(self, zone_id, value):
+        """Set extra bass for a higher bass level."""
         await self.device.request(
             Zone.set_extra_bass(
                 zone_id,
@@ -636,6 +641,7 @@ class MusicCastDevice:
 
     @_check_feature(ZoneFeature.BASS_EXTENSION)
     async def set_bass_extension(self, zone_id, value):
+        """Set bass extension for a higher bass level."""
         await self.device.request(
             Zone.set_bass_extension(
                 zone_id,
@@ -645,6 +651,7 @@ class MusicCastDevice:
 
     @_check_feature(ZoneFeature.ENHANCER)
     async def set_enhancer(self, zone_id, value):
+        """Set the enhancer to enhance the audio stream on the device."""
         await self.device.request(
             Zone.set_enhancer(
                 zone_id,
@@ -654,6 +661,7 @@ class MusicCastDevice:
 
     @_check_feature(DeviceFeature.PARTY_MODE)
     async def set_party_mode(self, value):
+        """Set the party mode."""
         await self.device.request(
             System.set_partymode(
                 value
@@ -662,6 +670,7 @@ class MusicCastDevice:
 
     @_check_feature(ZoneFeature.ADAPTIVE_DRC)
     async def set_adaptive_drc(self, zone_id, value):
+        """Set the dynamic range control."""
         await self.device.request(
             Zone.set_adaptive_drc(
                 zone_id,
@@ -671,6 +680,7 @@ class MusicCastDevice:
 
     @_check_feature(ZoneFeature.PURE_DIRECT)
     async def set_pure_direct(self, zone_id, value):
+        """Set pure direct mode to pass through the signal without any adjustments."""
         await self.device.request(
             Zone.set_pure_direct(
                 zone_id,
@@ -680,6 +690,7 @@ class MusicCastDevice:
 
     @_check_feature(ZoneFeature.LINK_AUDIO_DELAY)
     async def set_link_audio_delay(self, zone_id, option):
+        """Set the audio delay to prefer lip sync or sync of multi room audio."""
         await self.device.request(
             Zone.set_link_audio_delay(
                 zone_id,
@@ -689,6 +700,7 @@ class MusicCastDevice:
 
     @_check_feature(ZoneFeature.LINK_AUDIO_QUALITY)
     async def set_link_audio_quality(self, zone_id, option):
+        """Set the audio quality for musiccast linked speakers."""
         await self.device.request(
             Zone.set_link_audio_quality(
                 zone_id,
@@ -698,6 +710,7 @@ class MusicCastDevice:
 
     @_check_feature(ZoneFeature.LINK_CONTROL)
     async def set_link_control(self, zone_id, option):
+        """Set link control."""
         await self.device.request(
             Zone.set_link_control(
                 zone_id,
@@ -707,6 +720,7 @@ class MusicCastDevice:
 
     @_check_feature(ZoneFeature.SURR_DECODER_TYPE)
     async def set_surround_decoder(self, zone_id, option):
+        """Set surround decoder for sound mode 'surr_decoder'."""
         await self.device.request(
             Zone.set_surr_decoder_type(
                 zone_id,
