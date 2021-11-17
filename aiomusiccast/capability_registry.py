@@ -106,7 +106,7 @@ _zone_capabilities = {
             lambda val: device.set_tone_control(zone_id, mode=val),
             {key: key for key in device.data.zones[zone_id].tone_control_mode_list},
         ),
-        "low": lambda capability_id, device, zone_id: NumberSetter(
+        "bass": lambda capability_id, device, zone_id: NumberSetter(
             capability_id,
             "Bass",
             EntityTypes.CONFIG,
@@ -116,7 +116,7 @@ _zone_capabilities = {
             device.data.zones[zone_id].range_step["tone_control"].maximum,
             device.data.zones[zone_id].range_step["tone_control"].step,
         ),
-        "mid": lambda capability_id, device, zone_id: NumberSetter(
+        "treble": lambda capability_id, device, zone_id: NumberSetter(
             capability_id,
             "Treble",
             EntityTypes.CONFIG,
