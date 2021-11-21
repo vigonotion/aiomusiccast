@@ -1,12 +1,15 @@
 # taken from github.com/rsc-dev/pyamaha, which is licensed under the MIT License
 from __future__ import annotations
+
+import urllib
 from asyncio.transports import BaseTransport
-from typing import Awaitable
+from typing import Awaitable, Tuple
 from urllib.parse import urlparse
 import xml.etree.ElementTree as ET
 
 import aiohttp
-from aiomusiccast.exceptions import MusicCastConnectionException, MusicCastConfigurationException
+from aiomusiccast.exceptions import MusicCastConnectionException, MusicCastConfigurationException, \
+    MusicCastParamException
 import json
 import logging
 import queue
@@ -104,6 +107,25 @@ class MusicCastUdpProtocol(asyncio.DatagramProtocol):
             _LOGGER.exception("An unexpected error occurred while handling an UDP message.")
         finally:
             asyncio.create_task(self.handle_event(message_data))
+
+
+class UrlBuilder:
+    @classmethod
+    def build_query_str(cls, query_params: dict[str, str], **kwargs):
+        if not all([param in query_params.keys() for param in kwargs.keys()]):
+            raise MusicCastParamException("Unknown parameter while building query string.")
+        if not all(param in kwargs for param, req in query_params.items() if req):
+            raise MusicCastParamException("Not all required params were provided.")
+        return urllib.parse.urlencode({key: val for key, val in kwargs.items() if val is not None})
+
+    @classmethod
+    def build_url(cls, url: Tuple, **kwargs):
+        return f"{url[0]}?{cls.build_query_str(url[1], **kwargs)}"
+
+    @classmethod
+    def build_zone_url(cls, url: Tuple, zone: str, **kwargs):
+        base_url = url[0].format(host="{host}", zone=zone)
+        return f"{base_url}?{cls.build_query_str(url[1], **kwargs)}"
 
 
 class AsyncDevice:
@@ -966,18 +988,29 @@ class Zone:
         'SET_PURE_DIRECT': 'http://{host}/YamahaExtendedControl/v1/{zone}/setPureDirect?enable={enable}',
         'SET_ENHANCER': 'http://{host}/YamahaExtendedControl/v1/{zone}/setEnhancer?enable={enable}',
         'SET_TONE_CONTROL':
-            'http://{host}/YamahaExtendedControl/v1/{zone}/setToneControl?mode={mode}&bass={bass}&treble={treble}',
+            (
+                'http://{host}/YamahaExtendedControl/v1/{zone}/setToneControl',
+                {'mode': False, 'bass': False, 'treble': False}
+            ),
         'SET_EQUALIZER':
-            'http://{host}/YamahaExtendedControl/v1/{zone}/setEqualizer?mode={mode}&low={low}&mid={mid}&high={high}',
+            (
+                'http://{host}/YamahaExtendedControl/v1/{zone}/setEqualizer',
+                {'mode': False, 'low': False, 'mid': False, 'high': False}
+            ),
         'SET_BALANCE': 'http://{host}/YamahaExtendedControl/v1/{zone}/setBalance?value={value}',
         'SET_DIALOGUE_LEVEL': 'http://{host}/YamahaExtendedControl/v1/{zone}/setDialogueLevel?value={value}',
         'SET_DIALOGUE_LIFT': 'http://{host}/YamahaExtendedControl/v1/{zone}/setDialogueLift?value={value}',
+        'SET_DTS_DIALOGUE_CONTROL': 'http://{host}/YamahaExtendedControl/v1/{zone}/setDtsDialogueControl?num={value}',
         'SET_CLEAR_VOICE': 'http://{host}/YamahaExtendedControl/v1/{zone}/setClearVoice?enable={enable}',
         'SET_SUBWOOFER_VOLUME': 'http://{host}/YamahaExtendedControl/v1/{zone}/setSubwooferVolume?volume={volume}',
         'SET_BASS_EXTENSION': 'http://{host}/YamahaExtendedControl/v1/{zone}/setBassExtension?enable={enable}',
+        'SET_EXTRA_BASS': 'http://{host}/YamahaExtendedControl/v1/{zone}/setExtraBass?enable={enable}',
         'GET_SIGNAL_INFO': 'http://{host}/YamahaExtendedControl/v1/{zone}/getSignalInfo',
         'SET_LINK_CONTROL': 'http://{host}/YamahaExtendedControl/v1/{zone}/setLinkControl?control={control}',
         'SET_LINK_AUDIO_DELAY': 'http://{host}/YamahaExtendedControl/v1/{zone}/setLinkAudioDelay?delay={delay}',
+        'SET_LINK_AUDIO_QUALITY': 'http://{host}/YamahaExtendedControl/v1/{zone}/setLinkAudioQuality?mode={mode}',
+        'SET_ADAPTIVE_DRC': 'http://{host}/YamahaExtendedControl/v1/{zone}/setAdaptiveDrc?enable={enable}',
+        'SET_SURR_DECODER_TYPE': 'http://{host}/YamahaExtendedControl/v1/{zone}/setSurroundDecoderType?type={option}',
     }
 
     @staticmethod
@@ -1224,9 +1257,7 @@ class Zone:
                       gotten via /system/getFeatures
         """
         assert zone in ZONES, 'Invalid ZONE value!'
-        return Zone.URI['SET_TONE_CONTROL'].format(
-            host='{host}', zone=zone, mode=mode, bass=bass, treble=treble
-        )
+        return UrlBuilder.build_zone_url(Zone.URI["SET_TONE_CONTROL"], zone, mode=mode, bass=bass, treble=treble)
 
     # end-of-method set_tone_control
 
@@ -1253,9 +1284,7 @@ class Zone:
                     gotten via /system/getFeatures
         """
         assert zone in ZONES, 'Invalid ZONE value!'
-        return Zone.URI['SET_EQUALIZER'].format(
-            host='{host}', zone=zone, mode=mode, low=low, mid=mid, high=high
-        )
+        return UrlBuilder.build_zone_url(Zone.URI["SET_EQUALIZER"], zone, mode=mode, low=low, mid=mid, high=high)
 
     # end-of-method set_equalizer
 
@@ -1313,6 +1342,25 @@ class Zone:
     # end-of-method set_dialogue_lift
 
     @staticmethod
+    def set_dts_dialogue_control(zone, value):
+        """For setting DTS Dialogue Control in each Zone. Values of specifying range and steps are different.
+        Undocumented method.
+
+        Arguments:
+            @param zone: Specifies target Zone.
+                    Values: 'main', 'zone2', 'zone3', 'zone4'
+            @param value: Specifies DTS Dialogue Control value
+                     Values: Value range calculated by minimum/maximum/step values
+                     gotten via /system/getFeatures
+        """
+        assert zone in ZONES, 'Invalid ZONE value!'
+        return Zone.URI['SET_DTS_DIALOGUE_CONTROL'].format(
+            host='{host}', zone=zone, value=value
+        )
+
+    # end-of-method set_dts_dialogue_control
+
+    @staticmethod
     def set_clear_voice(zone, value):
         """For setting Clear Voice in each Zone.
 
@@ -1355,6 +1403,22 @@ class Zone:
         """
         assert zone in ZONES, 'Invalid ZONE value!'
         return Zone.URI['SET_BASS_EXTENSION'].format(
+            host='{host}', zone=zone, enable=_bool_to_str(enable)
+        )
+
+    # end-of-method set_bass_extension
+
+    @staticmethod
+    def set_extra_bass(zone, enable):
+        """For setting Extra Bass in each Zone.
+
+        Arguments:
+            @param zone: Specifies target Zone.
+                    Values: 'main', 'zone2', 'zone3', 'zone4'
+            @param enable: Specifies Extra Bass setting
+        """
+        assert zone in ZONES, 'Invalid ZONE value!'
+        return Zone.URI['SET_EXTRA_BASS'].format(
             host='{host}', zone=zone, enable=_bool_to_str(enable)
         )
 
@@ -1408,8 +1472,50 @@ class Zone:
 
     # end-of-method set_link_audio_delay
 
-    pass
+    @staticmethod
+    def set_link_audio_quality(zone, quality):
+        """For setting Link Audio Quality in each Zone.
 
+        Arguments:
+            @param zone: Specifies target Zone.
+                    Values: 'main', 'zone2', 'zone3', 'zone4'
+            @param quality: Specifies Link Audio Quality setting
+                    Values: Values gotten via /system/getFeatures
+        """
+        assert zone in ZONES, 'Invalid ZONE value!'
+        return Zone.URI['SET_LINK_AUDIO_QUALITY'].format(
+            host='{host}', zone=zone, mode=quality
+        )
+
+    # end-of-method set_link_audio_delay
+
+    @classmethod
+    def set_adaptive_drc(cls, zone, value):
+        """For setting Link Audio Quality in each Zone.
+
+        Arguments:
+            @param zone: Specifies target Zone.
+                    Values: 'main', 'zone2', 'zone3', 'zone4'
+            @param value: Specifies drc enable
+        """
+        assert zone in ZONES, 'Invalid ZONE value!'
+        return Zone.URI['SET_ADAPTIVE_DRC'].format(
+            host='{host}', zone=zone, enable=_bool_to_str(value)
+        )
+
+    @classmethod
+    def set_surr_decoder_type(cls, zone, option):
+        """For setting Surround decoder type in each Zone.
+
+        Arguments:
+            @param zone: Specifies target Zone.
+                    Values: 'main', 'zone2', 'zone3', 'zone4'
+            @param option: the surround decoder type to set
+        """
+        assert zone in ZONES, 'Invalid ZONE value!'
+        return Zone.URI['SET_SURR_DECODER_TYPE'].format(
+            host='{host}', zone=zone, option=option
+        )
 
 # end-of-class Zone
 

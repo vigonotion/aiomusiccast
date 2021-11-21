@@ -1,10 +1,9 @@
 from pkg_resources import DistributionNotFound, get_distribution
 
 from .musiccast_device import (
-    MusicCastData,
     MusicCastDevice,
-    MusicCastZoneData,
 )
+from .musiccast_data import MusicCastData, MusicCastZoneData
 
 from .exceptions import MusicCastException, MusicCastConnectionException, MusicCastGroupException
 

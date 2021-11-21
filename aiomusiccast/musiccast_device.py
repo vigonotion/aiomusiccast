@@ -1,167 +1,52 @@
 from __future__ import annotations
 
 import mimetypes
-
-from aiohttp.client_reqrep import ClientResponse
-
 from aiomusiccast.const import DEVICE_FUNC_LIST_TO_FEATURE_MAPPING, DeviceFeature, ZONE_FUNC_LIST_TO_FEATURE_MAPPING, \
-    ZoneFeature, MIME_TYPE_UPNP_CLASS, ALARM_WEEK_DAYS, ALARM_ONEDAY, ALARM_WEEKLY
+    ZoneFeature, MIME_TYPE_UPNP_CLASS, ALARM_WEEK_DAYS, ALARM_ONEDAY, ALARM_WEEKLY, MC_LINK, MC_LINK_SOURCES, NULL_GROUP
 from aiomusiccast.exceptions import MusicCastException, MusicCastGroupException, MusicCastUnsupportedException
 import asyncio
 import logging
 import math
 from datetime import datetime, time
-from typing import Dict, List
+from typing import Dict, List, Callable
 from xml.sax.saxutils import escape
 
+from .capability_registry import build_device_capabilities, build_zone_capabilities
+from .features import Feature
+from .musiccast_data import MusicCastAlarmDetails, RangeStep, Dimmer, MusicCastData, MusicCastZoneData
 from .pyamaha import AsyncDevice, Clock, Dist, NetUSB, System, Tuner, Zone
 
 _LOGGER = logging.getLogger(__name__)
 
-MC_LINK = "mc_link"
-MAIN_SYNC = "main_sync"
-MC_LINK_SOURCES = [MC_LINK, MAIN_SYNC]
 
-NULL_GROUP = "00000000000000000000000000000000"
+def _check_feature(feature: Feature):
+    """Decorator to check, if a feature is supported.
 
+    Should be used for all methods of MusicCastDevice, which rely on features.
+    A decorated function relying on a Zone feature has to have the zone_id as first parameter.
+    """
+    def aux(func: Callable):
+        if isinstance(feature, ZoneFeature):
+            def inner(self: MusicCastDevice, zone_id, *xs, **kws):
+                if zone_id not in self.data.zones.keys():
+                    raise MusicCastException("Zone %s does not exist.", zone_id)
+                if not feature & self.data.zones[zone_id].features:
+                    raise MusicCastUnsupportedException("Zone %s doesn't support %s.", zone_id, feature.name)
 
-class MusicCastAlarmDetails:
-    def __init__(self):
-        self.enabled = None
-        self.time = None
-        self.playback_type = None
-        self.resume_input = None
-        self.preset = None
-        self.preset_type = None
-        self.preset_info = None
-        self.beep = None
+                return func(self, zone_id, *xs, **kws)
+        elif isinstance(feature, DeviceFeature):
+            def inner(self: MusicCastDevice, *xs, **kws):
+                if not feature & self.features:
+                    raise MusicCastUnsupportedException("Device doesn't support %s.", feature.name)
 
-    @property
-    def input(self):
-        return (f"preset:{self.preset_type}:{self.preset}"
-                if self.playback_type == "preset" else
-                f"resume:{self.resume_input}"
-                if self.playback_type == "resume" else None)
+                return func(self, *xs, **kws)
+        else:
+            raise MusicCastException("Unknown feature type ")
 
+        return inner
 
-class MusicCastData:
-    """Object that holds data for a MusicCast device."""
+    return aux
 
-    def __init__(self):
-        """Ctor."""
-        # device info
-        self.device_id = None
-        self.model_name = None
-        self.system_version = None
-        self.api_version = None
-
-        # network status
-        self.mac_addresses = None
-        self.network_name = None
-
-        # features
-        self.zones: Dict[str, MusicCastZoneData] = {}
-        self.input_names: Dict[str, str] = {}
-
-        # NetUSB data
-        self.netusb_input = None
-        self.netusb_playback = None
-        self.netusb_repeat = None
-        self.netusb_shuffle = None
-        self.netusb_artist = None
-        self.netusb_album = None
-        self.netusb_track = None
-        self.netusb_albumart_url = None
-        self.netusb_play_time = None
-        self.netusb_play_time_updated = None
-        self.netusb_total_time = None
-
-        self.netusb_preset_list = {}
-
-        # Tuner
-        self.band = None
-        self.am_freq = 1
-        self.fm_freq = 1
-        self.rds_text_a = ""
-        self.rds_text_b = ""
-
-        self.dab_service_label = ""
-        self.dab_dls = ""
-
-        # Group
-        self.last_group_role = None
-        self.last_group_id = None
-        self.group_id = None
-        self.group_name = None
-        self.group_role = None
-        self.group_server_zone = None
-        self.group_client_list = []
-        self.group_update_lock = asyncio.locks.Lock()
-
-        # Dimmer
-        self.dimmer: Dimmer | None = None
-
-        # Alarm
-        self.alarm_on = None
-        self.alarm_volume = None
-        self.alarm_volume_range = (0, 0)
-        self.alarm_volume_step = 1
-        self.alarm_fade_range = (0, 0)
-        self.alarm_fade_step = 1
-        self.alarm_resume_input_list = []
-        self.alarm_preset_list = []
-        self.alarm_mode = None
-        self.alarm_details: Dict[str, MusicCastAlarmDetails] = {}
-
-        # Speaker A/B
-        self.speaker_a: bool | None = None
-        self.speaker_b: bool | None = None
-
-    @property
-    def fm_freq_str(self):
-        """Return a formatted string with fm frequency."""
-        return "FM {:.2f} MHz".format(self.fm_freq / 1000)
-
-    @property
-    def am_freq_str(self):
-        """Return a formatted string with am frequency."""
-        return f"AM {self.am_freq:.2f} KHz"
-
-
-class MusicCastZoneData:
-    """Object that holds data for a MusicCast device zone."""
-
-    features: ZoneFeature = ZoneFeature.NONE
-
-    def __init__(self):
-        """Ctor."""
-        self.power = None
-        self.name: str | None = None
-        self.min_volume = 0
-        self.max_volume = 100
-        self.current_volume = 0
-        self.mute: bool = False
-        self.input_list = []
-        self.input = None
-        self.sound_program_list = []
-        self.sound_program = None
-        self.sleep_time = None
-        self.func_list = []
-
-class Dimmer:
-    """Dimmer. Not all devices support dimming. A value of -1 indicates auto dimming."""
-
-    dimmer_min: int
-    dimmer_max: int
-    dimmer_step: int
-    dimmer_current: int
-
-    def __init__(self, dimmer_min, dimmer_max, dimmer_step, dimmer_current):
-        self.dimmer_min = dimmer_min
-        self.dimmer_max = dimmer_max
-        self.dimmer_step = dimmer_step
-        self.dimmer_current = dimmer_current
-    
 
 class MusicCastDevice:
     """Dummy MusicCastDevice (device for HA) for Hello World example."""
@@ -288,7 +173,8 @@ class MusicCastDevice:
         """If the input of a zone changes from or to MC_LINK, a group update has to be triggered."""
         trigger_group_cb = (
                 self.data.zones[zone_id].input == MC_LINK or
-                new_input == MC_LINK) and not self.data.group_update_lock.locked()
+                new_input == MC_LINK
+                           ) and not self.data.group_update_lock.locked()
 
         self.data.zones[zone_id].input = new_input
         if trigger_group_cb:
@@ -373,11 +259,38 @@ class MusicCastDevice:
         zone = await self.device.request_json(Zone.get_status(zone_id))
         zone_data: MusicCastZoneData = self.data.zones.get(zone_id, MusicCastZoneData())
 
+        self.data.party_enable = zone.get("party_enable")
+
         zone_data.power = zone.get("power")
         zone_data.current_volume = zone.get("volume")
         zone_data.mute = zone.get("mute")
         zone_data.sound_program = zone.get("sound_program")
         zone_data.sleep_time = zone.get("sleep")
+
+        zone_data.extra_bass = zone.get("extra_bass")
+        zone_data.bass_extension = zone.get("bass_extension")
+        zone_data.adaptive_drc = zone.get("adaptive_drc")
+        zone_data.enhancer = zone.get("enhancer")
+        zone_data.pure_direct = zone.get("pure_direct")
+
+        zone_data.surr_decoder_type = zone.get("surr_decoder_type")
+
+        zone_data.equalizer_mode = zone.get("equalizer", {}).get("mode")
+        zone_data.equalizer_high = zone.get("equalizer", {}).get("high")
+        zone_data.equalizer_mid = zone.get("equalizer", {}).get("mid")
+        zone_data.equalizer_low = zone.get("equalizer", {}).get("low")
+
+        zone_data.tone_mode = zone.get("tone_control", {}).get("mode")
+        zone_data.tone_bass = zone.get("tone_control", {}).get("bass")
+        zone_data.tone_treble = zone.get("tone_control", {}).get("treble")
+
+        zone_data.dialogue_level = zone.get("dialogue_level")
+        zone_data.dialogue_lift = zone.get("dialogue_lift")
+        zone_data.dts_dialogue_control = zone.get("dts_dialogue_control")
+
+        zone_data.link_audio_delay = zone.get("link_audio_delay")
+        zone_data.link_audio_quality = zone.get("link_audio_quality")
+        zone_data.link_control = zone.get("link_control")
 
         self.data.zones[zone_id] = zone_data
         await self._update_input(zone_id, zone.get("input"))
@@ -478,7 +391,6 @@ class MusicCastDevice:
             for zone in self._name_text.get("zone_list")
         }
 
-
         if not self._features:
             self._features = await self.device.request_json(System.get_features())
 
@@ -504,6 +416,21 @@ class MusicCastDevice:
                 )
 
                 zone_data.sound_program_list = zone.get("sound_program_list", [])
+
+                zone_data.tone_control_mode_list = zone.get("tone_control_mode_list", ["manual"])
+                zone_data.surr_decoder_type_list = zone.get("surr_decoder_type_list", None)
+                zone_data.link_control_list = zone.get("link_control_list", None)
+                zone_data.link_audio_delay_list = zone.get("link_audio_delay_list", None)
+                zone_data.link_audio_quality_list = zone.get("link_audio_quality_list", None)
+                zone_data.equalizer_mode_list = zone.get("equalizer_mode_list", ["manual"])
+
+                for range_step in zone.get("range_step", []):
+                    current = RangeStep()
+                    current.minimum = range_step.get("min")
+                    current.maximum = range_step.get("max")
+                    current.step = range_step.get("step")
+                    zone_data.range_step[range_step.get("id")] = current
+
                 zone_data.input_list = zone.get("input_list", [])
                 zone_data.func_list = zone.get('func_list')
 
@@ -597,6 +524,13 @@ class MusicCastDevice:
 
         await self._fetch_func_status()
 
+    def build_capabilities(self):
+        """This function generates the capabilities of a device and its zones."""
+        self.data.capabilities = build_device_capabilities(self)
+
+        for zone_id in self.data.zones.keys():
+            self.data.zones[zone_id].capabilities = build_zone_capabilities(self, zone_id)
+
     # -----Commands-----
     async def turn_on(self, zone_id):
         """Turn the media player on."""
@@ -640,14 +574,164 @@ class MusicCastDevice:
             Zone.set_volume(zone_id, "down", step)
         )
 
+    @_check_feature(ZoneFeature.TONE_CONTROL)
+    async def set_tone_control(self, zone_id, mode=None, bass=None, treble=None):
+        """Set treble, bass, mode using tone_control."""
+        await self.device.request(
+            Zone.set_tone_control(
+                zone_id,
+                mode,
+                bass,
+                treble
+            )
+        )
+
+    @_check_feature(ZoneFeature.EQUALIZER)
+    async def set_equalizer(self, zone_id, mode=None, low=None, mid=None, high=None):
+        """Set low, mid, high, mode using equalizer."""
+        await self.device.request(
+            Zone.set_equalizer(
+                zone_id,
+                mode,
+                low,
+                mid,
+                high
+            )
+        )
+
+    @_check_feature(ZoneFeature.DIALOGUE_LEVEL)
+    async def set_dialogue_level(self, zone_id, level):
+        """Set the level by which the dialogues should be increased/lowered"""
+        await self.device.request(
+            Zone.set_dialogue_level(
+                zone_id,
+                level
+            )
+        )
+
+    @_check_feature(ZoneFeature.DIALOGUE_LIFT)
+    async def set_dialogue_lift(self, zone_id, level):
+        """Set the vertical position of the dialogues."""
+        await self.device.request(
+            Zone.set_dialogue_lift(
+                zone_id,
+                level
+            )
+        )
+
+    @_check_feature(ZoneFeature.DTS_DIALOGUE_CONTROL)
+    async def set_dts_dialogue_control(self, zone_id, value):
+        """Set the level by which the dialogues should be increased/lowered - for DTS sound programs"""
+        await self.device.request(
+            Zone.set_dts_dialogue_control(
+                zone_id,
+                value
+            )
+        )
+
+    @_check_feature(ZoneFeature.EXTRA_BASS)
+    async def set_extra_bass(self, zone_id, value):
+        """Set extra bass for a higher bass level."""
+        await self.device.request(
+            Zone.set_extra_bass(
+                zone_id,
+                value
+            )
+        )
+
+    @_check_feature(ZoneFeature.BASS_EXTENSION)
+    async def set_bass_extension(self, zone_id, value):
+        """Set bass extension for a higher bass level."""
+        await self.device.request(
+            Zone.set_bass_extension(
+                zone_id,
+                value
+            )
+        )
+
+    @_check_feature(ZoneFeature.ENHANCER)
+    async def set_enhancer(self, zone_id, value):
+        """Set the enhancer to enhance the audio stream on the device."""
+        await self.device.request(
+            Zone.set_enhancer(
+                zone_id,
+                value
+            )
+        )
+
+    @_check_feature(DeviceFeature.PARTY_MODE)
+    async def set_party_mode(self, value):
+        """Set the party mode."""
+        await self.device.request(
+            System.set_partymode(
+                value
+            )
+        )
+
+    @_check_feature(ZoneFeature.ADAPTIVE_DRC)
+    async def set_adaptive_drc(self, zone_id, value):
+        """Set the dynamic range control."""
+        await self.device.request(
+            Zone.set_adaptive_drc(
+                zone_id,
+                value
+            )
+        )
+
+    @_check_feature(ZoneFeature.PURE_DIRECT)
+    async def set_pure_direct(self, zone_id, value):
+        """Set pure direct mode to pass through the signal without any adjustments."""
+        await self.device.request(
+            Zone.set_pure_direct(
+                zone_id,
+                value
+            )
+        )
+
+    @_check_feature(ZoneFeature.LINK_AUDIO_DELAY)
+    async def set_link_audio_delay(self, zone_id, option):
+        """Set the audio delay to prefer lip sync or sync of multi room audio."""
+        await self.device.request(
+            Zone.set_link_audio_delay(
+                zone_id,
+                option
+            )
+        )
+
+    @_check_feature(ZoneFeature.LINK_AUDIO_QUALITY)
+    async def set_link_audio_quality(self, zone_id, option):
+        """Set the audio quality for musiccast linked speakers."""
+        await self.device.request(
+            Zone.set_link_audio_quality(
+                zone_id,
+                option
+            )
+        )
+
+    @_check_feature(ZoneFeature.LINK_CONTROL)
+    async def set_link_control(self, zone_id, option):
+        """Set link control."""
+        await self.device.request(
+            Zone.set_link_control(
+                zone_id,
+                option
+            )
+        )
+
+    @_check_feature(ZoneFeature.SURR_DECODER_TYPE)
+    async def set_surround_decoder(self, zone_id, option):
+        """Set surround decoder for sound mode 'surr_decoder'."""
+        await self.device.request(
+            Zone.set_surr_decoder_type(
+                zone_id,
+                option
+            )
+        )
+
+    @_check_feature(DeviceFeature.DIMMER)
     async def set_dimmer(self, dimmer: int):
         """Set the dimmer on the device."""
-
-        if DeviceFeature.DIMMER not in self.features or not self.data.dimmer:
-            raise MusicCastUnsupportedException("Device doesn't support dimming.")
-
-        if dimmer < self.data.dimmer.dimmer_min or dimmer > self.data.dimmer.dimmer_max or dimmer % self.data.dimmer.dimmer_step != 0:
-            raise MusicCastException(f"Dimmer value {dimmer} not in allowed dimming range {self.data.dimmer.dimmer_min} to {self.data.dimmer.dimmer_max} with step size {self.data.dimmer.dimmer_step}.")
+        self.data.dimmer.check(dimmer)
 
         await self.device.request(
             System.set_dimmer(dimmer)
@@ -669,22 +753,16 @@ class MusicCastDevice:
         else:
             await self.device.request(NetUSB.set_shuffle("on" if shuffle else "off"))
 
+    @_check_feature(DeviceFeature.SPEAKER_A)
     async def set_speaker_a(self, speaker_a: bool):
         """Set speaker a."""
-
-        if DeviceFeature.SPEAKER_A not in self.features:
-            raise MusicCastUnsupportedException("Device doesn't support Speaker A.")
-
         await self.device.request(
             System.set_speaker_a(speaker_a)
         )
 
+    @_check_feature(DeviceFeature.SPEAKER_B)
     async def set_speaker_b(self, speaker_b: bool):
         """Set speaker b."""
-
-        if DeviceFeature.SPEAKER_B not in self.features:
-            raise MusicCastUnsupportedException("Device doesn't support Speaker B.")
-
         await self.device.request(
             System.set_speaker_b(speaker_b)
         )

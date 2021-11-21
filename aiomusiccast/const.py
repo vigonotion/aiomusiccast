@@ -76,7 +76,6 @@ ZONE_FUNC_LIST_TO_FEATURE_MAPPING = {
     "adaptive_drc": ZoneFeature.ADAPTIVE_DRC,
     "dts_dialogue_control": ZoneFeature.DTS_DIALOGUE_CONTROL,
     "adaptive_dsp_level": ZoneFeature.ADAPTIVE_DSP_LEVEL,
-    "extra_bass": ZoneFeature.EXTRA_BASS,
     "mono": ZoneFeature.MONO,
 }
 
@@ -101,3 +100,7 @@ ALARM_WEEK_DAYS = [
 
 ALARM_ONEDAY = "oneday"
 ALARM_WEEKLY = "weekly"
+MC_LINK = "mc_link"
+MAIN_SYNC = "main_sync"
+MC_LINK_SOURCES = [MC_LINK, MAIN_SYNC]
+NULL_GROUP = "00000000000000000000000000000000"
