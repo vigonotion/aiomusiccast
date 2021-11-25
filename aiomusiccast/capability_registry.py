@@ -14,7 +14,7 @@ _device_capabilities = {
         lambda: device.data.dimmer.dimmer_current,
         lambda value: device.set_dimmer(int(value)),
         {
-            x: DISPLAY_DIMMER_SPECIALS.get(x, x)
+            x: str(DISPLAY_DIMMER_SPECIALS.get(x, x))
             for x in range(
                 int(device.data.dimmer.minimum),
                 int(device.data.dimmer.maximum+1),
