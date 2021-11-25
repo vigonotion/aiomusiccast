@@ -1,20 +1,26 @@
 from typing import List
 
+from .const import DISPLAY_DIMMER_SPECIALS
 from .features import ZoneFeature, DeviceFeature
 from .capabilities import OptionSetter, EntityType, NumberSetter, BinarySetter, Capability
 
 """Dictionary of all DeviceFeatures with a callable as value. 
 The callable expects an ID and a MusicCastDevice as parameters."""
 _device_capabilities = {
-    DeviceFeature.DIMMER: lambda capability_id, device: NumberSetter(
+    DeviceFeature.DIMMER: lambda capability_id, device: OptionSetter(
         capability_id,
         "Display Brightness",
         EntityType.CONFIG,
         lambda: device.data.dimmer.dimmer_current,
         lambda value: device.set_dimmer(int(value)),
-        device.data.dimmer.minimum,
-        device.data.dimmer.maximum,
-        device.data.dimmer.step,
+        {
+            x: DISPLAY_DIMMER_SPECIALS.get(x, x)
+            for x in range(
+                int(device.data.dimmer.minimum),
+                int(device.data.dimmer.maximum+1),
+                int(device.data.dimmer.step)
+            )
+        }
     ),
     DeviceFeature.SPEAKER_A: lambda capability_id, device: BinarySetter(
         capability_id,
