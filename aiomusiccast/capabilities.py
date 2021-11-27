@@ -157,8 +157,8 @@ class Scene(Capability):
         self._num = num
 
     async def activate(self):
-        await self.activate()
+        await self._activate()
 
     @property
     def name(self):
-        return f"{self._num}: {self._title_getter()}"
+        return f"{self._num}: {self._title_getter(self._num)}"

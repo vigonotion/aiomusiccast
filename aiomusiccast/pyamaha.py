@@ -99,7 +99,6 @@ class MusicCastUdpProtocol(asyncio.DatagramProtocol):
         try:
             message_str = data.decode()
             message_data = json.loads(message_str)
-            print(message_data)
         except UnicodeDecodeError:
             _LOGGER.error("Received non UTF-8 compliant message: %s", data)
         except ValueError:
