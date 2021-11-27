@@ -240,7 +240,7 @@ def build_device_capabilities(device: "MusicCastDevice") -> List[Capability]:
         if feature_entry is not None:
             if isinstance(feature_entry, dict):
                 for key, capability in feature_entry.items():
-                    capability_id = f"{feature.name.lower()}_{key}"
+                    capability_id = f"{feature.name}_{key}"
                     result.append(capability(capability_id, device))
             else:
                 result.append(feature_entry(feature.name, device))
@@ -261,8 +261,8 @@ def build_zone_capabilities(device: "MusicCastDevice", zone_id) -> List[Capabili
         if feature_entry is not None:
             if isinstance(feature_entry, dict):
                 for key, capability in feature_entry.items():
-                    capability_id = f"zone_{feature.name.lower()}_{key}"
+                    capability_id = f"zone_{feature.name}_{key}"
                     result.append(capability(capability_id, device, zone_id))
             else:
-                result.append(feature_entry(feature.name, device, zone_id))
+                result.append(feature_entry(f"zone_{feature.name}", device, zone_id))
     return result
