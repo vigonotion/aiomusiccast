@@ -2,7 +2,7 @@ from typing import List
 
 from .const import DISPLAY_DIMMER_SPECIALS
 from .features import ZoneFeature, DeviceFeature
-from .capabilities import OptionSetter, EntityType, NumberSetter, BinarySetter, Capability
+from .capabilities import OptionSetter, EntityType, NumberSetter, BinarySetter, Capability, Scene
 
 """Dictionary of all DeviceFeatures with a callable as value. 
 The callable expects an ID and a MusicCastDevice as parameters."""
@@ -224,6 +224,17 @@ _zone_capabilities = {
         lambda: device.data.zones[zone_id].adaptive_drc,
         lambda val: device.set_adaptive_drc(zone_id, val),
     ),
+    ZoneFeature.SCENE: lambda capability_id, device, zone_id:
+    [
+        Scene(
+            f"{capability_id}_{str(num)}",
+            num,
+            lambda: device.data.zones[zone_id].scene_information[num],
+            EntityType.CONFIG,
+            lambda: device.recall_scene(zone_id, num),
+        )
+        for num in device.data.zones[zone_id].scene_information
+    ]
 }
 
 

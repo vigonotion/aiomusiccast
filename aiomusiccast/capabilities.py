@@ -14,10 +14,28 @@ class EntityType(Enum):
 
 
 class Capability(ABC):
-    """Base class for all capabilities."""
     id: str
-    name: str
+    _name: str
     entity_type: EntityType
+
+    def __init__(self, capability_id, name, entity_type):
+        """
+        Initialize the base class and set general vars.
+        @param capability_id: Unique ID of this capability
+        @param name: Name that should be displayed in a UI
+        @param entity_type: Define of what type this capability is
+        """
+        self.id = capability_id
+        self._name = name
+        self.entity_type = entity_type
+
+    @property
+    def name(self):
+        return self._name
+
+
+class StatefulCapability(Capability):
+    """Base class for all capabilities with status."""
     get_value: Callable
 
     def __init__(self, capability_id, name, entity_type, get_value):
@@ -28,9 +46,7 @@ class Capability(ABC):
         @param entity_type: Define of what type this capability is
         @param get_value: Callable to get the current values of this capability
         """
-        self.id = capability_id
-        self.name = name
-        self.entity_type = entity_type
+        super().__init__(capability_id, name, entity_type)
         self.get_value = get_value
 
     @property
@@ -38,13 +54,13 @@ class Capability(ABC):
         return self.get_value()
 
 
-class SettableCapability(Capability, ABC):
+class SettableCapability(StatefulCapability, ABC):
     """Base class for a capability, which is not read only."""
     set_value: Callable
 
     def __init__(self, capability_id, name, entity_type, get_value, set_value):
         """
-        Initialize the setable base class.
+        Initialize the settable base class.
         @param capability_id: Unique ID of this capability
         @param name: Name that should be displayed in a UI
         @param entity_type: Define of what type this capability is
@@ -58,15 +74,15 @@ class SettableCapability(Capability, ABC):
         await self.set_value(value)
 
 
-class NumberSensor(Capability):
+class NumberSensor(StatefulCapability):
     pass
 
 
-class BinarySensor(Capability):
+class BinarySensor(StatefulCapability):
     pass
 
 
-class TextSensor(Capability):
+class TextSensor(StatefulCapability):
     pass
 
 
@@ -126,3 +142,23 @@ class BinarySetter(SettableCapability):
         if not isinstance(value, bool):
             raise ValueError("The given value is not a boolean value")
         await super().set(value)
+
+
+class Scene(Capability):
+    """A class to enable a scene."""
+    _activate: Callable
+    _title_getter: Callable
+    _num: int
+
+    def __init__(self, capability_id, num, title_getter, entity_type, activate):
+        super().__init__(capability_id, None, entity_type)
+        self._activate = activate
+        self._title_getter = title_getter
+        self._num = num
+
+    async def activate(self):
+        await self.activate()
+
+    @property
+    def name(self):
+        return f"{self._num}: {self._title_getter()}"
