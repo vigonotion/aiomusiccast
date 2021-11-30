@@ -120,7 +120,8 @@ class UrlBuilder:
 
     @classmethod
     def build_url(cls, url: Tuple, **kwargs):
-        return f"{url[0]}?{cls.build_query_str(url[1], **kwargs)}"
+        query_str = cls.build_query_str(url[1], **kwargs)
+        return f"{url[0]}?{query_str}" if query_str else url[0]
 
     @classmethod
     def build_zone_url(cls, url: Tuple, zone: str, **kwargs):
