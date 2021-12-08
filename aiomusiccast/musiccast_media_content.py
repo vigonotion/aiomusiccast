@@ -27,20 +27,19 @@ class MusicCastMediaContent:
             zone_id: str = None,
             can_browse: bool = False,
             can_play: bool = False,
-            can_search: bool = False,
             title: str = None,
             content_id: str = None,
             menu_layer: int = -1,
             thumbnail: str = None,
             content_type: str = None,
             list_len: int = 8,
-            start_index: int = 0
+            start_index: int = 0,
+            menu_attribute: int = 0
     ):
         self.musiccast = musiccast
         self._zone_id = zone_id
         self.can_browse = can_browse
         self.can_play = can_play
-        self.can_search = can_search
         self.title = title
         self.content_id = content_id
         self.children = []
@@ -51,6 +50,11 @@ class MusicCastMediaContent:
         self.content_type = content_type
         self.list_len = list_len
         self.start_index = start_index
+        self.menu_attribute = menu_attribute
+
+    @property
+    def can_search(self):
+        return int(self.menu_attribute) & 0b1000 == 0b1000
 
     @classmethod
     def from_info(cls, source, info: dict, menu_layer, index):
@@ -60,12 +64,12 @@ class MusicCastMediaContent:
         return cls(
             can_browse=info.get("attribute") & 0b10 == 0b10,
             can_play=info.get("attribute") & 0b100 == 0b100,
-            can_search=info.get("attribute") & 0b1000 == 0b1000,
             title=info.get("text"),
-            content_id=f"list:{source}:{menu_layer}:{index}",
+            content_id=f"list:{source}:{menu_layer}_{info.get('attribute')}:{index}",
             thumbnail=info.get("thumbnail"),
             menu_layer=menu_layer,
-            content_type="directory" if info.get("attribute") & 0b10 == 0b10 else "track"
+            content_type="directory" if info.get("attribute") & 0b10 == 0b10 else "track",
+            menu_attribute=info.get("attribute")
         )
 
     @classmethod
@@ -104,7 +108,10 @@ class MusicCastMediaContent:
 
         elif media_content_path[0] == "list":
             source = media_content_path[1]
-            self.menu_layer = int(media_content_path[2])
+            menu_info = media_content_path[2].split("_")
+            self.menu_layer = int(menu_info[0])
+            if len(menu_info) > 1:
+                self.menu_attribute = int(menu_info[1])
 
             list_info = await self.musiccast.get_list_info(source, 0)
             if self.menu_layer < list_info.get("menu_layer"):
@@ -169,7 +176,8 @@ class MusicCastMediaContent:
         list_info = await self.musiccast.get_list_info(source, self.start_index)
         self.title = list_info.get("menu_name")
         self.menu_layer = int(list_info.get("menu_layer"))
-        self.content_id = f"list:{source}:{self.menu_layer}:<>{self.start_index}"
+        menu_info = f"{self.menu_layer}_{self.menu_attribute}" if self.menu_attribute else self.menu_layer
+        self.content_id = f"list:{source}:{menu_info}:<>{self.start_index}"
         # get list items
         entries = list_info.get("list_info", [])
         for i in range(self.start_index + 8, self.start_index + self.list_len, 8):

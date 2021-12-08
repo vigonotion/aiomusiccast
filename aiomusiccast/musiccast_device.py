@@ -930,6 +930,11 @@ class MusicCastDevice:
             NetUSB.set_list_control("main", "return", "", zone_id)
         )
 
+    async def set_search_str(self, search_str):
+        await self.device.request(
+            NetUSB.set_search_string(search_str)
+        )
+
     async def play_list_media(self, item, zone_id):
         await self.device.request(
             NetUSB.set_list_control("main", "play", item, zone_id)
