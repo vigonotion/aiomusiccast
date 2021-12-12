@@ -55,6 +55,7 @@ class MusicCastData:
         self.netusb_play_time = None
         self.netusb_play_time_updated = None
         self.netusb_total_time = None
+        self.netusb_search_str = None
 
         self.netusb_preset_list = {}
 

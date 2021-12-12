@@ -934,6 +934,7 @@ class MusicCastDevice:
         await self.device.request(
             NetUSB.set_search_string(search_str)
         )
+        self.data.netusb_search_str = search_str
 
     async def play_list_media(self, item, zone_id):
         await self.device.request(

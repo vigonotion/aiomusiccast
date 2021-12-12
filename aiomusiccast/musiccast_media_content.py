@@ -117,7 +117,7 @@ class MusicCastMediaContent:
             if self.menu_layer < list_info.get("menu_layer"):
                 await self.return_in_list_info(source, self.menu_layer)
 
-            elif media_content_path[3].isdigit():
+            elif media_content_path[3].isdigit() and self.menu_layer != list_info.get("menu_layer"):
                 # an item was selected
                 await self.musiccast.select_list_item(media_content_path[3], self._zone_id)
 
