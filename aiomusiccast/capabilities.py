@@ -10,7 +10,6 @@ class EntityType(Enum):
     REGULAR = 1  # For major features
     CONFIG = 2  # For features to configure the device or a zone
     DIAGNOSTIC = 3  # For diagnostic values or settings
-    SYSTEM = 4  # Features for internal usage only
 
 
 class Capability(ABC):
