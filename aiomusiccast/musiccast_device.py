@@ -7,7 +7,7 @@ from aiomusiccast.exceptions import MusicCastException, MusicCastGroupException,
 import asyncio
 import logging
 import math
-from datetime import datetime, time
+from datetime import datetime, time, timezone
 from typing import Dict, List, Callable
 from xml.sax.saxutils import escape
 
@@ -137,7 +137,7 @@ class MusicCastDevice:
             play_time = message.get("netusb").get("play_time")
             if play_time:
                 self.data.netusb_play_time = play_time
-                self.data.netusb_play_time_updated = datetime.utcnow()
+                self.data.netusb_play_time_updated = datetime.now(timezone.utc)
 
             if message.get("netusb").get("preset_info_updated"):
                 await self._fetch_netusb_presets()
@@ -220,7 +220,7 @@ class MusicCastDevice:
         self.data.netusb_total_time = self._netusb_play_info.get("total_time", None)
         self.data.netusb_play_time = self._netusb_play_info.get("play_time", None)
 
-        self.data.netusb_play_time_updated = datetime.utcnow()
+        self.data.netusb_play_time_updated = datetime.now(timezone.utc)
 
     async def _fetch_tuner(self):
         """Fetch tuner data."""
