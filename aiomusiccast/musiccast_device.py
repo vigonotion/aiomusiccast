@@ -498,6 +498,11 @@ class MusicCastDevice:
             for source in self._name_text.get("input_list")
         }
 
+        self.data.sound_program_names = {
+            program.get("id"): program.get("text")
+            for program in self._name_text.get("sound_program_list")
+        }
+
         if "netusb" in self._features.keys() and self._features.get("netusb").get("func_list"):
             await self._fetch_netusb()
             await self._fetch_netusb_presets()
