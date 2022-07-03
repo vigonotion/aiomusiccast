@@ -42,6 +42,7 @@ class MusicCastData:
         # features
         self.zones: Dict[str, MusicCastZoneData] = {}
         self.input_names: Dict[str, str] = {}
+        self.sound_program_names: Dict[str, str] = {}
 
         # NetUSB data
         self.netusb_input = None
