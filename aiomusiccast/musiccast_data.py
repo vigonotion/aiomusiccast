@@ -172,6 +172,8 @@ class MusicCastZoneData:
 
         self.surr_decoder_type: str | None = None
 
+        self.scene_information: dict[int, str] | None = None
+
 
 class RangeStep:
     minimum: int = 0
