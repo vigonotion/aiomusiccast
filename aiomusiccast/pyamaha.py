@@ -1390,7 +1390,7 @@ class Zone:
             host='{host}', zone=zone, volume=volume
         )
 
-    # end-of-method set_clear_voice
+    # end-of-method set_subwoofer_volume
 
     @staticmethod
     def set_bass_extension(zone, enable):

@@ -269,6 +269,7 @@ class MusicCastDevice:
 
         zone_data.extra_bass = zone.get("extra_bass")
         zone_data.bass_extension = zone.get("bass_extension")
+        zone_data.subwoofer_volume = zone.get("subwoofer_volume")
         zone_data.adaptive_drc = zone.get("adaptive_drc")
         zone_data.enhancer = zone.get("enhancer")
         zone_data.pure_direct = zone.get("pure_direct")
@@ -770,6 +771,16 @@ class MusicCastDevice:
         """Set speaker b."""
         await self.device.request(
             System.set_speaker_b(speaker_b)
+        )
+
+    @_check_feature(ZoneFeature.SUBWOOFER_VOLUME)
+    async def set_subwoofer_volume(self, zone_id, level):
+        """Set the level of the subwoofer volume."""
+        await self.device.request(
+            Zone.set_subwoofer_volume(
+                zone_id,
+                level
+            )
         )
 
     async def select_sound_mode(self, zone_id, sound_mode):

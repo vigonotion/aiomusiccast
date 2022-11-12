@@ -131,6 +131,7 @@ class MusicCastZoneData:
         self.sound_program_list = []
         self.sound_program = None
         self.sleep_time = None
+        self.subwoofer_volume = None
 
         # Equalizer
         self.equalizer_mode = None

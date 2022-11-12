@@ -224,6 +224,16 @@ _zone_capabilities = {
         lambda: device.data.zones[zone_id].adaptive_drc,
         lambda val: device.set_adaptive_drc(zone_id, val),
     ),
+    ZoneFeature.SUBWOOFER_VOLUME: lambda capability_id, device, zone_id: NumberSetter(
+        capability_id,
+        "Subwoofer Volume",
+        EntityType.CONFIG,
+        lambda: device.data.zones[zone_id].subwoofer_volume,
+        lambda val: device.set_subwoofer_volume(zone_id, int(val)),
+        device.data.zones[zone_id].range_step["subwoofer_volume"].minimum,
+        device.data.zones[zone_id].range_step["subwoofer_volume"].maximum,
+        device.data.zones[zone_id].range_step["subwoofer_volume"].step,
+    ),
 }
 
 
