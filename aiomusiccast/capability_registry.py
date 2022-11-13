@@ -189,6 +189,14 @@ _zone_capabilities = {
         lambda val: device.set_link_audio_quality(zone_id, val),
         {key: key for key in device.data.zones[zone_id].link_audio_quality_list},
     ),
+    ZoneFeature.SOUND_PROGRAM: lambda capability_id, device, zone_id: OptionSetter(
+        capability_id,
+        "Sound Program",
+        EntityType.CONFIG,
+        lambda: device.data.zones[zone_id].sound_program,
+        lambda val: device.set_sound_program(zone_id, val),
+        {key: key for key in device.data.zones[zone_id].sound_program_list},
+    ),
     ZoneFeature.BASS_EXTENSION: lambda capability_id, device, zone_id: BinarySetter(
         capability_id,
         "Bass Extension",
