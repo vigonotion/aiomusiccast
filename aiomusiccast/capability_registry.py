@@ -241,6 +241,13 @@ _zone_capabilities = {
         lambda: device.data.zones[zone_id].clear_voice,
         lambda val: device.set_clear_voice(zone_id, val),
     ),
+    ZoneFeature.SURROUND_3D: lambda capability_id, device, zone_id: BinarySetter(
+        capability_id,
+        "3D Surround",
+        EntityType.CONFIG,
+        lambda: device.data.zones[zone_id].surround_3d,
+        lambda val: device.set_surround_3d(zone_id, val),
+    ),
 }
 
 
