@@ -234,6 +234,13 @@ _zone_capabilities = {
         device.data.zones[zone_id].range_step["subwoofer_volume"].maximum,
         device.data.zones[zone_id].range_step["subwoofer_volume"].step,
     ),
+    ZoneFeature.CLEAR_VOICE: lambda capability_id, device, zone_id: BinarySetter(
+        capability_id,
+        "Clear Voice",
+        EntityType.CONFIG,
+        lambda: device.data.zones[zone_id].clear_voice,
+        lambda val: device.set_clear_voice(zone_id, val),
+    ),
 }
 
 

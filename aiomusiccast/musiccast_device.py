@@ -273,6 +273,7 @@ class MusicCastDevice:
         zone_data.adaptive_drc = zone.get("adaptive_drc")
         zone_data.enhancer = zone.get("enhancer")
         zone_data.pure_direct = zone.get("pure_direct")
+        zone_data.clear_voice = zone.get("clear_voice")
 
         zone_data.surr_decoder_type = zone.get("surr_decoder_type")
 
@@ -780,6 +781,16 @@ class MusicCastDevice:
             Zone.set_subwoofer_volume(
                 zone_id,
                 level
+            )
+        )
+
+    @_check_feature(ZoneFeature.CLEAR_VOICE)
+    async def set_clear_voice(self, zone_id, value):
+        """Set clear voice option."""
+        await self.device.request(
+            Zone.set_clear_voice(
+                zone_id,
+                value
             )
         )
 

@@ -170,6 +170,7 @@ class MusicCastZoneData:
         self.adaptive_drc: bool | None = None
         self.enhancer: bool | None = None
         self.pure_direct: bool | None = None
+        self.clear_voice: bool | None = None
 
         self.surr_decoder_type: str | None = None
 
