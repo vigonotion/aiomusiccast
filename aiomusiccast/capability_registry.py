@@ -194,7 +194,7 @@ _zone_capabilities = {
         "Sound Program",
         EntityType.CONFIG,
         lambda: device.data.zones[zone_id].sound_program,
-        lambda val: device.set_sound_program(zone_id, val),
+        lambda val: device.select_sound_mode(zone_id, val),
         {key: key for key in device.data.zones[zone_id].sound_program_list},
     ),
     ZoneFeature.BASS_EXTENSION: lambda capability_id, device, zone_id: BinarySetter(

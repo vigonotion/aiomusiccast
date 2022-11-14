@@ -805,10 +805,10 @@ class MusicCastDevice:
             )
         )
 
-    async def set_sound_program(self, zone_id, sound_program):
+    async def select_sound_mode(self, zone_id, sound_mode):
         """Select sound mode."""
         await self.device.request(
-            Zone.set_sound_program(zone_id, sound_program)
+            Zone.set_sound_program(zone_id, sound_mode)
         )
 
     async def netusb_previous_track(self):
