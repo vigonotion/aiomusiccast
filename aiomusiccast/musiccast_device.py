@@ -269,9 +269,12 @@ class MusicCastDevice:
 
         zone_data.extra_bass = zone.get("extra_bass")
         zone_data.bass_extension = zone.get("bass_extension")
+        zone_data.subwoofer_volume = zone.get("subwoofer_volume")
         zone_data.adaptive_drc = zone.get("adaptive_drc")
         zone_data.enhancer = zone.get("enhancer")
         zone_data.pure_direct = zone.get("pure_direct")
+        zone_data.clear_voice = zone.get("clear_voice")
+        zone_data.surround_3d = zone.get("surround_3d")
 
         zone_data.surr_decoder_type = zone.get("surr_decoder_type")
 
@@ -770,6 +773,36 @@ class MusicCastDevice:
         """Set speaker b."""
         await self.device.request(
             System.set_speaker_b(speaker_b)
+        )
+
+    @_check_feature(ZoneFeature.SUBWOOFER_VOLUME)
+    async def set_subwoofer_volume(self, zone_id, level):
+        """Set the level of the subwoofer volume."""
+        await self.device.request(
+            Zone.set_subwoofer_volume(
+                zone_id,
+                level
+            )
+        )
+
+    @_check_feature(ZoneFeature.CLEAR_VOICE)
+    async def set_clear_voice(self, zone_id, value):
+        """Set clear voice option."""
+        await self.device.request(
+            Zone.set_clear_voice(
+                zone_id,
+                value
+            )
+        )
+
+    @_check_feature(ZoneFeature.SURROUND_3D)
+    async def set_surround_3d(self, zone_id, value):
+        """Set 3d surround option."""
+        await self.device.request(
+            Zone.set_surround_3d(
+                zone_id,
+                value
+            )
         )
 
     async def select_sound_mode(self, zone_id, sound_mode):

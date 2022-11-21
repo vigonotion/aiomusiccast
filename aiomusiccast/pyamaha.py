@@ -983,7 +983,7 @@ class Zone:
         'SET_INPUT': 'http://{host}/YamahaExtendedControl/v1/{zone}/setInput?input={input}&mode={mode}',
         'SET_SOUND_PROGRAM': 'http://{host}/YamahaExtendedControl/v1/{zone}/setSoundProgram?program={program}',
         'PREPARE_INPUT_CHANGE': 'http://{host}/YamahaExtendedControl/v1/{zone}/prepareInputChange?input={input}',
-        'SET_3D_SURROUND': 'http://{host}/YamahaExtendedControl/v1/{zone}/set3dSurround?enable={enable}',
+        'SET_SURROUND_3D': 'http://{host}/YamahaExtendedControl/v1/{zone}/set3dSurround?enable={enable}',
         'SET_DIRECT': 'http://{host}/YamahaExtendedControl/v1/{zone}/setDirect?enable={enable}',
         'SET_PURE_DIRECT': 'http://{host}/YamahaExtendedControl/v1/{zone}/setPureDirect?enable={enable}',
         'SET_ENHANCER': 'http://{host}/YamahaExtendedControl/v1/{zone}/setEnhancer?enable={enable}',
@@ -1175,7 +1175,7 @@ class Zone:
     # end-of-method prepare_input_change
 
     @staticmethod
-    def set_3d_surround(zone, enable):
+    def set_surround_3d(zone, enable):
         """For setting 3D Surround status.
 
         Arguments:
@@ -1184,11 +1184,11 @@ class Zone:
             @param enable: Specifies 3D Surround status.
         """
         assert zone in ZONES, 'Invalid ZONE value!'
-        return Zone.URI['SET_3D_SURROUND'].format(
+        return Zone.URI['SET_SURROUND_3D'].format(
             host='{host}', zone=zone, enable=_bool_to_str(enable)
         )
 
-    # end-of-method set_3d_surround
+    # end-of-method set_surround_3d
 
     @staticmethod
     def set_direct(zone, enable):
@@ -1361,16 +1361,18 @@ class Zone:
     # end-of-method set_dts_dialogue_control
 
     @staticmethod
-    def set_clear_voice(zone, value):
+    def set_clear_voice(zone, enable):
         """For setting Clear Voice in each Zone.
 
         Arguments:
             @param zone: Specifies target Zone.
                     Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param value: Specifies Clear Voice setting
+            @param enable: Specifies Clear Voice setting
         """
         assert zone in ZONES, 'Invalid ZONE value!'
-        return Zone.URI['SET_CLEAR_VOICE'].format(host='{host}', zone=zone, value=value)
+        return Zone.URI['SET_CLEAR_VOICE'].format(
+            host='{host}', zone=zone, enable=_bool_to_str(enable)
+        )
 
     # end-of-method set_clear_voice
 
@@ -1390,7 +1392,7 @@ class Zone:
             host='{host}', zone=zone, volume=volume
         )
 
-    # end-of-method set_clear_voice
+    # end-of-method set_subwoofer_volume
 
     @staticmethod
     def set_bass_extension(zone, enable):

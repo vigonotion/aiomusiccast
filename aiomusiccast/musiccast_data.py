@@ -131,6 +131,7 @@ class MusicCastZoneData:
         self.sound_program_list = []
         self.sound_program = None
         self.sleep_time = None
+        self.subwoofer_volume = None
 
         # Equalizer
         self.equalizer_mode = None
@@ -169,6 +170,8 @@ class MusicCastZoneData:
         self.adaptive_drc: bool | None = None
         self.enhancer: bool | None = None
         self.pure_direct: bool | None = None
+        self.clear_voice: bool | None = None
+        self.surround_3d: bool | None = None
 
         self.surr_decoder_type: str | None = None
 

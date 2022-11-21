@@ -224,6 +224,30 @@ _zone_capabilities = {
         lambda: device.data.zones[zone_id].adaptive_drc,
         lambda val: device.set_adaptive_drc(zone_id, val),
     ),
+    ZoneFeature.SUBWOOFER_VOLUME: lambda capability_id, device, zone_id: NumberSetter(
+        capability_id,
+        "Subwoofer Volume",
+        EntityType.CONFIG,
+        lambda: device.data.zones[zone_id].subwoofer_volume,
+        lambda val: device.set_subwoofer_volume(zone_id, int(val)),
+        device.data.zones[zone_id].range_step["subwoofer_volume"].minimum,
+        device.data.zones[zone_id].range_step["subwoofer_volume"].maximum,
+        device.data.zones[zone_id].range_step["subwoofer_volume"].step,
+    ),
+    ZoneFeature.CLEAR_VOICE: lambda capability_id, device, zone_id: BinarySetter(
+        capability_id,
+        "Clear Voice",
+        EntityType.CONFIG,
+        lambda: device.data.zones[zone_id].clear_voice,
+        lambda val: device.set_clear_voice(zone_id, val),
+    ),
+    ZoneFeature.SURROUND_3D: lambda capability_id, device, zone_id: BinarySetter(
+        capability_id,
+        "3D Surround",
+        EntityType.CONFIG,
+        lambda: device.data.zones[zone_id].surround_3d,
+        lambda val: device.set_surround_3d(zone_id, val),
+    ),
 }
 
 
