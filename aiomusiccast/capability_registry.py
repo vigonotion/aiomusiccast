@@ -6,7 +6,7 @@ from .capabilities import OptionSetter, EntityType, NumberSetter, BinarySetter, 
 
 def normalize_option(option):
     option = str(option)
-    return option.replace(" ", "_")
+    return option.replace(" ", "_").lower()
 
 """Dictionary of all DeviceFeatures with a callable as value. 
 The callable expects an ID and a MusicCastDevice as parameters."""
