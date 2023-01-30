@@ -4,6 +4,10 @@ from .const import DISPLAY_DIMMER_SPECIALS
 from .features import ZoneFeature, DeviceFeature
 from .capabilities import OptionSetter, EntityType, NumberSetter, BinarySetter, Capability
 
+def normalize_option(option):
+    option = str(option)
+    return option.replace(" ", "_").lower()
+
 """Dictionary of all DeviceFeatures with a callable as value. 
 The callable expects an ID and a MusicCastDevice as parameters."""
 _device_capabilities = {
@@ -14,7 +18,7 @@ _device_capabilities = {
         lambda: device.data.dimmer.dimmer_current,
         lambda value: device.set_dimmer(int(value)),
         {
-            x: str(DISPLAY_DIMMER_SPECIALS.get(x, x))
+            x: normalize_option(DISPLAY_DIMMER_SPECIALS.get(x, x))
             for x in range(
                 int(device.data.dimmer.minimum),
                 int(device.data.dimmer.maximum+1),
@@ -55,7 +59,7 @@ _zone_capabilities = {
         EntityType.CONFIG,
         lambda: device.data.zones[zone_id].surr_decoder_type,
         lambda val: device.set_surround_decoder(zone_id, val),
-        {key: key for key in device.data.zones[zone_id].surr_decoder_type_list},
+        {key: normalize_option(key) for key in device.data.zones[zone_id].surr_decoder_type_list},
     ),
     ZoneFeature.SLEEP: lambda capability_id, device, zone_id: OptionSetter(
         capability_id,
@@ -63,7 +67,7 @@ _zone_capabilities = {
         EntityType.CONFIG,
         lambda: device.data.zones[zone_id].sleep_time,
         lambda val: device.set_sleep_timer(zone_id, val),
-        {0: "off", 30: "30 min", 60: "60 min", 90: "90 min", 120: "120 min"},
+        {0: "off", 30: "30_min", 60: "60_min", 90: "90_min", 120: "120_min"},
     ),
     ZoneFeature.EQUALIZER: {
         "mode": lambda capability_id, device, zone_id: OptionSetter(
@@ -72,7 +76,7 @@ _zone_capabilities = {
             EntityType.CONFIG,
             lambda: device.data.zones[zone_id].equalizer_mode,
             lambda val: device.set_equalizer(zone_id, mode=val),
-            {key: key for key in device.data.zones[zone_id].equalizer_mode_list},
+            {key: normalize_option(key) for key in device.data.zones[zone_id].equalizer_mode_list},
         ),
         "low": lambda capability_id, device, zone_id: NumberSetter(
             capability_id,
@@ -112,7 +116,7 @@ _zone_capabilities = {
             EntityType.CONFIG,
             lambda: device.data.zones[zone_id].tone_mode,
             lambda val: device.set_tone_control(zone_id, mode=val),
-            {key: key for key in device.data.zones[zone_id].tone_control_mode_list},
+            {key: normalize_option(key) for key in device.data.zones[zone_id].tone_control_mode_list},
         ),
         "bass": lambda capability_id, device, zone_id: NumberSetter(
             capability_id,
@@ -171,7 +175,7 @@ _zone_capabilities = {
         EntityType.CONFIG,
         lambda: device.data.zones[zone_id].link_audio_delay,
         lambda val: device.set_link_audio_delay(zone_id, val),
-        {key: key for key in device.data.zones[zone_id].link_audio_delay_list},
+        {key: normalize_option(key) for key in device.data.zones[zone_id].link_audio_delay_list},
     ),
     ZoneFeature.LINK_CONTROL: lambda capability_id, device, zone_id: OptionSetter(
         capability_id,
@@ -179,7 +183,7 @@ _zone_capabilities = {
         EntityType.CONFIG,
         lambda: device.data.zones[zone_id].link_control,
         lambda val: device.set_link_control(zone_id, val),
-        {key: key for key in device.data.zones[zone_id].link_control_list},
+        {key: normalize_option(key) for key in device.data.zones[zone_id].link_control_list},
     ),
     ZoneFeature.LINK_AUDIO_QUALITY: lambda capability_id, device, zone_id: OptionSetter(
         capability_id,
@@ -187,7 +191,7 @@ _zone_capabilities = {
         EntityType.CONFIG,
         lambda: device.data.zones[zone_id].link_audio_quality,
         lambda val: device.set_link_audio_quality(zone_id, val),
-        {key: key for key in device.data.zones[zone_id].link_audio_quality_list},
+        {key: normalize_option(key) for key in device.data.zones[zone_id].link_audio_quality_list},
     ),
     ZoneFeature.BASS_EXTENSION: lambda capability_id, device, zone_id: BinarySetter(
         capability_id,
