@@ -395,7 +395,7 @@ class Dist:
     # end-of-method set_server_info
 
     @staticmethod
-    def set_client_info(group_id, zone=None, server_ip_address=None):
+    def set_client_info(group_id, zones=None, server_ip_address=None):
         """For setting Link distributed clients. If a Device is already setup as Link distribution server, this
            client setup is denied by that Device: use this API after canceling a Device's Link distribution
            server setup using setServerInfo, then confirming that the target Device's role is changed to other
@@ -406,15 +406,15 @@ class Dist:
                         Specify "" (empty text) here to cancel a Device being a Link
                         distributed client. Group ID will be initialized ("000...") after
                         the cancel operation.
-            @param zone: Specifies which target Zone ID to be a Link distributed
+            @param zones: Specifies which target Zone ID to be a Link distributed
                     client. Not necessary to specify when cancelling a client status.
                     Values: "main" / "zone2" / "zone3" / "zone4"
             @param server_ip_address: Specifies the IP Address of the Link distribution server.
         """
         data = {'group_id': group_id}
 
-        if zone is not None:
-            data['zone'] = zone
+        if zones is not None:
+            data['zone'] = zones
 
         if server_ip_address is not None:
             data['server_ip_address'] = server_ip_address

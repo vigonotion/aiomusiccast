@@ -1209,12 +1209,11 @@ class MusicCastDevice:
     async def mc_client_join(self, server_ip, group_id, zone, retry=True):
         """Join the given group as a client."""
         async with self.data.group_update_lock:
-            await self.device.post(*Dist.set_client_info(group_id, zone, server_ip))
+            await self.device.post(*Dist.set_client_info(group_id, [zone], server_ip))
             await self.device.request(Zone.set_input(zone, MC_LINK, ""))
             if await self.check_group_data(
                     [
                         lambda: self._check_group_id(group_id),
-                        lambda: self._check_group_role("client"),
                         lambda: self._check_source(MC_LINK, zone),
                     ]
             ):
