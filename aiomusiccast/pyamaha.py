@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import urllib
 from asyncio.transports import BaseTransport
-from typing import Awaitable, Tuple
+from typing import Awaitable, Tuple, List
 from urllib.parse import urlparse
 import xml.etree.ElementTree as ET
 
@@ -49,6 +49,7 @@ SERVICE_INFO_TYPE = ['account_list', 'licensing', 'activation_code']
 SLEEP = [0, 30, 60, 90, 120]
 TUNING = ['up', 'down', 'cancel', 'auto_up', 'auto_down', 'tp_up', 'tp_down', 'direct']
 TYPE = ['select', 'play', 'return']
+MANAGE_LIST_TYPE = ['play_now', 'add_to_queue', 'play_next']
 POWER = ['on', 'standby', 'toggle']
 LIST_ID = ['main', 'auto_complete', 'search_artist', 'search_track']
 LANG = ['en', 'ja', 'fr', 'de', 'es', 'ru', 'it', 'zh']
@@ -134,10 +135,10 @@ class AsyncDevice:
     """
 
     ip: str
-    handle_event: Awaitable[[dict], None] | None
+    handle_event: Awaitable[List[dict], None] | None
 
     _messages: queue.Queue
-    _transport: [BaseTransport, None]
+    _transport: BaseTransport | None
 
     def __init__(
             self,
@@ -1656,6 +1657,9 @@ class NetUSB:
         'TOGGLE_SHUFFLE': 'http://{host}/YamahaExtendedControl/v1/netusb/toggleShuffle',
         'GET_LIST_INFO': 'http://{host}/YamahaExtendedControl/v1/netusb/getListInfo?input={input}&index={index}&size={size}&lang={lang}&list_id={list_id}',
         'SET_LIST_CONTROL': 'http://{host}/YamahaExtendedControl/v1/netusb/setListControl?list_id={list_id}&type={type}&index={index}&zone={zone}',
+        'MANAGE_LIST': 'http://{host}/YamahaExtendedControl/v1/netusb/manageList?list_id={list_id}&type={type}&index={index}&zone={zone}&timeout={timeout}',
+        'GET_PLAY_QUEUE': 'http://{host}/YamahaExtendedControl/v1/netusb/getPlayQueue?index={index}',
+        'CLEAR_PLAY_QUEUE': 'http://{host}/YamahaExtendedControl/v1/netusb/clearPlayQueue',
         'SET_SEARCH_STRING': 'http://{host}/YamahaExtendedControl/v1/netusb/setSearchString',
         'RECALL_PRESET': 'http://{host}/YamahaExtendedControl/v1/netusb/recallPreset?zone={zone}&num={num}',
         'STORE_PRESET': 'http://{host}/YamahaExtendedControl/v1/netusb/storePreset?num={num}',
@@ -1792,6 +1796,58 @@ class NetUSB:
         )
 
     # end-of-method set_list_control
+
+    @staticmethod
+    def manage_list(list_id, type, index, zone, timeout):
+        """For manage list. Add elements to play queue.
+
+        http://{host}/YamahaExtendedControl/v1/netusb/manageList?list_id={list_id}&type={type}&index={index}&zone={zone}&timeout={timeout}
+        # list_id=main, type=play_now/add_to_queue/play_next, index=0, zone=main, timeout=60000
+        Arguments:
+            @param list_id: Specifies list ID. If nothing specified, 'main' is chosen implicitly
+                    Values: 'main' (common for all Net/USB sources)
+                            'auto_complete' (Pandora)
+                            'search_artist' (Pandora)
+                            'search_track' (Pandora)
+            @param type: Specifies list transition type. 'play_now' is to add current index element to the top of play queue,
+                    and play right now. 'add_to_queue' is to add current index element to the tail of play queue.
+                    'play_next' is to insert current index element to the next place of play queue.
+                    this method can be used on dir element.
+                    Values: 'play_now', 'add_to_queue', 'play_next'
+            @param zone: Specifies station recalling zone. This causes input change in specified zone.
+                    Values: 'main', 'zone2', 'zone3', 'zone4'
+            @param timeout: Specifies timeout duration(ms) for this API process. If specifies 0,
+                    treat as maximum value.
+                    Value: 0 - 60000
+        """
+        assert type in MANAGE_LIST_TYPE, 'Invalid TYPE value!'
+        assert zone in ZONES, 'Invalid ZONE value!'
+        return NetUSB.URI['MANAGE_LIST'].format(
+            host='{host}', list_id=list_id, type=type, index=index, zone=zone, timeout=timeout,
+        )
+
+    # end-of-method manage_list
+
+    @staticmethod
+    def get_play_queue(index):
+        """For get current play queue and play status.
+
+        Arguments:
+            @param index: Specifies the reference index (offset from the beginning of the list).
+                        Note that this index must be in multiple of 8. If nothing was
+                        specified, the reference index previously specified would be used.
+                        Values: 0, 8, 16, 24, ..., 64984, 64992
+        """
+        return NetUSB.URI['GET_PLAY_QUEUE'].format(host='{host}', index=index)
+
+    # end-of-method get_play_queue
+
+    @staticmethod
+    def clear_play_queue():
+        """For clear current play queue."""
+        return NetUSB.URI['CLEAR_PLAY_QUEUE'].format(host='{host}')
+
+    # end-of-method clear_play_queue
 
     @staticmethod
     def set_search_string(search_string, list_id=None, index=None):

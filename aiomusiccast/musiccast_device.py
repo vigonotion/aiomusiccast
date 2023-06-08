@@ -755,11 +755,15 @@ class MusicCastDevice:
         await self.device.request(NetUSB.set_playback("stop"))
 
     async def netusb_shuffle(self, shuffle: bool):
-        if self.data.api_version < 1.19:
-            if (self.data.netusb_shuffle == "on") != shuffle:
-                await self.device.request(NetUSB.toggle_shuffle())
-        else:
-            await self.device.request(NetUSB.set_shuffle("on" if shuffle else "off"))
+        try:
+            if self.data.api_version < 1.19:
+                if (self.data.netusb_shuffle == "on") != shuffle:
+                    await self.device.request(NetUSB.toggle_shuffle())
+                    return
+        except:
+            pass
+
+        await self.device.request(NetUSB.set_shuffle("on" if shuffle else "off"))
 
     @_check_feature(DeviceFeature.SPEAKER_A)
     async def set_speaker_a(self, speaker_a: bool):
@@ -971,6 +975,31 @@ class MusicCastDevice:
     async def play_list_media(self, item, zone_id):
         await self.device.request(
             NetUSB.set_list_control("main", "play", item, zone_id)
+        )
+
+    async def play_now(self, item, zone_id):
+        await self.device.request(
+            NetUSB.manage_list("main", "play_now", item, zone_id, 60000)
+        )
+
+    async def add_to_queue(self, item, zone_id):
+        await self.device.request(
+            NetUSB.manage_list("main", "add_to_queue", item, zone_id, 60000)
+        )
+
+    async def play_next(self, item, zone_id):
+        await self.device.request(
+            NetUSB.manage_list("main", "play_next", item, zone_id, 60000)
+        )
+
+    async def get_play_queue(self, index):
+        return await self.device.request_json(
+            NetUSB.get_play_queue(index)
+        )
+
+    async def clear_play_queue(self):
+        await self.device.request(
+            NetUSB.clear_play_queue()
         )
 
     async def play_url_media(self, zone_id, media_url, title, mime_type=None):
