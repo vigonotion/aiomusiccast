@@ -1,4 +1,5 @@
 import logging
+from typing import List
 
 from .musiccast_device import MusicCastDevice
 
@@ -21,6 +22,8 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class MusicCastMediaContent:
+    children: List['MusicCastMediaContent']
+
     def __init__(
             self,
             musiccast: MusicCastDevice = None,
@@ -84,7 +87,7 @@ class MusicCastMediaContent:
             zone_id: str,
             media_content_path: list,
             list_len: int = 8
-    ):
+    ) -> 'MusicCastMediaContent':
         self = cls(
             musiccast=musiccast,
             zone_id=zone_id,
