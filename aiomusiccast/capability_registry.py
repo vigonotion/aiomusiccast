@@ -252,6 +252,13 @@ _zone_capabilities = {
         lambda: device.data.zones[zone_id].surround_3d,
         lambda val: device.set_surround_3d(zone_id, val),
     ),
+    ZoneFeature.SURROUND_AI: lambda capability_id, device, zone_id: BinarySetter(
+        capability_id,
+        "Surround AI",
+        EntityType.CONFIG,
+        lambda: device.data.zones[zone_id].surround_ai,
+        lambda val: device.set_surround_ai(zone_id, val),
+    ),
 }
 
 

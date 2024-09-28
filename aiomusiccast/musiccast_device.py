@@ -275,6 +275,7 @@ class MusicCastDevice:
         zone_data.pure_direct = zone.get("pure_direct")
         zone_data.clear_voice = zone.get("clear_voice")
         zone_data.surround_3d = zone.get("surround_3d")
+        zone_data.surround_ai = zone.get("surround_ai")
 
         zone_data.surr_decoder_type = zone.get("surr_decoder_type")
 
@@ -800,6 +801,16 @@ class MusicCastDevice:
         """Set 3d surround option."""
         await self.device.request(
             Zone.set_surround_3d(
+                zone_id,
+                value
+            )
+        )
+
+    @_check_feature(ZoneFeature.SURROUND_AI)
+    async def set_surround_ai(self, zone_id, value):
+        """Set surround AI option."""
+        await self.device.request(
+            Zone.set_surround_ai(
                 zone_id,
                 value
             )

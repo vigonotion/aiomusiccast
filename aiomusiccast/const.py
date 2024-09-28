@@ -49,6 +49,7 @@ ZONE_FUNC_LIST_TO_FEATURE_MAPPING = {
     "mute": ZoneFeature.MUTE,
     "sound_program": ZoneFeature.SOUND_PROGRAM,
     "surround_3d": ZoneFeature.SURROUND_3D,
+    "surround_ai": ZoneFeature.SURROUND_AI,
     "direct": ZoneFeature.DIRECT,
     "pure_direct": ZoneFeature.PURE_DIRECT,
     "enhancer": ZoneFeature.ENHANCER,
