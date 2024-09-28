@@ -172,6 +172,7 @@ class MusicCastZoneData:
         self.pure_direct: bool | None = None
         self.clear_voice: bool | None = None
         self.surround_3d: bool | None = None
+        self.surround_ai: bool | None = None
 
         self.surr_decoder_type: str | None = None
 

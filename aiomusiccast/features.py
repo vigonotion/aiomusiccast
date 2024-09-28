@@ -65,6 +65,7 @@ class ZoneFeature(Feature):
     MUTE = auto()
     SOUND_PROGRAM = auto()
     SURROUND_3D = auto()
+    SURROUND_AI = auto()
     DIRECT = auto()
     PURE_DIRECT = auto()
     ENHANCER = auto()
