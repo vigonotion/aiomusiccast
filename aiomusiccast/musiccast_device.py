@@ -976,7 +976,7 @@ class MusicCastDevice:
     async def play_url_media(self, zone_id, media_url, title, mime_type=None):
         await self.select_source(zone_id, "server", "autoplay_disabled")
 
-        await self.device.dlna_avt_request("Stop", {"InstanceID": 0})
+        await self._retry_dlna_avt_request("Stop", {"InstanceID": 0})
 
         if not mime_type:
             mime_type, _ = mimetypes.guess_type(media_url)
@@ -1005,7 +1005,7 @@ class MusicCastDevice:
             '</DIDL-Lite>'
         )
 
-        await self.device.dlna_avt_request(
+        await self._retry_dlna_avt_request(
             "SetAVTransportURI",
             {
                 "InstanceID": 0,
@@ -1014,13 +1014,25 @@ class MusicCastDevice:
             }
         )
 
-        await self.device.dlna_avt_request(
+        await self._retry_dlna_avt_request(
             "Play",
             {
                 "InstanceID": 0,
                 "Speed": 1,
             }
         )
+
+    async def _retry_dlna_avt_request(self, *args, **kw):
+        for retries_left in range(20, -1, -1):
+            resp = await self.device.dlna_avt_request(*args, **kw)
+            if resp.status == 200:
+                return resp
+            _LOGGER.warning(
+                "Error sending DLNA request, %s attempts remain",
+                retries_left)
+            if retries_left:
+                await asyncio.sleep(0.5)
+        return resp
 
     # -----Properties-----
 
