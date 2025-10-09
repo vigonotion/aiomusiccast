@@ -25,6 +25,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
 ]
+include=["aiomusiccast/py.typed"]
 
 [tool.poetry.dependencies]
 
