@@ -1,17 +1,26 @@
-from pkg_resources import DistributionNotFound, get_distribution
+from importlib import metadata
 
+from .exceptions import MusicCastConnectionException, MusicCastException, MusicCastGroupException
+from .features import DeviceFeature, ZoneFeature
+from .musiccast_data import MusicCastData, MusicCastZoneData
 from .musiccast_device import (
     MusicCastDevice,
 )
-from .musiccast_data import MusicCastData, MusicCastZoneData
-
-from .exceptions import MusicCastException, MusicCastConnectionException, MusicCastGroupException
-
 from .musiccast_media_content import MusicCastMediaContent
 
-from .features import DeviceFeature, ZoneFeature
+__all__ = [
+    "DeviceFeature",
+    "MusicCastConnectionException",
+    "MusicCastData",
+    "MusicCastDevice",
+    "MusicCastException",
+    "MusicCastGroupException",
+    "MusicCastMediaContent",
+    "MusicCastZoneData",
+    "ZoneFeature",
+]
 
 try:
-    __version__ = get_distribution('aiomusiccast').version
-except DistributionNotFound:
-    __version__ = '(local)'
+    __version__ = metadata.version("aiomusiccast")
+except metadata.PackageNotFoundError:
+    __version__ = "(local)"

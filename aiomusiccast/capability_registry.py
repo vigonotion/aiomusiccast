@@ -1,16 +1,27 @@
-from typing import List
+from __future__ import annotations
 
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
+
+from .capabilities import BinarySetter, Capability, EntityType, NumberSetter, OptionSetter
 from .const import DISPLAY_DIMMER_SPECIALS
-from .features import ZoneFeature, DeviceFeature
-from .capabilities import OptionSetter, EntityType, NumberSetter, BinarySetter, Capability
+from .features import DeviceFeature, ZoneFeature
 
-def normalize_option(option):
-    option = str(option)
-    return option.replace(" ", "_").lower()
+if TYPE_CHECKING:
+    from .musiccast_device import MusicCastDevice
+
+DeviceCapabilityFactory = Callable[[str, Any], Capability]
+ZoneCapabilityFactory = Callable[[str, Any, str], Capability]
+
+
+def normalize_option(option: object) -> str:
+    option_str = str(option)
+    return option_str.replace(" ", "_").lower()
+
 
 """Dictionary of all DeviceFeatures with a callable as value. 
 The callable expects an ID and a MusicCastDevice as parameters."""
-_device_capabilities = {
+_device_capabilities: dict[DeviceFeature, DeviceCapabilityFactory | dict[str, DeviceCapabilityFactory]] = {
     DeviceFeature.DIMMER: lambda capability_id, device: OptionSetter(
         capability_id,
         "Display Brightness",
@@ -20,11 +31,9 @@ _device_capabilities = {
         {
             x: normalize_option(DISPLAY_DIMMER_SPECIALS.get(x, x))
             for x in range(
-                int(device.data.dimmer.minimum),
-                int(device.data.dimmer.maximum+1),
-                int(device.data.dimmer.step)
+                int(device.data.dimmer.minimum), int(device.data.dimmer.maximum + 1), int(device.data.dimmer.step)
             )
-        }
+        },
     ),
     DeviceFeature.SPEAKER_A: lambda capability_id, device: BinarySetter(
         capability_id,
@@ -52,7 +61,7 @@ _device_capabilities = {
 
 """Dictionary of all ZoneFeatures with a callable as value. 
 The callable expects an ID, a MusicCastDevice and a zone_id as parameters."""
-_zone_capabilities = {
+_zone_capabilities: dict[ZoneFeature, ZoneCapabilityFactory | dict[str, ZoneCapabilityFactory]] = {
     ZoneFeature.SURR_DECODER_TYPE: lambda capability_id, device, zone_id: OptionSetter(
         capability_id,
         "Surround Decoder Device",
@@ -255,14 +264,14 @@ _zone_capabilities = {
 }
 
 
-def build_device_capabilities(device: "MusicCastDevice") -> List[Capability]:
+def build_device_capabilities(device: MusicCastDevice) -> list[Capability]:
     """
     Function to build all Capabilities of a given device.
     The ID of the capabilities will be set to '{feature.name.lower()}_{key}'
     @param device: The MusicCastDevice to generate the capabilities for
     @return: the list of capabilities of the device
     """
-    result = []
+    result: list[Capability] = []
     for feature in [f for f in DeviceFeature if f in device.features]:
         feature_entry = _device_capabilities.get(feature)
         if feature_entry is not None:
@@ -275,7 +284,7 @@ def build_device_capabilities(device: "MusicCastDevice") -> List[Capability]:
     return result
 
 
-def build_zone_capabilities(device: "MusicCastDevice", zone_id) -> List[Capability]:
+def build_zone_capabilities(device: MusicCastDevice, zone_id: str) -> list[Capability]:
     """
     Function to build all Capabilities of a given zone of a device.
     The ID of the capabilities will be set to 'zone_{feature.name.lower()}_{key}'
@@ -283,7 +292,7 @@ def build_zone_capabilities(device: "MusicCastDevice", zone_id) -> List[Capabili
     @param zone_id: The zone to generate the capabilities for
     @return: The list of capabilities of the given zone
     """
-    result = []
+    result: list[Capability] = []
     for feature in [f for f in ZoneFeature if f in device.data.zones[zone_id].features]:
         feature_entry = _zone_capabilities.get(feature)
         if feature_entry is not None:

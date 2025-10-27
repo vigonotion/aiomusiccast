@@ -1,12 +1,16 @@
+from __future__ import annotations
+
 from abc import ABC
+from collections.abc import Awaitable, Callable, Mapping
 from enum import Enum
-from typing import Any, Callable, Dict
+from typing import Any
 
 from aiomusiccast.musiccast_data import RangeStep
 
 
 class EntityType(Enum):
     """Type of the Capability."""
+
     REGULAR = 1  # For major features
     CONFIG = 2  # For features to configure the device or a zone
     DIAGNOSTIC = 3  # For diagnostic values or settings
@@ -14,12 +18,19 @@ class EntityType(Enum):
 
 class Capability(ABC):
     """Base class for all capabilities."""
+
     id: str
     name: str
     entity_type: EntityType
-    get_value: Callable
+    get_value: Callable[[], Any]
 
-    def __init__(self, capability_id, name, entity_type, get_value):
+    def __init__(
+        self,
+        capability_id: str,
+        name: str,
+        entity_type: EntityType,
+        get_value: Callable[[], Any],
+    ) -> None:
         """
         Initialize the base class and set general vars.
         @param capability_id: Unique ID of this capability
@@ -39,9 +50,17 @@ class Capability(ABC):
 
 class SettableCapability(Capability, ABC):
     """Base class for a capability, which is not read only."""
-    set_value: Callable
 
-    def __init__(self, capability_id, name, entity_type, get_value, set_value):
+    set_value: Callable[[Any], Awaitable[None]]
+
+    def __init__(
+        self,
+        capability_id: str,
+        name: str,
+        entity_type: EntityType,
+        get_value: Callable[[], Any],
+        set_value: Callable[[Any], Awaitable[None]],
+    ) -> None:
         """
         Initialize the setable base class.
         @param capability_id: Unique ID of this capability
@@ -53,7 +72,7 @@ class SettableCapability(Capability, ABC):
         super().__init__(capability_id, name, entity_type, get_value)
         self.set_value = set_value
 
-    async def set(self, value):
+    async def set(self, value: Any) -> None:
         await self.set_value(value)
 
 
@@ -71,9 +90,20 @@ class TextSensor(Capability):
 
 class NumberSetter(SettableCapability):
     """Class to set numbers"""
+
     value_range: RangeStep
 
-    def __init__(self, capability_id, name, entity_type, get_value, set_value, min_value, max_value, step):
+    def __init__(
+        self,
+        capability_id: str,
+        name: str,
+        entity_type: EntityType,
+        get_value: Callable[[], Any],
+        set_value: Callable[[Any], Awaitable[None]],
+        min_value: int,
+        max_value: int,
+        step: int,
+    ) -> None:
         """
         Initialize a NumberSetter
         @param capability_id: Unique ID of this capability
@@ -86,21 +116,27 @@ class NumberSetter(SettableCapability):
         @param step: The step between minimum and maximum
         """
         super().__init__(capability_id, name, entity_type, get_value, set_value)
-        self.value_range = RangeStep()
-        self.value_range.minimum = min_value
-        self.value_range.maximum = max_value
-        self.value_range.step = step
-        
-    async def set(self, value):
+        self.value_range = RangeStep(min_value, max_value, step)
+
+    async def set(self, value: int) -> None:
         self.value_range.check(value)
-        await super(NumberSetter, self).set(value)
+        await super().set(value)
 
 
 class OptionSetter(SettableCapability):
     """A capability to set a value from a list of valid options."""
-    options: Dict[str, str]
 
-    def __init__(self, capability_id, name, entity_type, get_value, set_value, options):
+    options: Mapping[str | int, str]
+
+    def __init__(
+        self,
+        capability_id: str,
+        name: str,
+        entity_type: EntityType,
+        get_value: Callable[[], Any],
+        set_value: Callable[[Any], Awaitable[None]],
+        options: Mapping[str | int, str],
+    ) -> None:
         """
         Initialize a option setter
         @param capability_id: Unique ID of this capability
@@ -113,15 +149,16 @@ class OptionSetter(SettableCapability):
         super().__init__(capability_id, name, entity_type, get_value, set_value)
         self.options = options
 
-    async def set(self, value):
+    async def set(self, value: str | int) -> None:
         if value not in self.options.keys():
             raise ValueError("The given value is not a valid option")
-        await super(OptionSetter, self).set(value)
+        await super().set(value)
 
 
 class BinarySetter(SettableCapability):
     """A class to set boolean values."""
-    async def set(self, value):
+
+    async def set(self, value: bool) -> None:
         if not isinstance(value, bool):
             raise ValueError("The given value is not a boolean value")
         await super().set(value)
