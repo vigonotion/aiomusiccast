@@ -8,12 +8,6 @@
     * macOS: `$ brew install graphviz`
     * Linux / Windows: [https://graphviz.org/download](https://graphviz.org/download/)
 
-To confirm these system dependencies are configured correctly:
-
-```text
-$ ./bin/verchew
-```
-
 ## Installation
 
 Install project dependencies into a virtual environment:
