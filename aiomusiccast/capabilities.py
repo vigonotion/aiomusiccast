@@ -33,10 +33,11 @@ class Capability(ABC):
     ) -> None:
         """
         Initialize the base class and set general vars.
-        @param capability_id: Unique ID of this capability
-        @param name: Name that should be displayed in a UI
-        @param entity_type: Define of what type this capability is
-        @param get_value: Callable to get the current values of this capability
+
+        @param capability_id: Unique ID of this capability @param name:
+        Name that should be displayed in a UI @param entity_type: Define
+        of what type this capability is @param get_value: Callable to
+        get the current values of this capability
         """
         self.id = capability_id
         self.name = name
@@ -63,11 +64,13 @@ class SettableCapability(Capability, ABC):
     ) -> None:
         """
         Initialize the setable base class.
-        @param capability_id: Unique ID of this capability
-        @param name: Name that should be displayed in a UI
-        @param entity_type: Define of what type this capability is
-        @param get_value: Callable to get the current values of this capability
-        @param set_value: Callable to set the value. Should only expect the new values as parameter
+
+        @param capability_id: Unique ID of this capability @param name:
+        Name that should be displayed in a UI @param entity_type: Define
+        of what type this capability is @param get_value: Callable to
+        get the current values of this capability @param set_value:
+        Callable to set the value. Should only expect the new values as
+        parameter
         """
         super().__init__(capability_id, name, entity_type, get_value)
         self.set_value = set_value
@@ -89,7 +92,7 @@ class TextSensor(Capability):
 
 
 class NumberSetter(SettableCapability):
-    """Class to set numbers"""
+    """Class to set numbers."""
 
     value_range: RangeStep
 
@@ -105,15 +108,16 @@ class NumberSetter(SettableCapability):
         step: int,
     ) -> None:
         """
-        Initialize a NumberSetter
-        @param capability_id: Unique ID of this capability
-        @param name: Name that should be displayed in a UI
-        @param entity_type: Define of what type this capability is
-        @param get_value: Callable to get the current values of this capability
-        @param set_value: Callable to set the value. Should only expect the new values as parameter
-        @param min_value: Minimum value, which can be set
-        @param max_value: Maximum value, which can be set
-        @param step: The step between minimum and maximum
+        Initialize a NumberSetter.
+
+        @param capability_id: Unique ID of this capability @param name:
+        Name that should be displayed in a UI @param entity_type: Define
+        of what type this capability is @param get_value: Callable to
+        get the current values of this capability @param set_value:
+        Callable to set the value. Should only expect the new values as
+        parameter @param min_value: Minimum value, which can be set
+        @param max_value: Maximum value, which can be set @param step:
+        The step between minimum and maximum
         """
         super().__init__(capability_id, name, entity_type, get_value, set_value)
         self.value_range = RangeStep(min_value, max_value, step)
@@ -138,19 +142,21 @@ class OptionSetter(SettableCapability):
         options: Mapping[str | int, str],
     ) -> None:
         """
-        Initialize a option setter
-        @param capability_id: Unique ID of this capability
-        @param name: Name that should be displayed in a UI
-        @param entity_type: Define of what type this capability is
-        @param get_value: Callable to get the current values of this capability
-        @param set_value: Callable to set the value. Should only expect the new values as parameter
-        @param options: A dictionary of valid options with the option as key and a label as value
+        Initialize a option setter.
+
+        @param capability_id: Unique ID of this capability @param name:
+        Name that should be displayed in a UI @param entity_type: Define
+        of what type this capability is @param get_value: Callable to
+        get the current values of this capability @param set_value:
+        Callable to set the value. Should only expect the new values as
+        parameter @param options: A dictionary of valid options with the
+        option as key and a label as value
         """
         super().__init__(capability_id, name, entity_type, get_value, set_value)
         self.options = options
 
     async def set(self, value: str | int) -> None:
-        if value not in self.options.keys():
+        if value not in self.options:
             raise ValueError("The given value is not a valid option")
         await super().set(value)
 

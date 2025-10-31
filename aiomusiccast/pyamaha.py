@@ -1,4 +1,5 @@
 # taken from github.com/rsc-dev/pyamaha, which is licensed under the MIT License
+# ruff: noqa: D205,D400,D401
 from __future__ import annotations
 
 import asyncio
@@ -11,7 +12,7 @@ from asyncio import AbstractEventLoop
 from asyncio.transports import BaseTransport
 from collections.abc import Awaitable, Callable
 from datetime import datetime
-from typing import Any
+from typing import Any, ClassVar
 from urllib.parse import urlparse
 
 import aiohttp
@@ -99,7 +100,7 @@ class MusicCastUdpProtocol(asyncio.DatagramProtocol):
     def connection_made(self, transport):
         self.transport = transport
 
-    def datagram_received(self, data, addr):
+    def datagram_received(self, data, _addr):
         message_data = None
         message_str = ""
         try:
@@ -112,13 +113,14 @@ class MusicCastUdpProtocol(asyncio.DatagramProtocol):
         except Exception:
             _LOGGER.exception("An unexpected error occurred while handling an UDP message.")
         finally:
-            asyncio.create_task(self.handle_event(message_data))
+            task = asyncio.create_task(self.handle_event(message_data))
+            task.add_done_callback(lambda _task: None)
 
 
 class UrlBuilder:
     @classmethod
     def build_query_str(cls, query_params: dict[str, str], **kwargs):
-        if not all([param in query_params.keys() for param in kwargs.keys()]):
+        if not all(param in query_params for param in kwargs):
             raise MusicCastParamException("Unknown parameter while building query string.")
         if not all(param in kwargs for param, req in query_params.items() if req):
             raise MusicCastParamException("Not all required params were provided.")
@@ -135,9 +137,7 @@ class UrlBuilder:
 
 
 class AsyncDevice:
-    """
-    Yamaha async device abstraction class.
-    """
+    """Yamaha async device abstraction class."""
 
     ip: str
     handle_event: Callable[[dict[str, Any] | None], Awaitable[None]] | None
@@ -153,7 +153,8 @@ class AsyncDevice:
         handle_event: Callable[[dict[str, Any] | None], Awaitable[None]] | None = None,
         upnp_description: str | None = None,
     ) -> None:
-        """Ctor.
+        """
+        Ctor.
 
         Arguments:
             @param client: aiohttp client session.
@@ -204,7 +205,8 @@ class AsyncDevice:
         self._transport = None
 
     async def request(self, *args):
-        """Request YamahaExtendedControl API URI.
+        """
+        Request YamahaExtendedControl API URI.
 
         Arguments:
             @param args: URI link for GET or tupple (URI, data) for POST.
@@ -213,9 +215,8 @@ class AsyncDevice:
             # If it is only a URI, send GET...
             if isinstance(args[0], str):
                 return await self.get(args[0])
-            else:
-                # ...otherwise unpack tuple and send POST
-                return await self.post(*(args[0]))
+            # ...otherwise unpack tuple and send POST
+            return await self.post(*(args[0]))
         except ClientError as ce:
             raise MusicCastConnectionException() from ce
         except TimeoutError as te:
@@ -226,8 +227,9 @@ class AsyncDevice:
     async def build_json(cls, response: ClientResponse):
         """
         A method, which tries to decode the response with errors being ignored.
-        @param response: The ClientResponse, which the data should be extrated from
-        @return: A dictionary on success
+
+        @param response: The ClientResponse, which the data should be
+        extrated from @return: A dictionary on success
         """
         try:
             text = await response.text()
@@ -241,7 +243,8 @@ class AsyncDevice:
             raise
 
     async def request_json(self, *args):
-        """Request YamahaExtendedControl API URI.
+        """
+        Request YamahaExtendedControl API URI.
 
         Arguments:
             @param args: URI link for GET or tupple (URI, data) for POST.
@@ -264,7 +267,8 @@ class AsyncDevice:
     # end-of-method request_json
 
     async def get(self, uri):
-        """Request given URI. Returns response object.
+        """
+        Request given URI. Returns response object.
 
         Arguments:
             @param uri: URI to request
@@ -274,7 +278,8 @@ class AsyncDevice:
     # end-of-method get
 
     async def post(self, uri, data):
-        """Send POST request. Returns response object.
+        """
+        Send POST request. Returns response object.
 
         Arguments:
             @param uri: URI to send POST
@@ -332,8 +337,6 @@ class AsyncDevice:
 
         return await self.client.request("POST", avt_ctrl_url, headers=headers, data=body)
 
-    pass
-
 
 # end-of-class Device
 
@@ -341,7 +344,7 @@ class AsyncDevice:
 class Dist:
     """APIs in regard to Link distribution related setting and getting information."""
 
-    URI = {
+    URI: ClassVar[dict[str, str]] = {
         "GET_DISTRIBUTION_INFO": "http://{host}/YamahaExtendedControl/v1/dist/getDistributionInfo",
         "SET_SERVER_INFO": "http://{host}/YamahaExtendedControl/v1/dist/setServerInfo",
         "SET_CLIENT_INFO": "http://{host}/YamahaExtendedControl/v1/dist/setClientInfo",
@@ -359,7 +362,8 @@ class Dist:
 
     @staticmethod
     def set_server_info(group_id, zone=None, type=None, client_list=None):
-        """For setting a Link distribution server (Link master).
+        """
+        For setting a Link distribution server (Link master).
 
         Arguments:
             @param group_id: Specify Group ID in 32-digit hex.
@@ -423,8 +427,9 @@ class Dist:
 
     @staticmethod
     def start_distribution(num):
-        """For initiating Link distribution.
-        This is valid to a Device that is setup as Link distribution server.
+        """
+        For initiating Link distribution. This is valid to a Device that is setup as
+        Link distribution server.
 
         Arguments:
             @param num: Specifies Link distribution number on current MusicCast Network.
@@ -435,8 +440,11 @@ class Dist:
 
     @staticmethod
     def stop_distribution():
-        """For quitting Link distribution.
-        This is valid to a Device that is setup as Link distribution server.
+        """
+        For quitting Link distribution.
+
+        This is valid to a Device that is setup as Link distribution
+        server.
         """
         return Dist.URI["STOP_DISTRIBUTION"]
 
@@ -444,8 +452,8 @@ class Dist:
 
     @staticmethod
     def set_group_name(name):
-        """For setting up Group Name.
-        Note that Group Name is reserved in volatile memory.
+        """
+        For setting up Group Name. Note that Group Name is reserved in volatile memory.
 
         Arguments:
             @param name: Specifies Group Name. Use UTF-8 within 128 bytes. Default name
@@ -457,8 +465,6 @@ class Dist:
 
     # end-of-method set_group_name
 
-    pass
-
 
 # end-of-class Dist
 
@@ -466,7 +472,7 @@ class Dist:
 class System:
     """System commands."""
 
-    URI = {
+    URI: ClassVar[dict[str, str]] = {
         "GET_DEVICE_INFO": "http://{host}/YamahaExtendedControl/v1/system/getDeviceInfo",
         "GET_FEATURES": "http://{host}/YamahaExtendedControl/v1/system/getFeatures",
         "GET_NETWORK_STATUS": "http://{host}/YamahaExtendedControl/v1/system/getNetworkStatus",
@@ -526,8 +532,11 @@ class System:
 
     @staticmethod
     def get_func_status():
-        """For retrieving setup/information of overall system function.
-        Parameters are readable only when corresponding functions are available in "func_list" of /system/getFeatures.
+        """
+        For retrieving setup/information of overall system function.
+
+        Parameters are readable only when corresponding functions are
+        available in "func_list" of /system/getFeatures.
         """
         return System.URI["GET_FUNC_STATUS"]
 
@@ -535,8 +544,9 @@ class System:
 
     @staticmethod
     def set_autopower_standby(enable=True):
-        """For setting Auto Power Standby status.
-        Actual operations/reactions of enabling Auto Power Standby depend on each Device.
+        """
+        For setting Auto Power Standby status. Actual operations/reactions of enabling
+        Auto Power Standby depend on each Device.
 
         Arguments:
         @param enable: Specifies Auto Power Standby status.
@@ -554,9 +564,10 @@ class System:
 
     @staticmethod
     def send_ir_code(code):
-        """For sending specific remote IR code.
-        A Device is operated same as remote IR code reception. But continuous IR code cannot be used in this command.
-        Refer to each Device's IR code list for details..
+        """
+        For sending specific remote IR code. A Device is operated same as remote IR code
+        reception. But continuous IR code cannot be used in this command. Refer to each
+        Device's IR code list for details..
 
         Arguments:
         @param code: Specifies IR code in 8-digit hex.
@@ -574,9 +585,10 @@ class System:
         dns_server_1=None,
         dns_server_2=None,
     ):
-        """For setting Wired Network. Network connection is switched to wired by using this API. If no
-        parameter is specified, current parameter is used. If set parameter is incomplete, it is possible not
-        to provide network avalability.
+        """
+        For setting Wired Network. Network connection is switched to wired by using this
+        API. If no parameter is specified, current parameter is used. If set parameter
+        is incomplete, it is possible not to provide network avalability.
 
         Arguments:
         @param dhcp: Specifies DHCP setting.
@@ -622,9 +634,13 @@ class System:
         dns_server_1=None,
         dns_server_2=None,
     ):
-        """For setting Wireless Network (Wi-Fi). Network connection is switched to wireless (Wi-Fi) by using
-        this API. If no parameter is specified, current parameter is used. If set parameter is incomplete, it
-        is possible not to provide network avalability.
+        """
+        For setting Wireless Network (Wi-Fi).
+
+        Network connection is switched to wireless (Wi-Fi) by using this
+        API. If no parameter is specified, current parameter is used. If
+        set parameter is incomplete, it is possible not to provide
+        network avalability.
         """
         data = {}
 
@@ -662,9 +678,13 @@ class System:
 
     @staticmethod
     def set_wireless_direct(wifi_type=None, key=None):
-        """For setting Wireless Network (Wireless Direct). Network connection is switched to wireless
-        (Wireless Direct) by using this API. If no parameter is specified, current parameter is used. If set
-        parameter is incomplete, it is possible not to provide network avalability.
+        """
+        For setting Wireless Network (Wireless Direct).
+
+        Network connection is switched to wireless (Wireless Direct) by
+        using this API. If no parameter is specified, current parameter
+        is used. If set parameter is incomplete, it is possible not to
+        provide network avalability.
         """
         data = {}
 
@@ -681,9 +701,13 @@ class System:
 
     @staticmethod
     def set_ip_settings(dhcp, ip_address, subnet_mask, default_gateway, dns_server_1, dns_server_2):
-        """For setting IP. This API only set IP as maintain same network connection status (Wired/Wireless
-        Lan/Wireless Direct/Extend). If no parameter is specified, current parameter is used. If set
-        parameter is incomplete, it is possible not to provide network avalability.
+        """
+        For setting IP.
+
+        This API only set IP as maintain same network connection status
+        (Wired/Wireless Lan/Wireless Direct/Extend). If no parameter is
+        specified, current parameter is used. If set parameter is
+        incomplete, it is possible not to provide network avalability.
         """
         data = {}
 
@@ -711,14 +735,17 @@ class System:
 
     @staticmethod
     def set_network_name(name):
-        """For setting Network Name (Friendly Name)"""
+        """For setting Network Name (Friendly Name)."""
         return System.URI["SET_NETWORK_NAME"].format(host="{host}"), {"name": name}
 
     # end-of-method set_network_name
 
     @staticmethod
     def set_airplay_pin(pin):
-        """For setting AirPlay PIN. This is valid only when "airplay" exists in "func_list" found in
+        """
+        For setting AirPlay PIN.
+
+        This is valid only when "airplay" exists in "func_list" found in
         /system/getFuncStatus.
         """
         return System.URI["SET_AIRPLAY_PIN"].format(host="{host}"), {"pin": pin}
@@ -727,14 +754,14 @@ class System:
 
     @staticmethod
     def get_mac_address_filter():
-        """For retrieving setup of MAC Address Filter"""
+        """For retrieving setup of MAC Address Filter."""
         return System.URI["GET_MAC_ADDRESS_FILTER"]
 
     # end-of-method get_mac_address_filter
 
     @staticmethod
     def set_mac_address_filter(filter, *macs):
-        """For setting MAC Address Filter"""
+        """For setting MAC Address Filter."""
         data = {"filter": filter}
 
         for i, address in enumerate(macs):
@@ -749,14 +776,14 @@ class System:
 
     @staticmethod
     def get_network_standby():
-        """For retrieving setup of Network Standby"""
+        """For retrieving setup of Network Standby."""
         return System.URI["GET_NETWORK_STANDBY"]
 
     # end-of-method get_network_standby
 
     @staticmethod
     def set_network_standby(standby):
-        """For setting Network Standby"""
+        """For setting Network Standby."""
         assert standby in STANDBY, "Invalid STANDBY value!"
         return System.URI["SET_NETWORK_STANDBY"].format(host="{host}", standby=standby)
 
@@ -764,9 +791,13 @@ class System:
 
     @staticmethod
     def get_bluetooth_info():
-        """For retrieving setup/information of Bluetooth. Parameters are readable only when corresponding
-        functions are available in "func_list" of /system/getFuncStatus. "bluetooth_device" parameter is
-        contained in "bluetooth_tx_setting".
+        """
+        For retrieving setup/information of Bluetooth.
+
+        Parameters are readable only when corresponding functions are
+        available in "func_list" of /system/getFuncStatus.
+        "bluetooth_device" parameter is contained in
+        "bluetooth_tx_setting".
         """
         return System.URI["GET_BLUETOOTH_INFO"]
 
@@ -774,23 +805,26 @@ class System:
 
     @staticmethod
     def set_bluetooth_standby(enable=True):
-        """For setting Bluetooth Standby"""
+        """For setting Bluetooth Standby."""
         return System.URI["SET_BLUETOOTH_STANDBY"].format(host="{host}", enable=_bool_to_str(enable))
 
     # end-of-method set_bluetooth_standby
 
     @staticmethod
     def set_bluetooth_tx_setting(enable=True):
-        """For setting Bluetooth transmission"""
+        """For setting Bluetooth transmission."""
         return System.URI["SET_BLUETOOTH_TX_SETTING"].format(host="{host}", enable=_bool_to_str(enable))
 
     # end-of-method set_bluetooth_tx_setting
 
     @staticmethod
     def get_bluetooth_device_list():
-        """For retrieving Bluetooth (Sink) device list. This API is available only when "bluetooth_tx_setting"
-        is true under /system/getFuncStatus.
-        This device list information is in the cach. If update device list information, excute
+        """
+        For retrieving Bluetooth (Sink) device list.
+
+        This API is available only when "bluetooth_tx_setting" is true
+        under /system/getFuncStatus. This device list information is in
+        the cach. If update device list information, excute
         /system/updateBluetoothDeviceList.
         """
         return System.URI["GET_BLUETOOTH_DEVICE_LIST"]
@@ -799,9 +833,12 @@ class System:
 
     @staticmethod
     def update_bluetooth_device_list():
-        """For updating Bluetooth (Sink) device list. This API is available only when "bluetooth_tx_setting"
-        is true under /system/getFuncStatus.
-        Retrieve update status and list information after finish updating via
+        """
+        For updating Bluetooth (Sink) device list.
+
+        This API is available only when "bluetooth_tx_setting" is true
+        under /system/getFuncStatus. Retrieve update status and list
+        information after finish updating via
         /system/getBluetoothDeviceList.
         """
         return System.URI["UPDATE_BLUETOOTH_DEVICE_LIST"]
@@ -810,9 +847,13 @@ class System:
 
     @staticmethod
     def connect_bluetooth_device(address):
-        """For connecting Bluetooth (Sink) device. This API is available only when "bluetooth_tx_setting" is
-        true under /system/getFuncStatus.
-        It is possible to take time to return this API response issued after connection status is fixed.
+        """
+        For connecting Bluetooth (Sink) device.
+
+        This API is available only when "bluetooth_tx_setting" is true
+        under /system/getFuncStatus. It is possible to take time to
+        return this API response issued after connection status is
+        fixed.
         """
         return System.URI["CONNECT_BLUETOOTH_DEVICE"].format(host="{host}", address=address)
 
@@ -820,9 +861,12 @@ class System:
 
     @staticmethod
     def disconnect_bluetooth_device():
-        """For disconnecting Bluetooth (Sink) device. This API is available only when "bluetooth_tx_setting"
-        is true under /system/getFuncStatus.
-        This API response is issued immediately after disconnect request is accepted.
+        """
+        For disconnecting Bluetooth (Sink) device.
+
+        This API is available only when "bluetooth_tx_setting" is true
+        under /system/getFuncStatus. This API response is issued
+        immediately after disconnect request is accepted.
         """
         return System.URI["DISCONNECT_BLUETOOTH_DEVICE"]
 
@@ -830,21 +874,22 @@ class System:
 
     @staticmethod
     def set_speaker_a(enable=True):
-        """For setting Speaker A status"""
+        """For setting Speaker A status."""
         return System.URI["SET_SPEAKER_A"].format(host="{host}", enable=_bool_to_str(enable))
 
     # end-of-method set_speaker_a
 
     @staticmethod
     def set_speaker_b(enable=True):
-        """For setting Speaker A status"""
+        """For setting Speaker A status."""
         return System.URI["SET_SPEAKER_B"].format(host="{host}", enable=_bool_to_str(enable))
 
     # end-of-method set_speaker_b
 
     @staticmethod
     def set_dimmer(value):
-        """For setting FL/LED Dimmer.
+        """
+        For setting FL/LED Dimmer.
 
         Arguments:
         @param value: Setting Dimmer. Specifies -1 in case of auto setting.
@@ -881,8 +926,9 @@ class System:
 
     @staticmethod
     def get_name_text(id):
-        """For retrieving text information of Zone, Input, Sound program. If they can be renamed, can
-        retrieve text information renamed.
+        """
+        For retrieving text information of Zone, Input, Sound program. If they can be
+        renamed, can retrieve text information renamed.
 
         Arguments:
         @param id: Specifies ID. If no ID is specified, retrieve all information of
@@ -894,7 +940,8 @@ class System:
 
     @staticmethod
     def set_name_text(id, text):
-        """For setting text information related to each ID of Zone, Input.
+        """
+        For setting text information related to each ID of Zone, Input.
 
         Arguments:
         @param id: Specifies ID. Input ID can be specified only when
@@ -915,8 +962,9 @@ class System:
 
     @staticmethod
     def set_partymode(enable=True):
-        """For  setting Party  Mode. Available  only  when "party_mode" exists
-        in  system func_list  under /system/getFeatures
+        """
+        For  setting Party  Mode. Available  only  when "party_mode" exists in  system
+        func_list  under /system/getFeatures.
 
         Arguments:
         @param enable: boolean
@@ -927,8 +975,9 @@ class System:
 
     @staticmethod
     def set_speaker_pattern(num):
-        """For setting speaker of device. Available only when "speaker_pattern"
-        function exists in system func_list under /system/getFeatures.
+        """
+        For setting speaker of device. Available only when "speaker_pattern" function
+        exists in system func_list under /system/getFeatures.
 
         Arguments:
         @param num: int Specifies Speaker pattern number. Values: speaker_pattern
@@ -938,8 +987,6 @@ class System:
 
     # end-of-method set_speaker_pattern
 
-    pass
-
 
 # end-of-class System
 
@@ -947,7 +994,7 @@ class System:
 class Zone:
     """Zone commands."""
 
-    URI = {
+    URI: ClassVar[dict[str, str | tuple[str, dict[str, bool]]]] = {
         "GET_STATUS": "http://{host}/YamahaExtendedControl/v1/{zone}/getStatus",
         "GET_SOUND_PROGRAM_LIST": "http://{host}/YamahaExtendedControl/v1/{zone}/getSoundProgramList",
         "SET_POWER": "http://{host}/YamahaExtendedControl/v1/{zone}/setPower?power={power}",
@@ -987,7 +1034,9 @@ class Zone:
 
     @staticmethod
     def get_status(zone):
-        """For retrieving basic information of each Zone like power, volume, input and so on.
+        """
+        For retrieving basic information of each Zone like power, volume, input and so
+        on.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1000,8 +1049,9 @@ class Zone:
 
     @staticmethod
     def get_sound_program_list(zone):
-        """For retrieving a list of Sound Program available in each Zone. It is possible for the list contents to
-           be dynamically changed.
+        """
+        For retrieving a list of Sound Program available in each Zone. It is possible
+        for the list contents to be dynamically changed.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1014,7 +1064,8 @@ class Zone:
 
     @staticmethod
     def set_power(zone, power):
-        """For setting power status of each Zone.
+        """
+        For setting power status of each Zone.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1030,9 +1081,9 @@ class Zone:
 
     @staticmethod
     def set_sleep(zone, sleep):
-        """For setting Sleep Timer for each Zone.
-        With Zone B enabled Devices, target Zone is described as Master Power, but Main Zone is used to
-        set it up via YXC.
+        """
+        For setting Sleep Timer for each Zone. With Zone B enabled Devices, target Zone
+        is described as Master Power, but Main Zone is used to set it up via YXC.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1048,8 +1099,10 @@ class Zone:
 
     @staticmethod
     def set_volume(zone, volume, step):
-        """For setting volume in each Zone. Values of specifying range and steps are different. There are
-        some Devices that cannot allow this value to be go up to Device's maximum volume.
+        """
+        For setting volume in each Zone. Values of specifying range and steps are
+        different. There are some Devices that cannot allow this value to be go up to
+        Device's maximum volume.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1072,7 +1125,8 @@ class Zone:
 
     @staticmethod
     def set_mute(zone, enable=True):
-        """For setting mute status in each Zone.
+        """
+        For setting mute status in each Zone.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1086,7 +1140,8 @@ class Zone:
 
     @staticmethod
     def set_input(zone, input, mode):
-        """For selecting each Zone input.
+        """
+        For selecting each Zone input.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1094,7 +1149,7 @@ class Zone:
             @param input: Specifies Input ID.
                      Values: Input IDs gotten via /system/getFeatures
             @param mode: Specifies select mode. If no parameter is specified, actions of input change depend on a
-            Device’s specification
+            Device's specification
             Value: "autoplay_disabled" (Restricts Auto Play of Net/USB related Inputs).
             Available on and after API Version 1.12
         """
@@ -1105,7 +1160,8 @@ class Zone:
 
     @staticmethod
     def set_sound_program(zone, program):
-        """For selecting Sound Programs.
+        """
+        For selecting Sound Programs.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1120,10 +1176,12 @@ class Zone:
 
     @staticmethod
     def prepare_input_change(zone, input):
-        """Let a Device do necessary process before changing input in a specific zone. This is valid only
-        when 'prepare_input_change' exists in 'func_list' found in /system/getFuncStatus.
-        MusicCast CONTROLLER executes this API when an input icon is selected in a Room, right
-        before sending various APIs (of retrieving list information etc.) regarding selecting input.
+        """
+        Let a Device do necessary process before changing input in a specific zone. This
+        is valid only when 'prepare_input_change' exists in 'func_list' found in
+        /system/getFuncStatus. MusicCast CONTROLLER executes this API when an input icon
+        is selected in a Room, right before sending various APIs (of retrieving list
+        information etc.) regarding selecting input.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1138,7 +1196,8 @@ class Zone:
 
     @staticmethod
     def set_surround_3d(zone, enable):
-        """For setting 3D Surround status.
+        """
+        For setting 3D Surround status.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1152,7 +1211,8 @@ class Zone:
 
     @staticmethod
     def set_direct(zone, enable):
-        """For setting Direct status.
+        """
+        For setting Direct status.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1166,7 +1226,8 @@ class Zone:
 
     @staticmethod
     def set_pure_direct(zone, enable):
-        """For setting Pure Direct status.
+        """
+        For setting Pure Direct status.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1180,7 +1241,8 @@ class Zone:
 
     @staticmethod
     def set_enhancer(zone, enable):
-        """For setting Enhancer status.
+        """
+        For setting Enhancer status.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1194,7 +1256,9 @@ class Zone:
 
     @staticmethod
     def set_tone_control(zone, mode, bass, treble):
-        """For setting Tone Control in each Zone. Values of specifying range and steps are different.
+        """
+        For setting Tone Control in each Zone. Values of specifying range and steps are
+        different.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1217,7 +1281,9 @@ class Zone:
 
     @staticmethod
     def set_equalizer(zone, mode, low, mid, high):
-        """For setting Equalizer in each Zone. Values of specifying range and steps are different.
+        """
+        For setting Equalizer in each Zone. Values of specifying range and steps are
+        different.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1244,7 +1310,9 @@ class Zone:
 
     @staticmethod
     def set_balance(zone, value):
-        """For setting L/R Balance in each Zone's speaker. Values of specifying range and steps are different.
+        """
+        For setting L/R Balance in each Zone's speaker. Values of specifying range and
+        steps are different.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1261,7 +1329,9 @@ class Zone:
 
     @staticmethod
     def set_dialogue_level(zone, value):
-        """For setting Dialogue Level in each Zone. Values of specifying range and steps are different.
+        """
+        For setting Dialogue Level in each Zone. Values of specifying range and steps
+        are different.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1277,7 +1347,9 @@ class Zone:
 
     @staticmethod
     def set_dialogue_lift(zone, value):
-        """For setting Dialogue Lift in each Zone. Values of specifying range and steps are different.
+        """
+        For setting Dialogue Lift in each Zone. Values of specifying range and steps are
+        different.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1293,8 +1365,9 @@ class Zone:
 
     @staticmethod
     def set_dts_dialogue_control(zone, value):
-        """For setting DTS Dialogue Control in each Zone. Values of specifying range and steps are different.
-        Undocumented method.
+        """
+        For setting DTS Dialogue Control in each Zone. Values of specifying range and
+        steps are different. Undocumented method.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1310,7 +1383,8 @@ class Zone:
 
     @staticmethod
     def set_clear_voice(zone, enable):
-        """For setting Clear Voice in each Zone.
+        """
+        For setting Clear Voice in each Zone.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1324,7 +1398,8 @@ class Zone:
 
     @staticmethod
     def set_subwoofer_volume(zone, volume):
-        """For setting Subwoofer Volume in each Zone.
+        """
+        For setting Subwoofer Volume in each Zone.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1340,7 +1415,8 @@ class Zone:
 
     @staticmethod
     def set_bass_extension(zone, enable):
-        """For setting Bass Extension in each Zone.
+        """
+        For setting Bass Extension in each Zone.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1354,7 +1430,8 @@ class Zone:
 
     @staticmethod
     def set_extra_bass(zone, enable):
-        """For setting Extra Bass in each Zone.
+        """
+        For setting Extra Bass in each Zone.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1368,7 +1445,8 @@ class Zone:
 
     @staticmethod
     def get_signal_info(zone):
-        """For retrieving current playback signal information in each Zone.
+        """
+        For retrieving current playback signal information in each Zone.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1381,7 +1459,8 @@ class Zone:
 
     @staticmethod
     def set_link_control(zone, control):
-        """For setting Link Control in each Zone.
+        """
+        For setting Link Control in each Zone.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1396,8 +1475,9 @@ class Zone:
 
     @staticmethod
     def set_link_audio_delay(zone, delay):
-        """For setting Link Audio Delay in each Zone. This setting is invalid when Link Control setting is
-           "Stability Boost".
+        """
+        For setting Link Audio Delay in each Zone. This setting is invalid when Link
+        Control setting is "Stability Boost".
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1412,7 +1492,8 @@ class Zone:
 
     @staticmethod
     def set_link_audio_quality(zone, quality):
-        """For setting Link Audio Quality in each Zone.
+        """
+        For setting Link Audio Quality in each Zone.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1427,7 +1508,8 @@ class Zone:
 
     @classmethod
     def set_adaptive_drc(cls, zone, value):
-        """For setting Link Audio Quality in each Zone.
+        """
+        For setting Link Audio Quality in each Zone.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1439,7 +1521,8 @@ class Zone:
 
     @classmethod
     def set_surr_decoder_type(cls, zone, option):
-        """For setting Surround decoder type in each Zone.
+        """
+        For setting Surround decoder type in each Zone.
 
         Arguments:
             @param zone: Specifies target Zone.
@@ -1454,10 +1537,13 @@ class Zone:
 
 
 class Tuner:
-    """APIs in regard to Tuner setting and getting information.
-    Target inputs: AM / FM / DAB"""
+    """
+    APIs in regard to Tuner setting and getting information.
 
-    URI = {
+    Target inputs: AM / FM / DAB
+    """
+
+    URI: ClassVar[dict[str, str]] = {
         "GET_PRESET_INFO": "http://{host}/YamahaExtendedControl/v1/tuner/getPresetInfo?band={band}",
         "GET_PLAY_INFO": "http://{host}/YamahaExtendedControl/v1/tuner/getPlayInfo",
         "SET_FREQ": "http://{host}/YamahaExtendedControl/v1/tuner/setFreq?band={band}&tuning={tuning}&num={num}",
@@ -1469,7 +1555,8 @@ class Tuner:
 
     @staticmethod
     def get_preset_info(band):
-        """For retrieving Tuner preset information.
+        """
+        For retrieving Tuner preset information.
 
         Arguments:
             @param band: Specifying a band. Values depend on Preset Type gotten via /system/getFeatures.
@@ -1489,7 +1576,8 @@ class Tuner:
 
     @staticmethod
     def set_freq(band, tuning, num):
-        """For setting Tuner frequency.
+        """
+        For setting Tuner frequency.
 
         Arguments:
             @param band: Specifies Band. Values : 'am', 'fm'
@@ -1506,7 +1594,8 @@ class Tuner:
 
     @staticmethod
     def recall_preset(zone, band, num):
-        """For recalling a Tuner preset.
+        """
+        For recalling a Tuner preset.
 
         Arguments:
             @param zone: Specifies station recalling zone. This causes input change in specified zone.
@@ -1525,11 +1614,11 @@ class Tuner:
 
     @staticmethod
     def switch_preset(dir):
-        """For selecting Tuner preset.
-        Call this API after change the target zone's input to Tuner. It is possible to change Band in case of
-        preset type is 'common'. In case of preset type is 'separate', need to change the target Band
-        before calling this API.
-        This API is available on and after API Version 1.17.
+        """
+        For selecting Tuner preset. Call this API after change the target zone's input
+        to Tuner. It is possible to change Band in case of preset type is 'common'. In
+        case of preset type is 'separate', need to change the target Band before calling
+        this API. This API is available on and after API Version 1.17.
 
         Arguments:
             @param dir: Specifies change direction of preset.
@@ -1542,7 +1631,8 @@ class Tuner:
 
     @staticmethod
     def store_preset(num):
-        """For registering current station to a preset.
+        """
+        For registering current station to a preset.
 
         Arguments:
             @param num: Specifying a preset number.
@@ -1554,7 +1644,8 @@ class Tuner:
 
     @staticmethod
     def set_dab_service(dir):
-        """For selecting DAB Service. Available only when DAB is valid to use.
+        """
+        For selecting DAB Service. Available only when DAB is valid to use.
 
         Arguments:
             @param dir: Specifies change direction of services.
@@ -1565,17 +1656,16 @@ class Tuner:
 
     # end-of-method set_dab_service
 
-    pass
-
 
 # end-of-class Tuner
 
 
 class NetUSB:
     """APIs in regard to Network/USB related setting and getting information
-    Target Inputs: USB / Network related ones (Server / Net Radio / Pandora / Spotify / AirPlay etc.)"""
+    Target Inputs: USB / Network related ones (Server / Net Radio / Pandora / Spotify / AirPlay etc.).
+    """
 
-    URI = {
+    URI: ClassVar[dict[str, str]] = {
         "GET_PRESET_INFO": "http://{host}/YamahaExtendedControl/v1/netusb/getPresetInfo",
         "GET_PLAY_INFO": "http://{host}/YamahaExtendedControl/v1/netusb/getPlayInfo",
         "SET_PLAYBACK": "http://{host}/YamahaExtendedControl/v1/netusb/setPlayback?playback={playback}",
@@ -1595,7 +1685,11 @@ class NetUSB:
 
     @staticmethod
     def get_preset_info():
-        """For retrieving preset information. Presets are common use among Net/USB related input sources."""
+        """
+        For retrieving preset information.
+
+        Presets are common use among Net/USB related input sources.
+        """
         return NetUSB.URI["GET_PRESET_INFO"]
 
     # end-of-method get_preset_info
@@ -1609,7 +1703,8 @@ class NetUSB:
 
     @staticmethod
     def set_playback(playback):
-        """For controlling playback status.
+        """
+        For controlling playback status.
 
         Arguments:
             @param playback: Specifies playback status.
@@ -1624,36 +1719,51 @@ class NetUSB:
 
     @staticmethod
     def toggle_repeat():
-        """For toggling repeat setting. No direct / discrete setting commands available."""
+        """
+        For toggling repeat setting.
+
+        No direct / discrete setting commands available.
+        """
         return NetUSB.URI["TOGGLE_REPEAT"]
 
     # end-of-method toggle_repeat
 
     @staticmethod
     def set_repeat(mode):
-        """For setting repeat. Available on after API version 1.19.
-        @param mode: Specifies the repeat setting. Value : "off" / "one" / "all"
+        """
+        For setting repeat.
+
+        Available on after API version 1.19. @param mode: Specifies the
+        repeat setting. Value : "off" / "one" / "all"
         """
         return NetUSB.URI["SET_REPEAT"].format(host="{host}", mode=mode)
 
     @staticmethod
     def set_shuffle(mode):
-        """For setting shuffle. Available on after API version 1.19.
-        @param mode: Specifies the shuffle setting. Value : "off" / "on" / "songs" / "albums"
+        """
+        For setting shuffle.
+
+        Available on after API version 1.19. @param mode: Specifies the
+        shuffle setting. Value : "off" / "on" / "songs" / "albums"
         """
         return NetUSB.URI["SET_SHUFFLE"].format(host="{host}", mode=mode)
 
     @staticmethod
     def toggle_shuffle():
-        """For toggling shuffle setting. No direct / discrete setting commands available."""
+        """
+        For toggling shuffle setting.
+
+        No direct / discrete setting commands available.
+        """
         return NetUSB.URI["TOGGLE_SHUFFLE"]
 
     # end-of-method toggle_shuffle
 
     @staticmethod
     def get_list_info(input, index, size, lang, list_id):
-        """For retrieving list information. Basically this info is available to all relevant inputs, not limited to
-        or independent from current input.
+        """
+        For retrieving list information. Basically this info is available to all
+        relevant inputs, not limited to or independent from current input.
 
         Arguments:
                 @param input: Specifies target Input ID. Controls for setListControl are to work
@@ -1690,7 +1800,9 @@ class NetUSB:
 
     @staticmethod
     def set_list_control(list_id, type, index, zone):
-        """For control a list. Controllable list info is not limited to or independent from current input.
+        """
+        For control a list. Controllable list info is not limited to or independent from
+        current input.
 
         Arguments:
             @param list_id: Specifies list ID. If nothing specified, 'main' is chosen implicitly
@@ -1714,7 +1826,8 @@ class NetUSB:
 
     @staticmethod
     def set_search_string(search_string, list_id=None, index=None):
-        """For setting search text.
+        """
+        For setting search text.
 
         Specifies string executing this API before select an element with its attribute being “Capable of Search” or
         retrieve info about searching list(Pandora).
@@ -1749,7 +1862,8 @@ class NetUSB:
 
     @staticmethod
     def recall_preset(zone, num):
-        """For recalling a content preset.
+        """
+        For recalling a content preset.
 
         Arguments:
             @param zone: Specifies station recalling zone. This causes input change in specified zone.
@@ -1764,8 +1878,9 @@ class NetUSB:
 
     @staticmethod
     def store_preset(num):
-        """For registering current content to a preset. Presets are common use among Net/USB related
-        input sources.
+        """
+        For registering current content to a preset. Presets are common use among
+        Net/USB related input sources.
 
         Arguments:
             @param num: Specifying a preset number.
@@ -1784,7 +1899,8 @@ class NetUSB:
 
     @staticmethod
     def switch_account(input, index, timeout):
-        """For switching account for service corresponding multi account.
+        """
+        For switching account for service corresponding multi account.
 
         Arguments:
             @param input: Specifies target Input ID.
@@ -1801,8 +1917,9 @@ class NetUSB:
 
     @staticmethod
     def get_service_info(input, type, timeout):
-        """For retrieving information of various Streaming Service. The combination of Input/Type is available
-                as follows;
+        """
+        For retrieving information of various Streaming Service. The combination of
+        Input/Type is available as follows;
 
                 Account List (account_list) : retrieving list of account registed on Device
                 Licensing (licensing) : checking license
@@ -1826,8 +1943,6 @@ class NetUSB:
 
     # end-of-method switch_account
 
-    pass
-
 
 # end-of-class Network_USB
 
@@ -1835,7 +1950,7 @@ class NetUSB:
 class CD:
     """APIs in regard to CD setting and getting information."""
 
-    URI = {
+    URI: ClassVar[dict[str, str]] = {
         "GET_PLAY_INFO": "http://{host}/YamahaExtendedControl/v1/cd/getPlayInfo",
         "SET_PLAYBACK": "http://{host}/YamahaExtendedControl/v1/cd/setPlayback?playback={playback}&num={num}",
         "TOGGLE_TRAY": "http://{host}/YamahaExtendedControl/v1/cd/toggleTray",
@@ -1852,7 +1967,8 @@ class CD:
 
     @staticmethod
     def set_playback(playback, num):
-        """For controlling playback status.
+        """
+        For controlling playback status.
 
         Arguments:
         @param playback: Specifies playback status
@@ -1878,19 +1994,25 @@ class CD:
 
     @staticmethod
     def toggle_repeat():
-        """For toggling repeat setting. No direct / discrete setting commands available."""
+        """
+        For toggling repeat setting.
+
+        No direct / discrete setting commands available.
+        """
         return CD.URI["TOGGLE_REPEAT"]
 
     # end-of-method toggle_repeat
 
     @staticmethod
     def toggle_shuffle():
-        """For toggling shuffle setting. No direct / discrete setting commands available."""
+        """
+        For toggling shuffle setting.
+
+        No direct / discrete setting commands available.
+        """
         return CD.URI["TOGGLE_SHUFFLE"]
 
     # end-of-method toggle_shuffle
-
-    pass
 
 
 # end-of-class CD
@@ -1899,7 +2021,7 @@ class CD:
 class Debug:
     """Undocumented Debug commands."""
 
-    URI = {
+    URI: ClassVar[dict[str, str]] = {
         "GET_DIAG_INFO": "http://{host}/YamahaExtendedControl/v1/debug/getDiagInfo",
         "GET_STATUS": "http://{host}/YamahaExtendedControl/v1/debug/getStatus",
     }
@@ -1918,8 +2040,6 @@ class Debug:
 
     # end-of-method get_status
 
-    pass
-
 
 # end-of-class Debug
 
@@ -1927,7 +2047,7 @@ class Debug:
 class Clock:
     """APIs in regarding the clock/alarm setting and getting information."""
 
-    URI = {
+    URI: ClassVar[dict[str, str]] = {
         "GET_CLOCK_SETTINGS": "http://{host}/YamahaExtendedControl/v1/clock/getSettings",
         "SET_AUTO_SYNC": "http://{host}/YamahaExtendedControl/v1/clock/setAutoSync?enable={enable}",
         "SET_DATE_AND_TIME": "http://{host}/YamahaExtendedControl/v1/clock/setDateAndTime?date_time={date_time}",
@@ -1935,7 +2055,7 @@ class Clock:
         "SET_ALARM_SETTINGS": "http://{host}/YamahaExtendedControl/v1/clock/setAlarmSettings",
     }
 
-    DAYS = [
+    DAYS: ClassVar[list[str]] = [
         "oneday",
         "sunday",
         "monday",
@@ -1953,20 +2073,21 @@ class Clock:
 
     @staticmethod
     def set_auto_sync(enable=True):
-        """For setting clock time auto sync.
+        """
+        For setting clock time auto sync.
 
         Available only when "date_and_time" exists in clock - func_list under /system/getFeatures.
 
         Arguments:
         @param enable: Specifies whether or not clock auto sync is valid
-
         """
         assert isinstance(enable, bool)
         return Clock.URI["SET_AUTO_SYNC"].format(host="{host}", enable=_bool_to_str(enable))
 
     @staticmethod
     def set_date_and_time(date_time: list[datetime, str]):
-        """For setting date and clock time.
+        """
+        For setting date and clock time.
 
         Available only when "date_and_time" exists in clock - func_list under /system/getFeatures.
 
@@ -1986,7 +2107,8 @@ class Clock:
 
     @staticmethod
     def set_clock_format(clock_format: int):
-        """For setting format of time display.
+        """
+        For setting format of time display.
 
         Available only when " clock_format " exists in clock - func_list under /system/getFeatures.
 
@@ -1994,7 +2116,7 @@ class Clock:
         @param clock_format: format of time display
                   Values: 12 (12-hour notation) / 24 (24-hour notation)
         """
-        assert clock_format == 12 or clock_format == 24, "Only 12 and 24 are possible formats"
+        assert clock_format in {12, 24}, "Only 12 and 24 are possible formats"
         return Clock.URI["SET_CLOCK_FORMAT"].format(host="{host}", format=str(clock_format) + "h")
 
     @staticmethod
@@ -2015,7 +2137,8 @@ class Clock:
         preset_num=None,
         preset_snooze=None,
     ):
-        """For setting alarm function.
+        """
+        For setting alarm function.
 
         Arguments:
         @param alarm_on: Specifies alarm function status on/off
@@ -2091,7 +2214,7 @@ class Clock:
                 ], "playback_type has to be resume or preset"
                 payload["detail"]["playback_type"] = playback_type
                 if playback_type == "resume":
-                    payload["detail"]["resume"] = dict()
+                    payload["detail"]["resume"] = {}
                     if resume_input is not None:
                         assert isinstance(resume_input, str), "resume_input has to be a str"
                         payload["detail"]["resume"]["input"] = resume_input
@@ -2100,7 +2223,7 @@ class Clock:
                     assert preset_num is None, "preset_num is not compatible with playback_type resume"
                     assert preset_snooze is None, "preset_snooze is not compatible with playback_type resume"
                 else:
-                    payload["detail"]["preset"] = dict()
+                    payload["detail"]["preset"] = {}
                     if preset_num is not None:
                         assert isinstance(preset_num, int), "preset_num has to be an integer"
                         payload["detail"]["preset"]["num"] = preset_num
@@ -2124,4 +2247,4 @@ def _bool_to_str(value):
 
 
 if __name__ == "__main__":
-    pass
+    raise SystemExit("aiomusiccast.pyamaha is a library module")

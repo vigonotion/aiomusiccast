@@ -45,10 +45,12 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def _check_feature(feature: Feature) -> Callable[[Callable[P, R]], Callable[P, R]]:
-    """Decorator to check whether a feature is supported.
+    """
+    Return a decorator that checks whether a feature is supported.
 
-    Should be used for all methods of MusicCastDevice, which rely on features.
-    A decorated function relying on a zone feature must provide the zone_id as the first parameter.
+    Should be used for all methods of MusicCastDevice, which rely on
+    features. A decorated function relying on a zone feature must
+    provide the zone_id as the first parameter.
     """
 
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
@@ -149,39 +151,42 @@ class MusicCastDevice:
                     await self._update_input(parameter, new_zone_data.get("input", zone.input))
                 else:
                     _LOGGER.warning(
-                        "Zone %s does not exist. Available zones are: %s", parameter, self.data.zones.keys()
+                        "Zone %s does not exist. Available zones are: %s",
+                        parameter,
+                        list(self.data.zones),
                     )
 
                 if new_zone_data.get("play_info_updated") or new_zone_data.get("status_updated"):
                     await self._fetch_zone(parameter)
 
-        if "netusb" in message.keys():
-            if message.get("netusb").get("play_info_updated"):
+        netusb_message = message.get("netusb")
+        if netusb_message:
+            if netusb_message.get("play_info_updated"):
                 await self._fetch_netusb()
 
-            play_time = message.get("netusb").get("play_time")
+            play_time = netusb_message.get("play_time")
             if play_time:
                 self.data.netusb_play_time = play_time
                 self.data.netusb_play_time_updated = datetime.now(timezone.utc)
 
-            if message.get("netusb").get("preset_info_updated"):
+            if netusb_message.get("preset_info_updated"):
                 await self._fetch_netusb_presets()
 
-        if "tuner" in message.keys():
-            if message.get("tuner").get("play_info_updated"):
-                await self._fetch_tuner()
+        tuner_message = message.get("tuner")
+        if tuner_message and tuner_message.get("play_info_updated"):
+            await self._fetch_tuner()
 
-        if "dist" in message.keys():
-            if message.get("dist").get("dist_info_updated"):
-                await self._fetch_distribution_data()
+        dist_message = message.get("dist")
+        if dist_message and dist_message.get("dist_info_updated"):
+            await self._fetch_distribution_data()
 
-        if "clock" in message.keys():
-            if message.get("clock").get("settings_updated"):
-                await self._fetch_clock_data()
+        clock_message = message.get("clock")
+        if clock_message and clock_message.get("settings_updated"):
+            await self._fetch_clock_data()
 
-        if "system" in message.keys():
-            if message.get("system").get("func_status_updated"):
-                await self._fetch_func_status()
+        system_message = message.get("system")
+        if system_message and system_message.get("func_status_updated"):
+            await self._fetch_func_status()
 
         for callback in self._callbacks:
             callback()
@@ -195,7 +200,12 @@ class MusicCastDevice:
         self._callbacks.discard(callback)
 
     async def _update_input(self, zone_id: str, new_input: str) -> None:
-        """If the input of a zone changes from or to MC_LINK, a group update has to be triggered."""
+        """
+        Trigger group updates when a zone switches to or from MC_LINK.
+
+        The helper ensures that listeners receive callbacks whenever the
+        link state changes.
+        """
         trigger_group_cb = (
             self.data.zones[zone_id].input == MC_LINK or new_input == MC_LINK
         ) and not self.data.group_update_lock.locked()
@@ -443,17 +453,18 @@ class MusicCastDevice:
 
                 self.data.zones[zone_id] = zone_data
 
-            if "clock" in self._features.keys():
-                if "alarm" in self._features.get("clock", {}).get("func_list", []):
-                    if ALARM_ONEDAY in self._features.get("clock", {}).get("alarm_mode_list", []):
+            if "clock" in self._features:
+                clock_features = self._features.get("clock", {})
+                if "alarm" in clock_features.get("func_list", []):
+                    if ALARM_ONEDAY in clock_features.get("alarm_mode_list", []):
                         self.features |= DeviceFeature.ALARM_ONEDAY
-                    if ALARM_WEEKLY in self._features.get("clock", {}).get("alarm_mode_list", []):
+                    if ALARM_WEEKLY in clock_features.get("alarm_mode_list", []):
                         self.features |= DeviceFeature.ALARM_WEEKLY
 
-                if "date_and_time" in self._features.get("clock", {}).get("func_list", []):
+                if "date_and_time" in clock_features.get("func_list", []):
                     self.features |= DeviceFeature.CLOCK
 
-                for value_range in self._features.get("clock", {}).get("range_step", []):
+                for value_range in clock_features.get("range_step", []):
                     if value_range.get("id") == "alarm_volume":
                         self.data.alarm_volume_range = (
                             value_range.get("min", 0),
@@ -468,8 +479,8 @@ class MusicCastDevice:
                         )
                         self.data.alarm_fade_step = value_range.get("step", 1)
 
-                self.data.alarm_preset_list = self._features.get("clock", {}).get("alarm_preset_list", [])
-                self.data.alarm_resume_input_list = self._features.get("clock", {}).get("alarm_input_list", [])
+                self.data.alarm_preset_list = clock_features.get("alarm_preset_list", [])
+                self.data.alarm_resume_input_list = clock_features.get("alarm_input_list", [])
 
         self.data.input_names = {source.get("id"): source.get("text") for source in self._name_text.get("input_list")}
 
@@ -477,11 +488,12 @@ class MusicCastDevice:
             program.get("id"): program.get("text") for program in self._name_text.get("sound_program_list")
         }
 
-        if "netusb" in self._features.keys() and self._features.get("netusb").get("func_list"):
+        netusb_features = self._features.get("netusb", {})
+        if "netusb" in self._features and netusb_features.get("func_list"):
             await self._fetch_netusb()
             await self._fetch_netusb_presets()
 
-        if "tuner" in self._features.keys():
+        if "tuner" in self._features:
             await self._fetch_tuner()
         await self._fetch_distribution_data()
         if DeviceFeature.ALARM_ONEDAY in self.features or DeviceFeature.ALARM_WEEKLY in self.features:
@@ -499,10 +511,10 @@ class MusicCastDevice:
         await self._fetch_func_status()
 
     def build_capabilities(self):
-        """This function generates the capabilities of a device and its zones."""
+        """Build capabilities for the device and its zones."""
         self.data.capabilities = build_device_capabilities(self)
 
-        for zone_id in self.data.zones.keys():
+        for zone_id in self.data.zones:
             self.data.zones[zone_id].capabilities = build_zone_capabilities(self, zone_id)
 
     # -----Commands-----
@@ -549,7 +561,7 @@ class MusicCastDevice:
 
     @_check_feature(ZoneFeature.DIALOGUE_LEVEL)
     async def set_dialogue_level(self, zone_id, level):
-        """Set the level by which the dialogues should be increased/lowered"""
+        """Set the level by which the dialogues should be increased/lowered."""
         await self.device.request(Zone.set_dialogue_level(zone_id, level))
 
     @_check_feature(ZoneFeature.DIALOGUE_LIFT)
@@ -559,7 +571,7 @@ class MusicCastDevice:
 
     @_check_feature(ZoneFeature.DTS_DIALOGUE_CONTROL)
     async def set_dts_dialogue_control(self, zone_id, value):
-        """Set the level by which the dialogues should be increased/lowered - for DTS sound programs"""
+        """Set the level by which the dialogues should be changed in DTS."""
         await self.device.request(Zone.set_dts_dialogue_control(zone_id, value))
 
     @_check_feature(ZoneFeature.EXTRA_BASS)
@@ -682,12 +694,10 @@ class MusicCastDevice:
         elif self.data.band == "dab":
             await self.device.request(Tuner.set_dab_service("next"))
 
-    async def netusb_repeat(self, mode):
-        """Sets the repeat mode.
-        @param mode: Value : "off" / "one" / "all"
-        """
+    async def netusb_repeat(self, mode: str):
+        """Set the repeat mode for NetUSB playback."""
         if self.data.api_version < 1.19:
-            if self.data.netusb_repeat != mode and self.data.netusb_repeat != "one":
+            if self.data.netusb_repeat not in {mode, "one"}:
                 await self.device.request(NetUSB.toggle_repeat())
         else:
             await self.device.request(NetUSB.set_repeat(mode))
@@ -704,7 +714,7 @@ class MusicCastDevice:
         await self.device.get(NetUSB.store_preset(preset))
 
     async def set_sleep_timer(self, zone_id, sleep_time=0):
-        """Set sleep time"""
+        """Set sleep time."""
         sleep_time = math.ceil(sleep_time / 30) * 30
         await self.device.get(Zone.set_sleep(zone_id, sleep_time))
 
@@ -721,6 +731,7 @@ class MusicCastDevice:
     ) -> None:
         """
         Configure an alarm.
+
         @param alarm_on: Define whether the alarm should be turned on (bool)
         @param volume: Alarm volume 0..1 (float)
         @param alarm_time: Alarm time in str in hh:mm form or as time object (valid only with mode and day)
@@ -861,13 +872,12 @@ class MusicCastDevice:
     def tuner_media_title(self) -> str | None:
         if self.data.band == "dab":
             return self.data.dab_dls
-        else:
-            if self.data.rds_text_a == "" and self.data.rds_text_b != "":
-                return self.data.rds_text_b
-            elif self.data.rds_text_a != "" and self.data.rds_text_b == "":
-                return self.data.rds_text_a
-            elif self.data.rds_text_a != "" and self.data.rds_text_b != "":
-                return f"{self.data.rds_text_a} / {self.data.rds_text_b}"
+        if self.data.rds_text_a == "" and self.data.rds_text_b != "":
+            return self.data.rds_text_b
+        if self.data.rds_text_a != "" and self.data.rds_text_b == "":
+            return self.data.rds_text_a
+        if self.data.rds_text_a != "" and self.data.rds_text_b != "":
+            return f"{self.data.rds_text_a} / {self.data.rds_text_b}"
 
         return None
 
@@ -875,9 +885,9 @@ class MusicCastDevice:
     def tuner_media_artist(self) -> str | None:
         if self.data.band == "dab":
             return self.data.dab_service_label
-        elif self.data.band == "fm":
+        if self.data.band == "fm":
             return self.data.fm_freq_str
-        elif self.data.band == "am":
+        if self.data.band == "am":
             return self.data.am_freq_str
 
         return None
@@ -937,7 +947,7 @@ class MusicCastDevice:
 
     async def wait_for_data_update(self, checks):
         while True:
-            if all([check() for check in checks]):
+            if all(check() for check in checks):
                 return
             await asyncio.sleep(0.1)
 
@@ -950,12 +960,13 @@ class MusicCastDevice:
                 self.ip,
             )
             await self._fetch_distribution_data()
-        return all([check() for check in checks])
+        return all(check() for check in checks)
 
     # Group server functions
 
     async def mc_server_group_extend(self, zone, client_ips, group_id, distribution_num, retry=True):
-        """Extend the given group by the given clients.
+        """
+        Extend the given group by the given clients.
 
         If the group does not exist, it will be created.
         """
@@ -1046,13 +1057,18 @@ class MusicCastDevice:
             raise MusicCastGroupException(self.ip + ": Failed to leave group")
 
     async def zone_unjoin(self, zone_id, retry=True):
-        """Stop the musiccast playback for one of the zones, but keep the device in the group."""
+        """
+        Stop playback for one zone while keeping the device in the group.
+
+        The previous input is restored if possible and the zone is
+        turned off.
+        """
         async with self.data.group_update_lock:
             save_inputs = self.get_save_inputs(zone_id)
             if len(save_inputs):
                 await self.select_source(zone_id, save_inputs[0])
             else:
-                _LOGGER.warning(self.ip + ": did not find a save input for zone " + zone_id)
+                _LOGGER.warning("%s: did not find a save input for zone %s", self.ip, zone_id)
             # Then turn off the zone
             await self.turn_off(zone_id)
             if await self.check_group_data([lambda: self._check_power_status(zone_id, "standby")]):
@@ -1064,7 +1080,12 @@ class MusicCastDevice:
             raise MusicCastGroupException(self.ip + ": Failed to leave group with zone " + zone_id)
 
     async def zone_join(self, zone_id, retry=True):
-        """Join a musiccast group with a zone when another zone of the same device is already client in that group."""
+        """
+        Join a MusicCast group with another zone from the same device.
+
+        The zone switches to the MC_LINK input and retries automatically
+        on transient failures.
+        """
         async with self.data.group_update_lock:
             await self.select_source(zone_id, MC_LINK)
 
@@ -1079,12 +1100,14 @@ class MusicCastDevice:
     # Misc
 
     def get_save_inputs(self, zone_id):
-        """Return a save save source for the given zone_id.
+        """
+        Return a save save source for the given zone_id.
 
-        A save input can be any input except netusb ones if the netusb module is
-        already in use."""
+        A save input can be any input except netusb ones if the netusb
+        module is already in use.
+        """
 
-        netusb_in_use = any([zone.input == self.data.netusb_input for zone in self.data.zones.values()])
+        netusb_in_use = any(zone.input == self.data.netusb_input for zone in self.data.zones.values())
 
         zone = self.data.zones.get(zone_id)
 

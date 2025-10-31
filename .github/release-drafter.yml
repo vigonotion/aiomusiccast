@@ -6,7 +6,7 @@ categories:
   - title: 🚀 Features
     label: feature
   - title: 🐛 Bug Fixes
-    labels: 
+    labels:
       - fix
       - bug
   - title: 🧰 Maintenance

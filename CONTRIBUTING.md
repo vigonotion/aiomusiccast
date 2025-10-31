@@ -22,6 +22,12 @@ Install project dependencies into a virtual environment:
 $ uv sync
 ```
 
+Install the pre-commit hooks (run once per clone):
+
+```text
+$ uv run pre-commit install --install-hooks
+```
+
 # Development Tasks
 
 ## Manual
@@ -46,6 +52,12 @@ $ uv run mkdocs build --clean --strict
 
 Use your editor’s on-save hooks or a simple watcher such as `entr` to rerun the commands above, e.g.
 `find aiomusiccast -name '*.py' | entr -r uv run ruff check aiomusiccast`.
+
+You can also run the full hook suite manually:
+
+```text
+$ uv run pre-commit run --all-files
+```
 
 # Continuous Integration
 

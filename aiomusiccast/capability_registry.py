@@ -19,7 +19,7 @@ def normalize_option(option: object) -> str:
     return option_str.replace(" ", "_").lower()
 
 
-"""Dictionary of all DeviceFeatures with a callable as value. 
+"""Dictionary of all DeviceFeatures with a callable as value.
 The callable expects an ID and a MusicCastDevice as parameters."""
 _device_capabilities: dict[DeviceFeature, DeviceCapabilityFactory | dict[str, DeviceCapabilityFactory]] = {
     DeviceFeature.DIMMER: lambda capability_id, device: OptionSetter(
@@ -57,10 +57,12 @@ _device_capabilities: dict[DeviceFeature, DeviceCapabilityFactory | dict[str, De
         lambda val: device.set_party_mode(val),
     ),
 }
+"""
+Dictionary of all ZoneFeatures with a callable as value.
 
-
-"""Dictionary of all ZoneFeatures with a callable as value. 
-The callable expects an ID, a MusicCastDevice and a zone_id as parameters."""
+The callable expects an ID, a MusicCastDevice and a zone_id as
+parameters.
+"""
 _zone_capabilities: dict[ZoneFeature, ZoneCapabilityFactory | dict[str, ZoneCapabilityFactory]] = {
     ZoneFeature.SURR_DECODER_TYPE: lambda capability_id, device, zone_id: OptionSetter(
         capability_id,
@@ -266,10 +268,10 @@ _zone_capabilities: dict[ZoneFeature, ZoneCapabilityFactory | dict[str, ZoneCapa
 
 def build_device_capabilities(device: MusicCastDevice) -> list[Capability]:
     """
-    Function to build all Capabilities of a given device.
-    The ID of the capabilities will be set to '{feature.name.lower()}_{key}'
-    @param device: The MusicCastDevice to generate the capabilities for
-    @return: the list of capabilities of the device
+    Build capabilities for the given device.
+
+    The resulting identifiers follow the pattern
+    ``{feature.name.lower()}_{key}``.
     """
     result: list[Capability] = []
     for feature in [f for f in DeviceFeature if f in device.features]:
@@ -286,11 +288,9 @@ def build_device_capabilities(device: MusicCastDevice) -> list[Capability]:
 
 def build_zone_capabilities(device: MusicCastDevice, zone_id: str) -> list[Capability]:
     """
-    Function to build all Capabilities of a given zone of a device.
-    The ID of the capabilities will be set to 'zone_{feature.name.lower()}_{key}'
-    @param device: The MusicCastDevice to generate the capabilities for
-    @param zone_id: The zone to generate the capabilities for
-    @return: The list of capabilities of the given zone
+    Build capabilities for a specific device zone.
+
+    Identifiers follow the pattern ``zone_{feature.name.lower()}_{key}``.
     """
     result: list[Capability] = []
     for feature in [f for f in ZoneFeature if f in device.data.zones[zone_id].features]:

@@ -197,7 +197,12 @@ class RangeStep:
 
 
 class Dimmer(RangeStep):
-    """Dimmer. Not all devices support dimming. A value of -1 indicates auto dimming."""
+    """
+    Dimmer.
+
+    Not all devices support dimming. A value of -1 indicates auto
+    dimming.
+    """
 
     dimmer_current: int
 

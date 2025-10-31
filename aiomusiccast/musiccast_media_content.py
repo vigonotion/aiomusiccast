@@ -214,5 +214,4 @@ class MusicCastMediaContent:
             self.menu_layer = list_info.get("menu_layer")
             if self.menu_layer == until_layer:
                 break
-            else:
-                await self._device.return_in_list(self._zone_id)
+            await self._device.return_in_list(self._zone_id)

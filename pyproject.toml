@@ -34,9 +34,11 @@ Repository = "https://github.com/vigonotion/aiomusiccast"
 
 [dependency-groups]
 dev = [
+    "docformatter[tomli]>=1.7.7",
     "ipython>=8.24.0",
     "mkdocs>=1.5.3",
     "mypy>=1.8.0",
+    "pre-commit>=3.7.0",
     "pygments>=2.15.0",
     "ruff>=0.5.0",
 ]
@@ -44,6 +46,11 @@ docs = [
     "mkdocs>=1.5.3",
     "pygments>=2.15.0",
 ]
+
+[tool.docformatter]
+wrap-descriptions = 72
+wrap-summaries = 88
+pre-summary-newline = true
 
 [tool.ruff]
 line-length = 120
@@ -55,13 +62,52 @@ indent-style = "space"
 
 [tool.ruff.lint]
 extend-select = [
+    "ARG",
     "B",
+    "C4",
+    "D",
+    "DTZ",
+    "ERA",
+    "FA",
+    "FIX",
+    "FURB",
+    "G",
     "I",
+    "ICN",
+    "ISC",
+    "LOG",
+    "PIE",
+    "PL",
+    "PT",
+    "RET",
+    "RUF",
+    "SIM",
+    "T1",
     "UP",
+    "YTT",
 ]
 ignore = [
+    "D1",
+    "D201",
+    "D202",
+    "D203",
+    "D204",
+    "D211",
+    "D213",
     "E501",
+    "PLC0414",
+    "PLR0911",
+    "PLR0912",
+    "PLR0913",
+    "PLR0914",
+    "PLR0915",
+    "PLR0917",
+    "PLR2004",
 ]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+ignore-decorators = ["typing.overload"]
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
