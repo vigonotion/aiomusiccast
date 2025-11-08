@@ -31,13 +31,18 @@ class Capability(ABC):
         entity_type: EntityType,
         get_value: Callable[[], Any],
     ) -> None:
-        """
-        Initialize the base class and set general vars.
+        """Initialize the base class and set general vars.
 
-        @param capability_id: Unique ID of this capability @param name:
-        Name that should be displayed in a UI @param entity_type: Define
-        of what type this capability is @param get_value: Callable to
-        get the current values of this capability
+        Parameters
+        ----------
+        capability_id : Any
+            Unique ID of this capability.
+        name : Any
+            Name that should be displayed in a UI.
+        entity_type : Any
+            Defines the type of entity the capability represents.
+        get_value : Callable[[], Any]
+            Callback that returns the current value of the capability.
         """
         self.id = capability_id
         self.name = name
@@ -62,15 +67,20 @@ class SettableCapability(Capability, ABC):
         get_value: Callable[[], Any],
         set_value: Callable[[Any], Awaitable[None]],
     ) -> None:
-        """
-        Initialize the setable base class.
+        """Initialize the setable base class.
 
-        @param capability_id: Unique ID of this capability @param name:
-        Name that should be displayed in a UI @param entity_type: Define
-        of what type this capability is @param get_value: Callable to
-        get the current values of this capability @param set_value:
-        Callable to set the value. Should only expect the new values as
-        parameter
+        Parameters
+        ----------
+        capability_id : Any
+            Unique ID of this capability.
+        name : Any
+            Name that should be displayed in a UI.
+        entity_type : Any
+            Defines the type of entity this capability represents.
+        get_value : Callable[[], Any]
+            Callback used to obtain the current value.
+        set_value : Callable[[Any], Awaitable[None]]
+            Asynchronous callback that persists new values supplied by the caller.
         """
         super().__init__(capability_id, name, entity_type, get_value)
         self.set_value = set_value
@@ -107,17 +117,26 @@ class NumberSetter(SettableCapability):
         max_value: int,
         step: int,
     ) -> None:
-        """
-        Initialize a NumberSetter.
+        """Initialize a NumberSetter.
 
-        @param capability_id: Unique ID of this capability @param name:
-        Name that should be displayed in a UI @param entity_type: Define
-        of what type this capability is @param get_value: Callable to
-        get the current values of this capability @param set_value:
-        Callable to set the value. Should only expect the new values as
-        parameter @param min_value: Minimum value, which can be set
-        @param max_value: Maximum value, which can be set @param step:
-        The step between minimum and maximum
+        Parameters
+        ----------
+        capability_id : Any
+            Unique ID of this capability
+        name : Any
+            Name that should be displayed in a UI
+        entity_type : Any
+            Define of what type this capability is
+        get_value : Any
+            Callable to get the current values of this capability
+        set_value : Any
+            Callable to set the value. Should only expect the new values as parameter
+        min_value : Any
+            Minimum value, which can be set
+        max_value : Any
+            Maximum value, which can be set
+        step : Any
+            The step between minimum and maximum
         """
         super().__init__(capability_id, name, entity_type, get_value, set_value)
         self.value_range = RangeStep(min_value, max_value, step)
@@ -141,16 +160,22 @@ class OptionSetter(SettableCapability):
         set_value: Callable[[Any], Awaitable[None]],
         options: Mapping[str | int, str],
     ) -> None:
-        """
-        Initialize a option setter.
+        """Initialize an option setter.
 
-        @param capability_id: Unique ID of this capability @param name:
-        Name that should be displayed in a UI @param entity_type: Define
-        of what type this capability is @param get_value: Callable to
-        get the current values of this capability @param set_value:
-        Callable to set the value. Should only expect the new values as
-        parameter @param options: A dictionary of valid options with the
-        option as key and a label as value
+        Parameters
+        ----------
+        capability_id : Any
+            Unique ID of this capability
+        name : Any
+            Name that should be displayed in a UI
+        entity_type : Any
+            Define of what type this capability is
+        get_value : Any
+            Callable to get the current values of this capability
+        set_value : Any
+            Callable to set the value. Should only expect the new values as parameter
+        options : Any
+            A dictionary of valid options with the option as key and a label as value
         """
         super().__init__(capability_id, name, entity_type, get_value, set_value)
         self.options = options

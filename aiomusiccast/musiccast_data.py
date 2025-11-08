@@ -197,8 +197,7 @@ class RangeStep:
 
 
 class Dimmer(RangeStep):
-    """
-    Dimmer.
+    """Dimmer.
 
     Not all devices support dimming. A value of -1 indicates auto
     dimming.

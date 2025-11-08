@@ -57,8 +57,7 @@ _device_capabilities: dict[DeviceFeature, DeviceCapabilityFactory | dict[str, De
         lambda val: device.set_party_mode(val),
     ),
 }
-"""
-Dictionary of all ZoneFeatures with a callable as value.
+"""Dictionary of all ZoneFeatures with a callable as value.
 
 The callable expects an ID, a MusicCastDevice and a zone_id as
 parameters.
@@ -267,8 +266,7 @@ _zone_capabilities: dict[ZoneFeature, ZoneCapabilityFactory | dict[str, ZoneCapa
 
 
 def build_device_capabilities(device: MusicCastDevice) -> list[Capability]:
-    """
-    Build capabilities for the given device.
+    """Build capabilities for the given device.
 
     The resulting identifiers follow the pattern
     ``{feature.name.lower()}_{key}``.
@@ -287,8 +285,7 @@ def build_device_capabilities(device: MusicCastDevice) -> list[Capability]:
 
 
 def build_zone_capabilities(device: MusicCastDevice, zone_id: str) -> list[Capability]:
-    """
-    Build capabilities for a specific device zone.
+    """Build capabilities for a specific device zone.
 
     Identifiers follow the pattern ``zone_{feature.name.lower()}_{key}``.
     """

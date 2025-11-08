@@ -153,12 +153,14 @@ class AsyncDevice:
         handle_event: Callable[[dict[str, Any] | None], Awaitable[None]] | None = None,
         upnp_description: str | None = None,
     ) -> None:
-        """
-        Ctor.
+        """Ctor.
 
-        Arguments:
-            @param client: aiohttp client session.
-            @param ip: Yamaha device IP.
+        Parameters
+        ----------
+        client : Any
+            aiohttp client session.
+        ip : Any
+            Yamaha device IP.
         """
         self.ip = ip
         self.client: aiohttp.ClientSession = client
@@ -205,11 +207,12 @@ class AsyncDevice:
         self._transport = None
 
     async def request(self, *args):
-        """
-        Request YamahaExtendedControl API URI.
+        """Request YamahaExtendedControl API URI.
 
-        Arguments:
-            @param args: URI link for GET or tupple (URI, data) for POST.
+        Parameters
+        ----------
+        args : Any
+            URI link for GET or tuple (URI, data) for POST.
         """
         try:
             # If it is only a URI, send GET...
@@ -225,11 +228,18 @@ class AsyncDevice:
     # end-of-method request
     @classmethod
     async def build_json(cls, response: ClientResponse):
-        """
-        A method, which tries to decode the response with errors being ignored.
+        """A method, which tries to decode the response with errors
+        being ignored.
 
-        @param response: The ClientResponse, which the data should be
-        extrated from @return: A dictionary on success
+        Parameters
+        ----------
+        response : ClientResponse
+            The ClientResponse, which the data should be extracted from.
+
+        Returns
+        -------
+        dict
+            A dictionary on success.
         """
         try:
             text = await response.text()
@@ -243,11 +253,12 @@ class AsyncDevice:
             raise
 
     async def request_json(self, *args):
-        """
-        Request YamahaExtendedControl API URI.
+        """Request YamahaExtendedControl API URI.
 
-        Arguments:
-            @param args: URI link for GET or tupple (URI, data) for POST.
+        Parameters
+        ----------
+        args : Any
+            URI link for GET or tuple (URI, data) for POST.
         """
         try:
             # If it is only a URI, send GET...
@@ -267,23 +278,26 @@ class AsyncDevice:
     # end-of-method request_json
 
     async def get(self, uri):
-        """
-        Request given URI. Returns response object.
+        """Request given URI. Returns response object.
 
-        Arguments:
-            @param uri: URI to request
+        Parameters
+        ----------
+        uri : Any
+            URI to request
         """
         return await self.client.get(uri.format(host=self.ip), headers=self._headers, timeout=ClientTimeout(total=5))
 
     # end-of-method get
 
     async def post(self, uri, data):
-        """
-        Send POST request. Returns response object.
+        """Send POST request. Returns response object.
 
-        Arguments:
-            @param uri: URI to send POST
-            @param data: POST data
+        Parameters
+        ----------
+        uri : Any
+            URI to send POST
+        data : Any
+            POST data
         """
         return await self.client.post(uri.format(host=self.ip), data=json.dumps(data), headers=self._headers)
 
@@ -342,7 +356,7 @@ class AsyncDevice:
 
 
 class Dist:
-    """APIs in regard to Link distribution related setting and getting information."""
+    """APIs for link distribution settings and information."""
 
     URI: ClassVar[dict[str, str]] = {
         "GET_DISTRIBUTION_INFO": "http://{host}/YamahaExtendedControl/v1/dist/getDistributionInfo",
@@ -355,31 +369,33 @@ class Dist:
 
     @staticmethod
     def get_distribution_info():
-        """For retrieving a Device information related to Link distribution."""
+        """Retrieve link distribution information from the device."""
         return Dist.URI["GET_DISTRIBUTION_INFO"]
 
     # end-of-method get_distribution_info
 
     @staticmethod
     def set_server_info(group_id, zone=None, type=None, client_list=None):
-        """
-        For setting a Link distribution server (Link master).
+        """For setting a Link distribution server (Link master).
 
-        Arguments:
-            @param group_id: Specify Group ID in 32-digit hex.
-                        Specify "" (empty text) here to cancel a Device being the Link
-                        distribution server. Group ID will be initialized ("000...")
-                        after the cancel operation.
-            @param zone: Specifies which target Zone ID to be the Link distribution
-                    server. If nothing is specified, current setting is kept. Zone
-                    ID to be the Link distribution server is confirmable using
-                    system/getFeatures server_zone_list.
-                    Values: "main" / "zone2" / "zone3" / "zone4"
-            @param type: Specifies a type of adding or removing clients. Not necessary
-                    to specify when canceling the Link master status.
-                    Values: "add" / "remove"
-            @param client_list: Specifies IP addresses of adding/removing clients. Specifiable
-                           up to 9 clients
+        Parameters
+        ----------
+        group_id : Any
+            Specify Group ID in 32-digit hex.
+            Specify "" (empty text) here to cancel a Device being the Link
+            distribution server. Group ID will be initialized ("000...")
+            after the cancel operation.
+        zone : Any
+            Specifies which target Zone ID to be the Link distribution
+            server. If nothing is specified, current setting is kept. Zone
+            ID to be the Link distribution server is confirmable using
+            system/getFeatures server_zone_list. Values: "main" / "zone2" / "zone3" / "zone4"
+        type : Any
+            Specifies a type of adding or removing clients. Not necessary
+            to specify when canceling the Link master status. Values: "add" / "remove"
+        client_list : Any
+            Specifies IP addresses of adding/removing clients. Specifiable
+            up to 9 clients
         """
         data = {"group_id": group_id}
 
@@ -398,20 +414,24 @@ class Dist:
 
     @staticmethod
     def set_client_info(group_id, zones=None, server_ip_address=None):
-        """For setting Link distributed clients. If a Device is already setup as Link distribution server, this
-           client setup is denied by that Device: use this API after canceling a Device's Link distribution
-           server setup using setServerInfo, then confirming that the target Device's role is changed to other
-           values than "server" using getDistributionInfo.
+        """
+        For setting Link distributed clients. If a Device is already setup as Link distribution server, this
+        client setup is denied by that Device: use this API after canceling a Device's Link distribution
+        server setup using setServerInfo, then confirming that the target Device's role is changed to other
+        values than "server" using getDistributionInfo.
 
-        Arguments:
-            @param group_id: Specifies Group ID in 32-digit hex.
-                        Specify "" (empty text) here to cancel a Device being a Link
-                        distributed client. Group ID will be initialized ("000...") after
-                        the cancel operation.
-            @param zones: Specifies which target Zone ID to be a Link distributed
-                    client. Not necessary to specify when cancelling a client status.
-                    Values: "main" / "zone2" / "zone3" / "zone4"
-            @param server_ip_address: Specifies the IP Address of the Link distribution server.
+        Parameters
+        ----------
+        group_id : Any
+            Specifies Group ID in 32-digit hex.
+            Specify "" (empty text) here to cancel a Device being a Link
+            distributed client. Group ID will be initialized ("000...") after
+            the cancel operation.
+        zones : Any
+            Specifies which target Zone ID to be a Link distributed
+            client. Not necessary to specify when cancelling a client status. Values: "main" / "zone2" / "zone3" / "zone4"
+        server_ip_address : Any
+            Specifies the IP Address of the Link distribution server.
         """
         data = {"group_id": group_id}
 
@@ -427,12 +447,13 @@ class Dist:
 
     @staticmethod
     def start_distribution(num):
-        """
-        For initiating Link distribution. This is valid to a Device that is setup as
-        Link distribution server.
+        """For initiating Link distribution. This is valid to a Device
+        that is setup as Link distribution server.
 
-        Arguments:
-            @param num: Specifies Link distribution number on current MusicCast Network.
+        Parameters
+        ----------
+        num : Any
+            Specifies Link distribution number on current MusicCast Network.
         """
         return Dist.URI["START_DISTRIBUTION"].format(host="{host}", num=num)
 
@@ -440,8 +461,7 @@ class Dist:
 
     @staticmethod
     def stop_distribution():
-        """
-        For quitting Link distribution.
+        """For quitting Link distribution.
 
         This is valid to a Device that is setup as Link distribution
         server.
@@ -452,12 +472,14 @@ class Dist:
 
     @staticmethod
     def set_group_name(name):
-        """
-        For setting up Group Name. Note that Group Name is reserved in volatile memory.
+        """For setting up Group Name. Note that Group Name is reserved
+        in volatile memory.
 
-        Arguments:
-            @param name: Specifies Group Name. Use UTF-8 within 128 bytes. Default name
-                    would be used if it's not setup or "" (empty text) is specified.
+        Parameters
+        ----------
+        name : Any
+            Specifies Group Name. Use UTF-8 within 128 bytes. Default name
+            would be used if it's not setup or "" (empty text) is specified.
         """
         data = {"name": name}
 
@@ -532,8 +554,7 @@ class System:
 
     @staticmethod
     def get_func_status():
-        """
-        For retrieving setup/information of overall system function.
+        """For retrieving setup/information of overall system function.
 
         Parameters are readable only when corresponding functions are
         available in "func_list" of /system/getFeatures.
@@ -544,12 +565,14 @@ class System:
 
     @staticmethod
     def set_autopower_standby(enable=True):
-        """
-        For setting Auto Power Standby status. Actual operations/reactions of enabling
-        Auto Power Standby depend on each Device.
+        """For setting Auto Power Standby status. Actual
+        operations/reactions of enabling Auto Power Standby depend on
+        each Device.
 
-        Arguments:
-        @param enable: Specifies Auto Power Standby status.
+        Parameters
+        ----------
+        enable : Any
+            Specifies Auto Power Standby status.
         """
         return System.URI["SET_AUTOPOWER_STANDBY"].format(host="{host}", enable=_bool_to_str(enable))
 
@@ -564,13 +587,15 @@ class System:
 
     @staticmethod
     def send_ir_code(code):
-        """
-        For sending specific remote IR code. A Device is operated same as remote IR code
-        reception. But continuous IR code cannot be used in this command. Refer to each
-        Device's IR code list for details..
+        """For sending specific remote IR code. A Device is operated
+        same as remote IR code reception. But continuous IR code cannot
+        be used in this command. Refer to each Device's IR code list for
+        details..
 
-        Arguments:
-        @param code: Specifies IR code in 8-digit hex.
+        Parameters
+        ----------
+        code : Any
+            Specifies IR code in 8-digit hex.
         """
         return System.URI["SEND_IR_CODE"].format(host="{host}", code=code)
 
@@ -585,18 +610,25 @@ class System:
         dns_server_1=None,
         dns_server_2=None,
     ):
-        """
-        For setting Wired Network. Network connection is switched to wired by using this
-        API. If no parameter is specified, current parameter is used. If set parameter
-        is incomplete, it is possible not to provide network avalability.
+        """For setting Wired Network. Network connection is switched to
+        wired by using this API. If no parameter is specified, current
+        parameter is used. If set parameter is incomplete, it is
+        possible not to provide network availability.
 
-        Arguments:
-        @param dhcp: Specifies DHCP setting.
-        @param ip_address: Specifies IP Address.
-        @param subnet_mask: Specifies Subnet Mask.
-        @param default_gateway: Specifies Default Gateway.
-        @param dns_server_1: Specifies DNS Server 1.
-        @param dns_server_2: Specifies DNS Server 2.
+        Parameters
+        ----------
+        dhcp : Any
+            Specifies DHCP setting.
+        ip_address : Any
+            Specifies IP Address.
+        subnet_mask : Any
+            Specifies Subnet Mask.
+        default_gateway : Any
+            Specifies Default Gateway.
+        dns_server_1 : Any
+            Specifies DNS Server 1.
+        dns_server_2 : Any
+            Specifies DNS Server 2.
         """
         data = {}
 
@@ -634,13 +666,12 @@ class System:
         dns_server_1=None,
         dns_server_2=None,
     ):
-        """
-        For setting Wireless Network (Wi-Fi).
+        """For setting Wireless Network (Wi-Fi).
 
         Network connection is switched to wireless (Wi-Fi) by using this
         API. If no parameter is specified, current parameter is used. If
         set parameter is incomplete, it is possible not to provide
-        network avalability.
+        network availability.
         """
         data = {}
 
@@ -678,13 +709,12 @@ class System:
 
     @staticmethod
     def set_wireless_direct(wifi_type=None, key=None):
-        """
-        For setting Wireless Network (Wireless Direct).
+        """For setting Wireless Network (Wireless Direct).
 
         Network connection is switched to wireless (Wireless Direct) by
         using this API. If no parameter is specified, current parameter
         is used. If set parameter is incomplete, it is possible not to
-        provide network avalability.
+        provide network availability.
         """
         data = {}
 
@@ -701,13 +731,12 @@ class System:
 
     @staticmethod
     def set_ip_settings(dhcp, ip_address, subnet_mask, default_gateway, dns_server_1, dns_server_2):
-        """
-        For setting IP.
+        """For setting IP.
 
         This API only set IP as maintain same network connection status
         (Wired/Wireless Lan/Wireless Direct/Extend). If no parameter is
         specified, current parameter is used. If set parameter is
-        incomplete, it is possible not to provide network avalability.
+        incomplete, it is possible not to provide network availability.
         """
         data = {}
 
@@ -742,8 +771,7 @@ class System:
 
     @staticmethod
     def set_airplay_pin(pin):
-        """
-        For setting AirPlay PIN.
+        """For setting AirPlay PIN.
 
         This is valid only when "airplay" exists in "func_list" found in
         /system/getFuncStatus.
@@ -791,8 +819,7 @@ class System:
 
     @staticmethod
     def get_bluetooth_info():
-        """
-        For retrieving setup/information of Bluetooth.
+        """For retrieving setup/information of Bluetooth.
 
         Parameters are readable only when corresponding functions are
         available in "func_list" of /system/getFuncStatus.
@@ -819,12 +846,11 @@ class System:
 
     @staticmethod
     def get_bluetooth_device_list():
-        """
-        For retrieving Bluetooth (Sink) device list.
+        """For retrieving Bluetooth (Sink) device list.
 
         This API is available only when "bluetooth_tx_setting" is true
         under /system/getFuncStatus. This device list information is in
-        the cach. If update device list information, excute
+        the cache. If update device list information, execute
         /system/updateBluetoothDeviceList.
         """
         return System.URI["GET_BLUETOOTH_DEVICE_LIST"]
@@ -833,8 +859,7 @@ class System:
 
     @staticmethod
     def update_bluetooth_device_list():
-        """
-        For updating Bluetooth (Sink) device list.
+        """For updating Bluetooth (Sink) device list.
 
         This API is available only when "bluetooth_tx_setting" is true
         under /system/getFuncStatus. Retrieve update status and list
@@ -847,8 +872,7 @@ class System:
 
     @staticmethod
     def connect_bluetooth_device(address):
-        """
-        For connecting Bluetooth (Sink) device.
+        """For connecting Bluetooth (Sink) device.
 
         This API is available only when "bluetooth_tx_setting" is true
         under /system/getFuncStatus. It is possible to take time to
@@ -861,8 +885,7 @@ class System:
 
     @staticmethod
     def disconnect_bluetooth_device():
-        """
-        For disconnecting Bluetooth (Sink) device.
+        """For disconnecting Bluetooth (Sink) device.
 
         This API is available only when "bluetooth_tx_setting" is true
         under /system/getFuncStatus. This API response is issued
@@ -888,16 +911,17 @@ class System:
 
     @staticmethod
     def set_dimmer(value):
-        """
-        For setting FL/LED Dimmer.
+        """For setting FL/LED Dimmer.
 
-        Arguments:
-        @param value: Setting Dimmer. Specifies -1 in case of auto setting.
-                 Specifies 0 or more than 0 in case of manual setting.
-                 Auto setting is available only when -1 is exists in vale range under
-                 /system/getFeatures.
-                 Value Range: calculated by minimum/maximum/step values gotten
-                 via /system/getFeatures
+        Parameters
+        ----------
+        value : Any
+            Setting Dimmer. Specifies -1 in case of auto setting.
+            Specifies 0 or more than 0 in case of manual setting.
+            Auto setting is available only when -1 is exists in vale range under
+            /system/getFeatures.
+            Value Range: calculated by minimum/maximum/step values gotten
+            via /system/getFeatures
         """
         return System.URI["SET_DIMMER"].format(host="{host}", value=value)
 
@@ -926,13 +950,15 @@ class System:
 
     @staticmethod
     def get_name_text(id):
-        """
-        For retrieving text information of Zone, Input, Sound program. If they can be
-        renamed, can retrieve text information renamed.
+        """For retrieving text information of Zone, Input, Sound
+        program. If they can be renamed, can retrieve text information
+        renamed.
 
-        Arguments:
-        @param id: Specifies ID. If no ID is specified, retrieve all information of
-              Zone, Input, Sound program. Refer to "All ID List" for details (documentation).
+        Parameters
+        ----------
+        id : Any
+            Specifies ID. If no ID is specified, retrieve all information of
+            Zone, Input, Sound program. Refer to "All ID List" for details (documentation).
         """
         return System.URI["GET_NAME_TEXT"].format(host="{host}", id=id)
 
@@ -940,20 +966,23 @@ class System:
 
     @staticmethod
     def set_name_text(id, text):
-        """
-        For setting text information related to each ID of Zone, Input.
+        """For setting text information related to each ID of Zone,
+        Input.
 
-        Arguments:
-        @param id: Specifies ID. Input ID can be specified only when
-              " rename_enable " is true under /system/getFeatures.
-              Sound Program ID can not be specified.
-              Note:
-              If "main" is specified, Network Name is overwritten with same
-              text information to be acceptable both MusicCast CONTROLLER
-              (Yamaha) and Spotify App. If Network Name is changed, "main"
-              text information is not changed.
-        @param text: Specifies text information (UTF-8 within 64 bytes).
-                If "" (empty text) is specified, specifies default text information.
+        Parameters
+        ----------
+        id : Any
+            Specifies ID. Input ID can be specified only when
+            " rename_enable " is true under /system/getFeatures.
+            Sound Program ID can not be specified.
+            Note:
+            If "main" is specified, Network Name is overwritten with same
+            text information to be acceptable both MusicCast CONTROLLER
+            (Yamaha) and Spotify App. If Network Name is changed, "main"
+            text information is not changed.
+        text : Any
+            Specifies text information (UTF-8 within 64 bytes).
+            If "" (empty text) is specified, specifies default text information.
         """
         data = {"id": id, "text": text}
         return System.URI["SET_NAME_TEXT"], data
@@ -962,12 +991,13 @@ class System:
 
     @staticmethod
     def set_partymode(enable=True):
-        """
-        For  setting Party  Mode. Available  only  when "party_mode" exists in  system
-        func_list  under /system/getFeatures.
+        """For  setting Party  Mode. Available  only  when "party_mode"
+        exists in system func_list  under /system/getFeatures.
 
-        Arguments:
-        @param enable: boolean
+        Parameters
+        ----------
+        enable : Any
+            boolean
         """
         return System.URI["SET_PARTYMODE"].format(host="{host}", enable=_bool_to_str(enable))
 
@@ -975,13 +1005,15 @@ class System:
 
     @staticmethod
     def set_speaker_pattern(num):
-        """
-        For setting speaker of device. Available only when "speaker_pattern" function
-        exists in system func_list under /system/getFeatures.
+        """For setting speaker of device. Available only when
+        "speaker_pattern" function exists in system func_list under
+        /system/getFeatures.
 
-        Arguments:
-        @param num: int Specifies Speaker pattern number. Values: speaker_pattern
-               number from /system/getFeatures
+        Parameters
+        ----------
+        num : Any
+            int Specifies Speaker pattern number. Values: speaker_pattern
+            number from /system/getFeatures
         """
         return System.URI["SET_SPEAKER_PATTERN"].format(host="{host}", num=num)
 
@@ -1034,13 +1066,13 @@ class Zone:
 
     @staticmethod
     def get_status(zone):
-        """
-        For retrieving basic information of each Zone like power, volume, input and so
-        on.
+        """For retrieving basic information of each Zone like power,
+        volume, input and so on.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return Zone.URI["GET_STATUS"].format(host="{host}", zone=zone)
@@ -1049,13 +1081,14 @@ class Zone:
 
     @staticmethod
     def get_sound_program_list(zone):
-        """
-        For retrieving a list of Sound Program available in each Zone. It is possible
-        for the list contents to be dynamically changed.
+        """For retrieving a list of Sound Program available in each
+        Zone. It is possible for the list contents to be dynamically
+        changed.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return Zone.URI["GET_SOUND_PROGRAM_LIST"].format(host="{host}", zone=zone)
@@ -1064,14 +1097,14 @@ class Zone:
 
     @staticmethod
     def set_power(zone, power):
-        """
-        For setting power status of each Zone.
+        """For setting power status of each Zone.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param power: Specifies power status.
-                     Values: 'on', 'standby', 'toggle'
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        power : Any
+            Specifies power status. Values: 'on', 'standby', 'toggle'
         """
         assert zone in ZONES, "Invalid ZONE value!"
         assert power in POWER, "Invalid POWER value!"
@@ -1081,15 +1114,16 @@ class Zone:
 
     @staticmethod
     def set_sleep(zone, sleep):
-        """
-        For setting Sleep Timer for each Zone. With Zone B enabled Devices, target Zone
-        is described as Master Power, but Main Zone is used to set it up via YXC.
+        """For setting Sleep Timer for each Zone. With Zone B enabled
+        Devices, target Zone is described as Master Power, but Main Zone
+        is used to set it up via YXC.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param sleep: Specifies Sleep Time (unit in minutes)
-                     Values: 0, 30, 60, 90, 120
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        sleep : Any
+            Specifies Sleep Time (unit in minutes) Values: 0, 30, 60, 90, 120
         """
         assert zone in ZONES, "Invalid ZONE value!"
         assert sleep in SLEEP, "Invalid SLEEP value!"
@@ -1099,21 +1133,22 @@ class Zone:
 
     @staticmethod
     def set_volume(zone, volume, step):
-        """
-        For setting volume in each Zone. Values of specifying range and steps are
-        different. There are some Devices that cannot allow this value to be go up to
-        Device's maximum volume.
+        """For setting volume in each Zone. Values of specifying range
+        and steps are different. There are some Devices that cannot
+        allow this value to be go up to Device's maximum volume.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param volume: Specifies volume value
-                      Value Range: calculated by minimum/maximum/step values gotten via /system/getFeatures.
-                      (Available on and after API Version 1.17) 'up', 'down'
-            @param step: Specifies volume step value if the volume is 'up' or 'down'. If
-                    nothing specified, minimum step value is used implicitly.
-                    (Available on and after API Version 1.17)
-                    Values: Value range calculated by minimum/maximum/step values gotten via /system/getFeatures.
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        volume : Any
+            Specifies volume value
+            Value Range: calculated by minimum/maximum/step values gotten via /system/getFeatures.
+            (Available on and after API Version 1.17) 'up', 'down'
+        step : Any
+            Specifies volume step value if the volume is 'up' or 'down'. If
+            nothing specified, minimum step value is used implicitly.
+            (Available on and after API Version 1.17) Values: Value range calculated by minimum/maximum/step values gotten via /system/getFeatures.
         """
         assert zone in ZONES, "Invalid ZONE value!"
         url = Zone.URI["SET_VOLUME"].format(host="{host}", zone=zone, volume=volume)
@@ -1125,13 +1160,14 @@ class Zone:
 
     @staticmethod
     def set_mute(zone, enable=True):
-        """
-        For setting mute status in each Zone.
+        """For setting mute status in each Zone.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param enable: Specifying mute status. Default: True.
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        enable : Any
+            Specifying mute status. Default: True.
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return Zone.URI["SET_MUTE"].format(host="{host}", zone=zone, enable=_bool_to_str(enable))
@@ -1140,17 +1176,17 @@ class Zone:
 
     @staticmethod
     def set_input(zone, input, mode):
-        """
-        For selecting each Zone input.
+        """For selecting each Zone input.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param input: Specifies Input ID.
-                     Values: Input IDs gotten via /system/getFeatures
-            @param mode: Specifies select mode. If no parameter is specified, actions of input change depend on a
-            Device's specification
-            Value: "autoplay_disabled" (Restricts Auto Play of Net/USB related Inputs).
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        input : Any
+            Specifies Input ID. Values: Input IDs gotten via /system/getFeatures
+        mode : Any
+            Specifies select mode. If no parameter is specified, actions of input change depend on a
+            Device's specification Value: "autoplay_disabled" (Restricts Auto Play of Net/USB related Inputs).
             Available on and after API Version 1.12
         """
         assert zone in ZONES, "Invalid ZONE value!"
@@ -1160,14 +1196,14 @@ class Zone:
 
     @staticmethod
     def set_sound_program(zone, program):
-        """
-        For selecting Sound Programs.
+        """For selecting Sound Programs.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param program: Specifies Sound Program ID.
-                       Values: Sound Program IDs gotten via /system/getFeatures
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        program : Any
+            Specifies Sound Program ID. Values: Sound Program IDs gotten via /system/getFeatures
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return Zone.URI["SET_SOUND_PROGRAM"].format(host="{host}", zone=zone, program=program)
@@ -1176,18 +1212,19 @@ class Zone:
 
     @staticmethod
     def prepare_input_change(zone, input):
-        """
-        Let a Device do necessary process before changing input in a specific zone. This
-        is valid only when 'prepare_input_change' exists in 'func_list' found in
-        /system/getFuncStatus. MusicCast CONTROLLER executes this API when an input icon
-        is selected in a Room, right before sending various APIs (of retrieving list
+        """Let a Device do necessary process before changing input in a
+        specific zone. This is valid only when 'prepare_input_change'
+        exists in 'func_list' found in /system/getFuncStatus. MusicCast
+        CONTROLLER executes this API when an input icon is selected in a
+        Room, right before sending various APIs (of retrieving list
         information etc.) regarding selecting input.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param input: Specifies Input ID.
-                     Values: Input IDs gotten via /system/getFeatures
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        input : Any
+            Specifies Input ID. Values: Input IDs gotten via /system/getFeatures
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return Zone.URI["PREPARE_INPUT_CHANGE"].format(host="{host}", zone=zone, input=input)
@@ -1196,13 +1233,14 @@ class Zone:
 
     @staticmethod
     def set_surround_3d(zone, enable):
-        """
-        For setting 3D Surround status.
+        """For setting 3D Surround status.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param enable: Specifies 3D Surround status.
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        enable : Any
+            Specifies 3D Surround status.
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return Zone.URI["SET_SURROUND_3D"].format(host="{host}", zone=zone, enable=_bool_to_str(enable))
@@ -1211,13 +1249,14 @@ class Zone:
 
     @staticmethod
     def set_direct(zone, enable):
-        """
-        For setting Direct status.
+        """For setting Direct status.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param enable: Specifies Direct status.
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        enable : Any
+            Specifies Direct status.
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return Zone.URI["SET_DIRECT"].format(host="{host}", zone=zone, enable=_bool_to_str(enable))
@@ -1226,13 +1265,14 @@ class Zone:
 
     @staticmethod
     def set_pure_direct(zone, enable):
-        """
-        For setting Pure Direct status.
+        """For setting Pure Direct status.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param enable: Specifies Pure Direct status.
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        enable : Any
+            Specifies Pure Direct status.
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return Zone.URI["SET_PURE_DIRECT"].format(host="{host}", zone=zone, enable=_bool_to_str(enable))
@@ -1241,13 +1281,14 @@ class Zone:
 
     @staticmethod
     def set_enhancer(zone, enable):
-        """
-        For setting Enhancer status.
+        """For setting Enhancer status.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param enable: Specifies Enhancer status.
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        enable : Any
+            Specifies Enhancer status.
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return Zone.URI["SET_ENHANCER"].format(host="{host}", zone=zone, enable=_bool_to_str(enable))
@@ -1256,23 +1297,24 @@ class Zone:
 
     @staticmethod
     def set_tone_control(zone, mode, bass, treble):
-        """
-        For setting Tone Control in each Zone. Values of specifying range and steps are
-        different.
+        """For setting Tone Control in each Zone. Values of specifying
+        range and steps are different.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param mode: Specifies Mode setting. If no parameter is specified, current Mode
-                    setting is not changed.
-                    Regardless of the Mode setting, bass/treble setting can be changed,
-                    but valid only when Mode setting is "manual".
-            @param bass: Specifies Bass value
-                    Values: Value range calculated by minimum/maximum/step values
-                    gotten via /system/getFeatures
-            @param treble: Specifies Treble value
-                      Values: Value range calculated by minimum/maximum/step values
-                      gotten via /system/getFeatures
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        mode : Any
+            Specifies Mode setting. If no parameter is specified, current Mode
+            setting is not changed.
+            Regardless of the Mode setting, bass/treble setting can be changed,
+            but valid only when Mode setting is "manual".
+        bass : Any
+            Specifies Bass value Values: Value range calculated by minimum/maximum/step values
+            gotten via /system/getFeatures
+        treble : Any
+            Specifies Treble value Values: Value range calculated by minimum/maximum/step values
+            gotten via /system/getFeatures
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return UrlBuilder.build_zone_url(Zone.URI["SET_TONE_CONTROL"], zone, mode=mode, bass=bass, treble=treble)
@@ -1281,27 +1323,27 @@ class Zone:
 
     @staticmethod
     def set_equalizer(zone, mode, low, mid, high):
-        """
-        For setting Equalizer in each Zone. Values of specifying range and steps are
-        different.
+        """For setting Equalizer in each Zone. Values of specifying
+        range and steps are different.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param mode: Specifies Mode setting. If no parameter is specified, current Mode
-                    setting is not changed.
-                    Regardless of the Mode setting, low/mid/high setting can be
-                    changed, but valid only when Mode setting is "manual".
-                    Values: Values gotten via /system/getFeatures
-            @param low: Specifies Low value
-                   Values: Value range calculated by minimum/maximum/step values
-                   gotten via /system/getFeatures
-            @param mid: Specifies Mid value
-                   Values: Value range calculated by minimum/maximum/step values
-                   gotten via /system/getFeatures
-            @param high: Specifies High value
-                    Values: Value range calculated by minimum/maximum/step values
-                    gotten via /system/getFeatures
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        mode : Any
+            Specifies Mode setting. If no parameter is specified, current Mode
+            setting is not changed.
+            Regardless of the Mode setting, low/mid/high setting can be
+            changed, but valid only when Mode setting is "manual". Values: Values gotten via /system/getFeatures
+        low : Any
+            Specifies Low value Values: Value range calculated by minimum/maximum/step values
+            gotten via /system/getFeatures
+        mid : Any
+            Specifies Mid value Values: Value range calculated by minimum/maximum/step values
+            gotten via /system/getFeatures
+        high : Any
+            Specifies High value Values: Value range calculated by minimum/maximum/step values
+            gotten via /system/getFeatures
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return UrlBuilder.build_zone_url(Zone.URI["SET_EQUALIZER"], zone, mode=mode, low=low, mid=mid, high=high)
@@ -1310,17 +1352,17 @@ class Zone:
 
     @staticmethod
     def set_balance(zone, value):
-        """
-        For setting L/R Balance in each Zone's speaker. Values of specifying range and
-        steps are different.
+        """For setting L/R Balance in each Zone's speaker. Values of
+        specifying range and steps are different.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param value: Specifies L/R Balance value. Negative values are for left side,
-                     positive values are for right side balance.
-                     Values: Value range calculated by minimum/maximum/step values
-                     gotten via /system/getFeatures
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        value : Any
+            Specifies L/R Balance value. Negative values are for left side,
+            positive values are for right side balance. Values: Value range calculated by minimum/maximum/step values
+            gotten via /system/getFeatures
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return Zone.URI["SET_BALANCE"].format(host="{host}", zone=zone, value=value)
@@ -1329,16 +1371,16 @@ class Zone:
 
     @staticmethod
     def set_dialogue_level(zone, value):
-        """
-        For setting Dialogue Level in each Zone. Values of specifying range and steps
-        are different.
+        """For setting Dialogue Level in each Zone. Values of specifying
+        range and steps are different.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param value: Specifies Dialogue Level value
-                     Values: Value range calculated by minimum/maximum/step values
-                     gotten via /system/getFeatures
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        value : Any
+            Specifies Dialogue Level value Values: Value range calculated by minimum/maximum/step values
+            gotten via /system/getFeatures
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return Zone.URI["SET_DIALOGUE_LEVEL"].format(host="{host}", zone=zone, value=value)
@@ -1347,16 +1389,16 @@ class Zone:
 
     @staticmethod
     def set_dialogue_lift(zone, value):
-        """
-        For setting Dialogue Lift in each Zone. Values of specifying range and steps are
-        different.
+        """For setting Dialogue Lift in each Zone. Values of specifying
+        range and steps are different.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param value: Specifies Dialogue Lift value
-                     Values: Value range calculated by minimum/maximum/step values
-                     gotten via /system/getFeatures
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        value : Any
+            Specifies Dialogue Lift value Values: Value range calculated by minimum/maximum/step values
+            gotten via /system/getFeatures
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return Zone.URI["SET_DIALOGUE_LIFT"].format(host="{host}", zone=zone, value=value)
@@ -1365,16 +1407,16 @@ class Zone:
 
     @staticmethod
     def set_dts_dialogue_control(zone, value):
-        """
-        For setting DTS Dialogue Control in each Zone. Values of specifying range and
-        steps are different. Undocumented method.
+        """For setting DTS Dialogue Control in each Zone. Values of
+        specifying range and steps are different. Undocumented method.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param value: Specifies DTS Dialogue Control value
-                     Values: Value range calculated by minimum/maximum/step values
-                     gotten via /system/getFeatures
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        value : Any
+            Specifies DTS Dialogue Control value Values: Value range calculated by minimum/maximum/step values
+            gotten via /system/getFeatures
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return Zone.URI["SET_DTS_DIALOGUE_CONTROL"].format(host="{host}", zone=zone, value=value)
@@ -1383,13 +1425,14 @@ class Zone:
 
     @staticmethod
     def set_clear_voice(zone, enable):
-        """
-        For setting Clear Voice in each Zone.
+        """For setting Clear Voice in each Zone.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param enable: Specifies Clear Voice setting
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        enable : Any
+            Specifies Clear Voice setting
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return Zone.URI["SET_CLEAR_VOICE"].format(host="{host}", zone=zone, enable=_bool_to_str(enable))
@@ -1398,15 +1441,15 @@ class Zone:
 
     @staticmethod
     def set_subwoofer_volume(zone, volume):
-        """
-        For setting Subwoofer Volume in each Zone.
+        """For setting Subwoofer Volume in each Zone.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param volume: Specifies volume value
-                      Values: Value range calculated by minimum/maximum/step values
-                      gotten via /system/getFeatures
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        volume : Any
+            Specifies volume value Values: Value range calculated by minimum/maximum/step values
+            gotten via /system/getFeatures
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return Zone.URI["SET_SUBWOOFER_VOLUME"].format(host="{host}", zone=zone, volume=volume)
@@ -1415,13 +1458,14 @@ class Zone:
 
     @staticmethod
     def set_bass_extension(zone, enable):
-        """
-        For setting Bass Extension in each Zone.
+        """For setting Bass Extension in each Zone.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param enable: Specifies Bass Extension setting
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        enable : Any
+            Specifies Bass Extension setting
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return Zone.URI["SET_BASS_EXTENSION"].format(host="{host}", zone=zone, enable=_bool_to_str(enable))
@@ -1430,13 +1474,14 @@ class Zone:
 
     @staticmethod
     def set_extra_bass(zone, enable):
-        """
-        For setting Extra Bass in each Zone.
+        """For setting Extra Bass in each Zone.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param enable: Specifies Extra Bass setting
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        enable : Any
+            Specifies Extra Bass setting
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return Zone.URI["SET_EXTRA_BASS"].format(host="{host}", zone=zone, enable=_bool_to_str(enable))
@@ -1445,12 +1490,13 @@ class Zone:
 
     @staticmethod
     def get_signal_info(zone):
-        """
-        For retrieving current playback signal information in each Zone.
+        """For retrieving current playback signal information in each
+        Zone.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return Zone.URI["GET_SIGNAL_INFO"].format(host="{host}", zone=zone)
@@ -1459,14 +1505,14 @@ class Zone:
 
     @staticmethod
     def set_link_control(zone, control):
-        """
-        For setting Link Control in each Zone.
+        """For setting Link Control in each Zone.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param control: Specifies Link Control setting
-                       Values: Values gotten via /system/getFeatures
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        control : Any
+            Specifies Link Control setting Values: Values gotten via /system/getFeatures
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return Zone.URI["SET_LINK_CONTROL"].format(host="{host}", zone=zone, control=control)
@@ -1475,15 +1521,15 @@ class Zone:
 
     @staticmethod
     def set_link_audio_delay(zone, delay):
-        """
-        For setting Link Audio Delay in each Zone. This setting is invalid when Link
-        Control setting is "Stability Boost".
+        """For setting Link Audio Delay in each Zone. This setting is
+        invalid when Link Control setting is "Stability Boost".
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param delay: Specifies Link Audio Delay setting
-                     Values: Values gotten via /system/getFeatures
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        delay : Any
+            Specifies Link Audio Delay setting Values: Values gotten via /system/getFeatures
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return Zone.URI["SET_LINK_AUDIO_DELAY"].format(host="{host}", zone=zone, delay=delay)
@@ -1492,14 +1538,14 @@ class Zone:
 
     @staticmethod
     def set_link_audio_quality(zone, quality):
-        """
-        For setting Link Audio Quality in each Zone.
+        """For setting Link Audio Quality in each Zone.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param quality: Specifies Link Audio Quality setting
-                    Values: Values gotten via /system/getFeatures
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        quality : Any
+            Specifies Link Audio Quality setting Values: Values gotten via /system/getFeatures
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return Zone.URI["SET_LINK_AUDIO_QUALITY"].format(host="{host}", zone=zone, mode=quality)
@@ -1508,26 +1554,28 @@ class Zone:
 
     @classmethod
     def set_adaptive_drc(cls, zone, value):
-        """
-        For setting Link Audio Quality in each Zone.
+        """For setting Link Audio Quality in each Zone.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param value: Specifies drc enable
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        value : Any
+            Specifies drc enable
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return Zone.URI["SET_ADAPTIVE_DRC"].format(host="{host}", zone=zone, enable=_bool_to_str(value))
 
     @classmethod
     def set_surr_decoder_type(cls, zone, option):
-        """
-        For setting Surround decoder type in each Zone.
+        """For setting Surround decoder type in each Zone.
 
-        Arguments:
-            @param zone: Specifies target Zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param option: the surround decoder type to set
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        option : Any
+            the surround decoder type to set
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return Zone.URI["SET_SURR_DECODER_TYPE"].format(host="{host}", zone=zone, option=option)
@@ -1537,8 +1585,7 @@ class Zone:
 
 
 class Tuner:
-    """
-    APIs in regard to Tuner setting and getting information.
+    """APIs in regard to Tuner setting and getting information.
 
     Target inputs: AM / FM / DAB
     """
@@ -1555,12 +1602,12 @@ class Tuner:
 
     @staticmethod
     def get_preset_info(band):
-        """
-        For retrieving Tuner preset information.
+        """For retrieving Tuner preset information.
 
-        Arguments:
-            @param band: Specifying a band. Values depend on Preset Type gotten via /system/getFeatures.
-                    Values: 'common' (common), 'am', 'fm', 'dab' (separate)
+        Parameters
+        ----------
+        band : Any
+            Specifying a band. Values depend on Preset Type gotten via /system/getFeatures. Values: 'common' (common), 'am', 'fm', 'dab' (separate)
         """
         assert band in BAND, "Invalid BAND value!"
         return Tuner.URI["GET_PRESET_INFO"].format(host="{host}", band=band)
@@ -1576,15 +1623,17 @@ class Tuner:
 
     @staticmethod
     def set_freq(band, tuning, num):
-        """
-        For setting Tuner frequency.
+        """For setting Tuner frequency.
 
-        Arguments:
-            @param band: Specifies Band. Values : 'am', 'fm'
-            @param tuning: Specifies a tuning method. Use 'tp_up' and 'tp_down' only when Band is RDS.
-                       Values: 'up', 'down', 'cancel', 'auto_up', 'auto_down',
-                       'tp_up', 'tp_down', 'direct'
-            @param num: Specifies frequency (unit in kHz). Valid only when tuning is 'direct'
+        Parameters
+        ----------
+        band : Any
+            Specifies Band. Values : 'am', 'fm'
+        tuning : Any
+            Specifies a tuning method. Use 'tp_up' and 'tp_down' only when Band is RDS. Values: 'up', 'down', 'cancel', 'auto_up', 'auto_down',
+            'tp_up', 'tp_down', 'direct'
+        num : Any
+            Specifies frequency (unit in kHz). Valid only when tuning is 'direct'
         """
         assert band in BAND, "Invalid BAND value!"
         assert tuning in TUNING, "Invalid TUNING value!"
@@ -1594,17 +1643,17 @@ class Tuner:
 
     @staticmethod
     def recall_preset(zone, band, num):
-        """
-        For recalling a Tuner preset.
+        """For recalling a Tuner preset.
 
-        Arguments:
-            @param zone: Specifies station recalling zone. This causes input change in specified zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param band: Specifies Band type. Depending on Preset Type gotten via
-                    /system/getFeatures, specifying value is different
-                    Values: 'common' (band common), 'separate' (each band preset)
-            @param num: Specifies Preset number.
-                   Value: one in the range gotten via /system/getFeatures
+        Parameters
+        ----------
+        zone : Any
+            Specifies station recalling zone. This causes input change in specified zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        band : Any
+            Specifies Band type. Depending on Preset Type gotten via
+            /system/getFeatures, specifying value is different Values: 'common' (band common), 'separate' (each band preset)
+        num : Any
+            Specifies Preset number. Value: one in the range gotten via /system/getFeatures
         """
         assert zone in ZONES, "Invalid ZONE value!"
         assert band in PRESET_BAND, "Invalid BAND value!"
@@ -1615,14 +1664,15 @@ class Tuner:
     @staticmethod
     def switch_preset(dir):
         """
-        For selecting Tuner preset. Call this API after change the target zone's input
-        to Tuner. It is possible to change Band in case of preset type is 'common'. In
-        case of preset type is 'separate', need to change the target Band before calling
-        this API. This API is available on and after API Version 1.17.
+        For selecting Tuner preset. Call this API after change the target zone's input to Tuner. It is
+        possible to change Band in case of preset type is 'common'. In case of preset type is 'separate', need
+        to change the target Band before calling this API. This API is available on and after API Version
+        1.17.
 
-        Arguments:
-            @param dir: Specifies change direction of preset.
-                   Values: 'next', 'previous'
+        Parameters
+        ----------
+        dir : Any
+            Specifies change direction of preset. Values: 'next', 'previous'
         """
         assert dir in DIR, "Invalid DIR value!"
         return Tuner.URI["SWITCH_PRESET"].format(host="{host}", dir=dir)
@@ -1631,12 +1681,12 @@ class Tuner:
 
     @staticmethod
     def store_preset(num):
-        """
-        For registering current station to a preset.
+        """For registering current station to a preset.
 
-        Arguments:
-            @param num: Specifying a preset number.
-                   Value: one in the range gotten via /system/getFeatures
+        Parameters
+        ----------
+        num : Any
+            Specifying a preset number. Value: one in the range gotten via /system/getFeatures
         """
         return Tuner.URI["STORE_PRESET"].format(host="{host}", num=num)
 
@@ -1644,12 +1694,13 @@ class Tuner:
 
     @staticmethod
     def set_dab_service(dir):
-        """
-        For selecting DAB Service. Available only when DAB is valid to use.
+        """For selecting DAB Service. Available only when DAB is valid
+        to use.
 
-        Arguments:
-            @param dir: Specifies change direction of services.
-                   Values: 'next', 'previous'
+        Parameters
+        ----------
+        dir : Any
+            Specifies change direction of services. Values: 'next', 'previous'
         """
         assert dir in DIR, "Invalid DIR value!"
         return Tuner.URI["SET_DAB_SERVICE"].format(host="{host}", dir=dir)
@@ -1685,8 +1736,7 @@ class NetUSB:
 
     @staticmethod
     def get_preset_info():
-        """
-        For retrieving preset information.
+        """For retrieving preset information.
 
         Presets are common use among Net/USB related input sources.
         """
@@ -1703,14 +1753,14 @@ class NetUSB:
 
     @staticmethod
     def set_playback(playback):
-        """
-        For controlling playback status.
+        """For controlling playback status.
 
-        Arguments:
-            @param playback: Specifies playback status.
-                        Values: 'play', 'stop', 'pause', 'play_pause', 'previous', 'next',
-                        'fast_reverse_start', 'fast_reverse_end', 'fast_forward_start',
-                        'fast_forward_end'
+        Parameters
+        ----------
+        playback : Any
+            Specifies playback status. Values: 'play', 'stop', 'pause', 'play_pause', 'previous', 'next',
+            'fast_reverse_start', 'fast_reverse_end', 'fast_forward_start',
+            'fast_forward_end'
         """
         assert playback in PLAYBACK, "Invalid PLAYBACK value!"
         return NetUSB.URI["SET_PLAYBACK"].format(host="{host}", playback=playback)
@@ -1719,8 +1769,7 @@ class NetUSB:
 
     @staticmethod
     def toggle_repeat():
-        """
-        For toggling repeat setting.
+        """For toggling repeat setting.
 
         No direct / discrete setting commands available.
         """
@@ -1730,28 +1779,33 @@ class NetUSB:
 
     @staticmethod
     def set_repeat(mode):
-        """
-        For setting repeat.
+        """For setting repeat.
 
-        Available on after API version 1.19. @param mode: Specifies the
-        repeat setting. Value : "off" / "one" / "all"
+        Available on after API version 1.19.
+
+        Parameters
+        ----------
+        mode : Any
+            Specifies the repeat setting. Value : "off" / "one" / "all"
         """
         return NetUSB.URI["SET_REPEAT"].format(host="{host}", mode=mode)
 
     @staticmethod
     def set_shuffle(mode):
-        """
-        For setting shuffle.
+        """For setting shuffle.
 
-        Available on after API version 1.19. @param mode: Specifies the
-        shuffle setting. Value : "off" / "on" / "songs" / "albums"
+        Available on after API version 1.19.
+
+        Parameters
+        ----------
+        mode : Any
+            Specifies the shuffle setting. Value : "off" / "on" / "songs" / "albums"
         """
         return NetUSB.URI["SET_SHUFFLE"].format(host="{host}", mode=mode)
 
     @staticmethod
     def toggle_shuffle():
-        """
-        For toggling shuffle setting.
+        """For toggling shuffle setting.
 
         No direct / discrete setting commands available.
         """
@@ -1761,30 +1815,32 @@ class NetUSB:
 
     @staticmethod
     def get_list_info(input, index, size, lang, list_id):
-        """
-        For retrieving list information. Basically this info is available to all
-        relevant inputs, not limited to or independent from current input.
+        """For retrieving list information. Basically this info is
+        available to all relevant inputs, not limited to or independent
+        from current input.
 
-        Arguments:
-                @param input: Specifies target Input ID. Controls for setListControl are to work
-                         with the input specified here.
-                         Values: Input IDs for Net/USB related sources
-                @param index: Specifies the reference index (offset from the beginning of the list).
-                         Note that this index must be in multiple of 8. If nothing was
-                         specified, the reference index previously specified would be used.
-                         Values: 0, 8, 16, 24, ..., 64984, 64992
-                @param size: Specifies max list size retrieved at a time.
-                        Value Range: 1 - 8
-                @param lang: Specifies list language. But menu names or text info are not
-                        always necessarily pulled in a language specified here. If nothing
-                        specified, English ("en") is used implicitly
-                        Values: 'en' (English), 'ja' (Japanese), 'fr' (French), 'de'
-                        (German), 'es' (Spanish), 'ru' (Russian), 'it' (Italy), 'zh' (Chinese)
-                @param list_id: Specifies list ID. If nothing specified, 'main' is chosen implicitly
-                           Values: 'main' (common for all Net/USB sources)
-                                   'auto_complete' (Pandora)
-                                   'search_artist' (Pandora)
-                                   'search_track' (Pandora)
+        Parameters
+        ----------
+        input : Any
+            Specifies target Input ID. Controls for setListControl are to work
+            with the input specified here. Values: Input IDs for Net/USB related sources
+        index : Any
+            Specifies the reference index (offset from the beginning of the list).
+            Note that this index must be in multiple of 8. If nothing was
+            specified, the reference index previously specified would be used. Values: 0, 8, 16, 24, ..., 64984, 64992
+        size : Any
+            Specifies max list size retrieved at a time.
+            Value Range: 1 - 8
+        lang : Any
+            Specifies list language. But menu names or text info are not
+            always necessarily pulled in a language specified here. If nothing
+            specified, English ("en") is used implicitly Values: 'en' (English), 'ja' (Japanese), 'fr' (French), 'de'
+            (German), 'es' (Spanish), 'ru' (Russian), 'it' (Italy), 'zh' (Chinese)
+        list_id : Any
+            Specifies list ID. If nothing specified, 'main' is chosen implicitly Values: 'main' (common for all Net/USB sources)
+            'auto_complete' (Pandora)
+            'search_artist' (Pandora)
+            'search_track' (Pandora)
         """
         assert lang in LANG, "Invalid LANG value!"
         return NetUSB.URI["GET_LIST_INFO"].format(
@@ -1800,23 +1856,23 @@ class NetUSB:
 
     @staticmethod
     def set_list_control(list_id, type, index, zone):
-        """
-        For control a list. Controllable list info is not limited to or independent from
-        current input.
+        """For control a list. Controllable list info is not limited to
+        or independent from current input.
 
-        Arguments:
-            @param list_id: Specifies list ID. If nothing specified, 'main' is chosen implicitly
-                       Values: 'main' (common for all Net/USB sources)
-                               'auto_complete' (Pandora)
-                               'search_artist' (Pandora)
-                               'search_track' (Pandora)
-            @param type: Specifies list transition type. 'select' is to enter and get into one deeper layer than the current
-                    layer where the element specified by the index belongs to. 'play' is to start playback current index
-                    element, 'return' is to go back one upper layer than current. 'select' and 'play' needs to specify
-                    an index at the same time. In case to 'select' an element with its attribute being 'Capable of Search',
-                    specify search text using setSearchString in advance. (Or it is possible to specify search text and
-                    move layers at the same time by specifying an index in setSearchString).
-                    Values: 'select', 'play', 'return'
+        Parameters
+        ----------
+        list_id : Any
+            Specifies list ID. If nothing specified, 'main' is chosen implicitly Values: 'main' (common for all Net/USB sources)
+            'auto_complete' (Pandora)
+            'search_artist' (Pandora)
+            'search_track' (Pandora)
+        type : Any
+            Specifies list transition type. 'select' is to enter and get into one deeper layer than the current
+            layer where the element specified by the index belongs to. 'play' is to start playback current index
+            element, 'return' is to go back one upper layer than current. 'select' and 'play' needs to specify
+            an index at the same time. In case to 'select' an element with its attribute being 'Capable of Search',
+            specify search text using setSearchString in advance. (Or it is possible to specify search text and
+            move layers at the same time by specifying an index in setSearchString). Values: 'select', 'play', 'return'
         """
         assert type in TYPE, "Invalid TYPE value!"
         assert zone in ZONES, "Invalid ZONE value!"
@@ -1826,25 +1882,26 @@ class NetUSB:
 
     @staticmethod
     def set_search_string(search_string, list_id=None, index=None):
-        """
-        For setting search text.
+        """For setting search text.
 
-        Specifies string executing this API before select an element with its attribute being “Capable of Search” or
-        retrieve info about searching list(Pandora).
+                Specifies string executing this API before select an element with its attribute being “Capable of Search” or
+                retrieve info about searching list(Pandora).
 
-        Arguments:
-                @param search_string: Value to search for.
-                @param list_id: Specifies list ID. If nothing specified, 'main' is chosen implicitly
-                           Values: 'main' (common for all Net/USB sources)
-                                   'auto_complete' (Pandora)
-                                   'search_artist' (Pandora)
-                                   'search_track' (Pandora)
-                @param index: Specifies an element position in the list being selected
-                         (offset from the beginning of the list). Valid only when the list_id is "main".
-                         Specifies index an element with its attribute being "Capable of Search"
-                         Controls same as setListControl "select" are to work with the index an element specified.
-                         If no index is specified, non-actions of select
-                         Values : 0 ~ 64999
+        Parameters
+        ----------
+        search_string : Any
+            Value to search for.
+        list_id : Any
+            Specifies list ID. If nothing specified, 'main' is chosen implicitly Values: 'main' (common for all Net/USB sources)
+            'auto_complete' (Pandora)
+            'search_artist' (Pandora)
+            'search_track' (Pandora)
+        index : Any
+            Specifies an element position in the list being selected
+            (offset from the beginning of the list). Valid only when the list_id is "main".
+            Specifies index an element with its attribute being "Capable of Search"
+            Controls same as setListControl "select" are to work with the index an element specified.
+            If no index is specified, non-actions of select Values : 0 ~ 64999
         """
         assert isinstance(search_string, str), "search_string has to be a str"
         payload = {"string": search_string}
@@ -1862,14 +1919,14 @@ class NetUSB:
 
     @staticmethod
     def recall_preset(zone, num):
-        """
-        For recalling a content preset.
+        """For recalling a content preset.
 
-        Arguments:
-            @param zone: Specifies station recalling zone. This causes input change in specified zone.
-                    Values: 'main', 'zone2', 'zone3', 'zone4'
-            @param num: Specifies Preset number.
-                   Value: one in the range gotten via /system/getFeatures
+        Parameters
+        ----------
+        zone : Any
+            Specifies station recalling zone. This causes input change in specified zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        num : Any
+            Specifies Preset number. Value: one in the range gotten via /system/getFeatures
         """
         assert zone in ZONES, "Invalid ZONE value!"
         return NetUSB.URI["RECALL_PRESET"].format(host="{host}", zone=zone, num=num)
@@ -1878,13 +1935,13 @@ class NetUSB:
 
     @staticmethod
     def store_preset(num):
-        """
-        For registering current content to a preset. Presets are common use among
-        Net/USB related input sources.
+        """For registering current content to a preset. Presets are
+        common use among Net/USB related input sources.
 
-        Arguments:
-            @param num: Specifying a preset number.
-                   Value: one in the range gotten via /system/getFeatures
+        Parameters
+        ----------
+        num : Any
+            Specifying a preset number. Value: one in the range gotten via /system/getFeatures
         """
         return NetUSB.URI["STORE_PRESET"].format(host="{host}", num=num)
 
@@ -1899,17 +1956,18 @@ class NetUSB:
 
     @staticmethod
     def switch_account(input, index, timeout):
-        """
-        For switching account for service corresponding multi account.
+        """For switching account for service corresponding multi
+        account.
 
-        Arguments:
-            @param input: Specifies target Input ID.
-                     Value: 'pandora'
-            @param index: Specifies switch account index.
-                     Value : 0 - 7 (Pandora)
-            @param timeout: Specifies timeout duration(ms) for this API process. If specifies 0,
-                       treat as maximum value.
-                       Value: 0 - 60000
+        Parameters
+        ----------
+        input : Any
+            Specifies target Input ID. Value: 'pandora'
+        index : Any
+            Specifies switch account index. Value : 0 - 7 (Pandora)
+        timeout : Any
+            Specifies timeout duration(ms) for this API process. If specifies 0,
+            treat as maximum value. Value: 0 - 60000
         """
         return NetUSB.URI["SWITCH_ACCOUNT"].format(host="{host}", input=input, index=index, timeout=timeout)
 
@@ -1917,27 +1975,29 @@ class NetUSB:
 
     @staticmethod
     def get_service_info(input, type, timeout):
-        """
-        For retrieving information of various Streaming Service. The combination of
-        Input/Type is available as follows;
+        """For retrieving information of various Streaming Service. The
+        combination of Input/Type is available as follows;
 
-                Account List (account_list) : retrieving list of account registed on Device
-                Licensing (licensing) : checking license
-                Activation Code (activation_code) : retrieving Activation Code
-                * Disable to check Rhapsody license by refering the value of this APIs response_code. a
-                  Device issues events of netusb - account_updated by condition, retrieve the info excute
-                  /netusb/getAccountStatus. (Sometimes Deivice not issue events)
-                * Before retrieve Activation Code, retrieve Account List and check not to reach Max about
-                  the num of registration.
-                Note: Rhapsody service name will be changed to Napster.
+        Account List (account_list) : retrieving list of account registed on Device
+        Licensing (licensing) : checking license
+        Activation Code (activation_code) : retrieving Activation Code
+        * Disable to check Rhapsody license by refering the value of this APIs response_code. a
+          Device issues events of netusb - account_updated by condition, retrieve the info excute
+          /netusb/getAccountStatus. (Sometimes Deivice not issue events)
+        * Before retrieve Activation Code, retrieve Account List and check not to reach Max about
+          the num of registration.
+        Note: Rhapsody service name will be changed to Napster.
 
-                Arguments:
-                    @param timeout: Specifies type of retrieving info Value:
-        "account_list" (Pandora) "licensing" (Napster / Pandora) "activation_code" (Pandora)
-                    @param type: Specifies type of retrieving info Value:
-        "account_list" (Pandora) "licensing" (Napster / Pandora) "activation_code" (Pandora)
-                    @param input: Specifies target Input ID.
-                             Value: 'pandora', 'rhapsody', 'napster'
+        Parameters
+        ----------
+        timeout : Any
+            Specifies type of retrieving info Value:
+            "account_list" (Pandora) "licensing" (Napster / Pandora) "activation_code" (Pandora)
+        type : Any
+            Specifies type of retrieving info Value:
+            "account_list" (Pandora) "licensing" (Napster / Pandora) "activation_code" (Pandora)
+        input : Any
+            Specifies target Input ID. Value: 'pandora', 'rhapsody', 'napster'
         """
         return NetUSB.URI["GET_SERVICE_INFO"].format(host="{host}", input=input, type=type, timeout=timeout)
 
@@ -1967,18 +2027,17 @@ class CD:
 
     @staticmethod
     def set_playback(playback, num):
-        """
-        For controlling playback status.
+        """For controlling playback status.
 
-        Arguments:
-        @param playback: Specifies playback status
-                    Values: 'play', 'stop', 'pause', 'previous', 'next',
-                            'fast_reverse_start', 'fast_reverse_end', 'fast_forward_start',
-                            'fast_forward_end', 'track_select'
-
-        @param num: Specifies target track number to playback.
-               This parameter is valid only when playback "track_select" is specified.
-               Values: 1-512
+        Parameters
+        ----------
+        playback : Any
+            Specifies playback status Values: 'play', 'stop', 'pause', 'previous', 'next',
+            'fast_reverse_start', 'fast_reverse_end', 'fast_forward_start',
+            'fast_forward_end', 'track_select'
+        num : Any
+            Specifies target track number to playback.
+            This parameter is valid only when playback "track_select" is specified. Values: 1-512
         """
         assert playback in PLAYBACK, "Invalid PLAYBACK value!"
         return CD.URI["SET_PLAYBACK"].format(host="{host}", playback=playback, num=num)
@@ -1994,8 +2053,7 @@ class CD:
 
     @staticmethod
     def toggle_repeat():
-        """
-        For toggling repeat setting.
+        """For toggling repeat setting.
 
         No direct / discrete setting commands available.
         """
@@ -2005,8 +2063,7 @@ class CD:
 
     @staticmethod
     def toggle_shuffle():
-        """
-        For toggling shuffle setting.
+        """For toggling shuffle setting.
 
         No direct / discrete setting commands available.
         """
@@ -2045,7 +2102,7 @@ class Debug:
 
 
 class Clock:
-    """APIs in regarding the clock/alarm setting and getting information."""
+    """APIs for clock and alarm configuration."""
 
     URI: ClassVar[dict[str, str]] = {
         "GET_CLOCK_SETTINGS": "http://{host}/YamahaExtendedControl/v1/clock/getSettings",
@@ -2073,30 +2130,31 @@ class Clock:
 
     @staticmethod
     def set_auto_sync(enable=True):
-        """
-        For setting clock time auto sync.
+        """For setting clock time auto sync.
 
-        Available only when "date_and_time" exists in clock - func_list under /system/getFeatures.
+                Available only when "date_and_time" exists in clock - func_list under /system/getFeatures.
 
-        Arguments:
-        @param enable: Specifies whether or not clock auto sync is valid
+        Parameters
+        ----------
+        enable : Any
+            Specifies whether or not clock auto sync is valid
         """
         assert isinstance(enable, bool)
         return Clock.URI["SET_AUTO_SYNC"].format(host="{host}", enable=_bool_to_str(enable))
 
     @staticmethod
     def set_date_and_time(date_time: list[datetime, str]):
-        """
-        For setting date and clock time.
+        """For setting date and clock time.
 
-        Available only when "date_and_time" exists in clock - func_list under /system/getFeatures.
+                Available only when "date_and_time" exists in clock - func_list under /system/getFeatures.
 
-        Arguments:
-        @param date_time: Specifies date and time set on device. Format is "YYMMDDhhmmss".
-                     Value : YY : 00 ~ 99 (Year / 2000 ~ 2099)
-                     MM : 01 ~ 12 (Month) DD : 01 ~ 31 (Day)
-                     hh : 00 ~ 23 (Hour) mm : 00 ~ 59 (Minute) ss : 00 ~ 59 (Second).
-                     Alternatively a python datetime object can be used.
+        Parameters
+        ----------
+        date_time : Any
+            Specifies date and time set on device. Format is "YYMMDDhhmmss". Value : YY : 00 ~ 99 (Year / 2000 ~ 2099)
+            MM : 01 ~ 12 (Month) DD : 01 ~ 31 (Day)
+            hh : 00 ~ 23 (Hour) mm : 00 ~ 59 (Minute) ss : 00 ~ 59 (Second).
+            Alternatively a python datetime object can be used.
         """
         if isinstance(date_time, datetime):
             dat_str = date_time.strftime("%y%m%d%H%M%S")
@@ -2107,14 +2165,14 @@ class Clock:
 
     @staticmethod
     def set_clock_format(clock_format: int):
-        """
-        For setting format of time display.
+        """For setting format of time display.
 
-        Available only when " clock_format " exists in clock - func_list under /system/getFeatures.
+                Available only when " clock_format " exists in clock - func_list under /system/getFeatures.
 
-        Arguments:
-        @param clock_format: format of time display
-                  Values: 12 (12-hour notation) / 24 (24-hour notation)
+        Parameters
+        ----------
+        clock_format : Any
+            format of time display Values: 12 (12-hour notation) / 24 (24-hour notation)
         """
         assert clock_format in {12, 24}, "Only 12 and 24 are possible formats"
         return Clock.URI["SET_CLOCK_FORMAT"].format(host="{host}", format=str(clock_format) + "h")
@@ -2137,42 +2195,53 @@ class Clock:
         preset_num=None,
         preset_snooze=None,
     ):
-        """
-        For setting alarm function.
+        """For setting alarm function.
 
-        Arguments:
-        @param alarm_on: Specifies alarm function status on/off
-        @param volume: Specifies alarm volume value
-                  Value Range : calculated by minimum/maximum/step value gotten via /system/getFeatures "alarm_volume"
-        @param fade_interval: Specifies alarm fade interval (unit in second)
-                         Value Range : calculated by minimum/maximum/step
-                         value gotten via /system/getFeatures "alarm_fade"
-        @param fade_type: Specifies alarm fade type
-                     Value : 1 ~ fade_type_max ( value gotten via /system/getFeatures)
-        @param mode: Specifies alarm mode
-                Value : one gotten via /system/getFeatures "alarm_mode_list"
-        @param repeat: Specifies repeat setting. This parameter is valid only when alarm mode "oneday" is specified
-        @param day: Specifies target date for alarm setting.
-                   This parameter is specified certainly when set detail parameters.
-                   Value: "oneday" / "sunday" / "monday" / "tuesday" / "wednesday " / "thursday" / "friday" / "saturday"
-        @param enable: 対象日のアラーム設定の有効/無効を指定します。:> WTF?
-                    According to google translate: Specify whether to enable/disable the alarm setting for the target day
-        @param alarm_time: Specifies alarm start-up time.
-                        Format is "hhmm" Values : hh : 00 ~ 23 (Hour) mm : 00 ~ 59 (Minute)
-        @param beep: Specifies whether or not beep is valid.
-        @param playback_type: Specifies playback type Value : "resume" / "preset"
-        @param resume_input: Specifies target Input ID to playback for resume.
-                        No playback when "none" is specified.
-                        Values: Input IDs gotten via /system/getFeatures "alarm_input_list"
-                        This parameter is valid only when playback_type "resume" is specified.
-        @param preset_type: Specifies preset type. Values: Type gotten via /system/getFeatures "alarm_preset_list".
-                       This parameter is valid only when playback_type "preset" is specified.
-        @param preset_num: Specifies preset number. Selectable preset number in each preset type is
-                      readable in /system/getFeatures.
-                      This parameter is valid only when playback_type "preset" is specified.
-        @param preset_snooze: Returns snooze setting. Available only when "snooze" exists in func_list
-                         under /system/getFeatures.
-                         This parameter is valid only when playback_type "preset" is specified.
+        Parameters
+        ----------
+        alarm_on : Any
+            Specifies alarm function status on/off
+        volume : Any
+            Specifies alarm volume value
+            Value Range : calculated by minimum/maximum/step value gotten via /system/getFeatures "alarm_volume"
+        fade_interval : Any
+            Specifies alarm fade interval (unit in second)
+            Value Range : calculated by minimum/maximum/step
+            value gotten via /system/getFeatures "alarm_fade"
+        fade_type : Any
+            Specifies alarm fade type Value : 1 ~ fade_type_max ( value gotten via /system/getFeatures)
+        mode : Any
+            Specifies alarm mode Value : one gotten via /system/getFeatures "alarm_mode_list"
+        repeat : Any
+            Specifies repeat setting. This parameter is valid only when alarm mode "oneday" is specified
+        day : Any
+            Specifies target date for alarm setting.
+            This parameter is specified certainly when set detail parameters. Value: "oneday" / "sunday" / "monday" / "tuesday" / "wednesday " / "thursday" / "friday" / "saturday"
+        enable : Any
+            対象日のアラーム設定の有効/無効を指定します。:> WTF?
+            According to google translate: Specify whether to enable/disable the alarm setting for the target day
+        alarm_time : Any
+            Specifies alarm start-up time.
+            Format is "hhmm" Values : hh : 00 ~ 23 (Hour) mm : 00 ~ 59 (Minute)
+        beep : Any
+            Specifies whether or not beep is valid.
+        playback_type : Any
+            Specifies playback type Value : "resume" / "preset"
+        resume_input : Any
+            Specifies target Input ID to playback for resume.
+            No playback when "none" is specified. Values: Input IDs gotten via /system/getFeatures "alarm_input_list"
+            This parameter is valid only when playback_type "resume" is specified.
+        preset_type : Any
+            Specifies preset type. Values: Type gotten via /system/getFeatures "alarm_preset_list".
+            This parameter is valid only when playback_type "preset" is specified.
+        preset_num : Any
+            Specifies preset number. Selectable preset number in each preset type is
+            readable in /system/getFeatures.
+            This parameter is valid only when playback_type "preset" is specified.
+        preset_snooze : Any
+            Returns snooze setting. Available only when "snooze" exists in func_list
+            under /system/getFeatures.
+            This parameter is valid only when playback_type "preset" is specified.
         """
         payload = {}
         if alarm_on is not None:

@@ -49,8 +49,8 @@ docs = [
 
 [tool.docformatter]
 wrap-descriptions = 72
-wrap-summaries = 88
-pre-summary-newline = true
+wrap-summaries = 72
+pre-summary-newline = false
 
 [tool.ruff]
 line-length = 120

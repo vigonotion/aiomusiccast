@@ -34,6 +34,9 @@ $ uv run pre-commit install --install-hooks
 
 There is no automated test suite yet. Static checks are the primary safety net.
 
+Docstrings follow the NumPy convention; the pre-commit hooks (docformatter and
+Ruff) keep them consistent automatically.
+
 ```text
 $ uv run ruff format aiomusiccast
 $ uv run ruff check aiomusiccast

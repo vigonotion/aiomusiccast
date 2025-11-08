@@ -45,8 +45,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def _check_feature(feature: Feature) -> Callable[[Callable[P, R]], Callable[P, R]]:
-    """
-    Return a decorator that checks whether a feature is supported.
+    """Return a decorator that checks whether a feature is supported.
 
     Should be used for all methods of MusicCastDevice, which rely on
     features. A decorated function relying on a zone feature must
@@ -192,7 +191,7 @@ class MusicCastDevice:
             callback()
 
     def register_callback(self, callback: Callback) -> None:
-        """Register callback, called when MusicCastDevice changes state."""
+        """Register callbacks invoked when the device changes state."""
         self._callbacks.add(callback)
 
     def remove_callback(self, callback: Callback) -> None:
@@ -200,8 +199,7 @@ class MusicCastDevice:
         self._callbacks.discard(callback)
 
     async def _update_input(self, zone_id: str, new_input: str) -> None:
-        """
-        Trigger group updates when a zone switches to or from MC_LINK.
+        """Trigger group updates when a zone toggles MC_LINK state.
 
         The helper ensures that listeners receive callbacks whenever the
         link state changes.
@@ -540,12 +538,12 @@ class MusicCastDevice:
         await self.device.request(Zone.set_volume(zone_id, round(vol), 1))
 
     async def volume_up(self, zone_id, step=None):
-        """Turn up the volume by step or by the default step of the zone."""
+        """Increase volume by the provided step or the default step."""
 
         await self.device.request(Zone.set_volume(zone_id, "up", step))
 
     async def volume_down(self, zone_id, step=None):
-        """Turn down the volume by step or by the default step of the zone."""
+        """Decrease volume by the provided step or the default step."""
 
         await self.device.request(Zone.set_volume(zone_id, "down", step))
 
@@ -561,7 +559,7 @@ class MusicCastDevice:
 
     @_check_feature(ZoneFeature.DIALOGUE_LEVEL)
     async def set_dialogue_level(self, zone_id, level):
-        """Set the level by which the dialogues should be increased/lowered."""
+        """Adjust the dialogue level for the zone."""
         await self.device.request(Zone.set_dialogue_level(zone_id, level))
 
     @_check_feature(ZoneFeature.DIALOGUE_LIFT)
@@ -571,7 +569,7 @@ class MusicCastDevice:
 
     @_check_feature(ZoneFeature.DTS_DIALOGUE_CONTROL)
     async def set_dts_dialogue_control(self, zone_id, value):
-        """Set the level by which the dialogues should be changed in DTS."""
+        """Adjust the dialogue level for DTS sound programs."""
         await self.device.request(Zone.set_dts_dialogue_control(zone_id, value))
 
     @_check_feature(ZoneFeature.EXTRA_BASS)
@@ -586,7 +584,7 @@ class MusicCastDevice:
 
     @_check_feature(ZoneFeature.ENHANCER)
     async def set_enhancer(self, zone_id, value):
-        """Set the enhancer to enhance the audio stream on the device."""
+        """Enable or disable the audio enhancer for the device."""
         await self.device.request(Zone.set_enhancer(zone_id, value))
 
     @_check_feature(DeviceFeature.PARTY_MODE)
@@ -601,12 +599,12 @@ class MusicCastDevice:
 
     @_check_feature(ZoneFeature.PURE_DIRECT)
     async def set_pure_direct(self, zone_id, value):
-        """Set pure direct mode to pass through the signal without any adjustments."""
+        """Set pure direct mode to pass through the signal."""
         await self.device.request(Zone.set_pure_direct(zone_id, value))
 
     @_check_feature(ZoneFeature.LINK_AUDIO_DELAY)
     async def set_link_audio_delay(self, zone_id, option):
-        """Set the audio delay to prefer lip sync or sync of multi room audio."""
+        """Select if lip sync or sync of multi room is preferred."""
         await self.device.request(Zone.set_link_audio_delay(zone_id, option))
 
     @_check_feature(ZoneFeature.LINK_AUDIO_QUALITY)
@@ -729,18 +727,27 @@ class MusicCastDevice:
         enable_day: bool | None = None,
         beep: bool | None = None,
     ) -> None:
-        """
-        Configure an alarm.
+        """Configure an alarm.
 
-        @param alarm_on: Define whether the alarm should be turned on (bool)
-        @param volume: Alarm volume 0..1 (float)
-        @param alarm_time: Alarm time in str in hh:mm form or as time object (valid only with mode and day)
-        @param source: Source for the alarm in PLAYBACKTYPE:SOURCE[:ID] form e.g. preset:netusb:2
-        (valid only with mode and day)
-        @param mode: 'oneday' or 'weekly' must be set together with day
-        @param day: Must be set with mode
-        @param enable_day: Define whether to enable the alarm for the defined day (valid only with mode and day)
-        @param beep: Define to enable the beep mode (valid only with mode and day)
+        Parameters
+        ----------
+        alarm_on : Any
+            Define whether the alarm should be turned on (bool)
+        volume : Any
+            Alarm volume 0..1 (float)
+        alarm_time : Any
+            Alarm time in str in hh:mm form or as time object (valid only with mode and day)
+        source : Any
+            Source for the alarm in PLAYBACKTYPE:SOURCE[:ID] form e.g. preset:netusb:2
+            (valid only with mode and day)
+        mode : Any
+            'oneday' or 'weekly' must be set together with day
+        day : Any
+            Must be set with mode
+        enable_day : Any
+            Define whether to enable the alarm for the defined day (valid only with mode and day)
+        beep : Any
+            Define to enable the beep mode (valid only with mode and day)
         """
         resume_input = None
         preset_type = None
@@ -913,11 +920,11 @@ class MusicCastDevice:
     # -----Group Management------
 
     def register_group_update_callback(self, callback: AsyncCallback) -> None:
-        """Register async methods called after changes of the distribution data here."""
+        """Register callbacks invoked after distribution updates."""
         self._group_update_callbacks.add(callback)
 
     def remove_group_update_callback(self, callback: AsyncCallback) -> None:
-        """Remove async methods called after changes of the distribution data here."""
+        """Remove callbacks invoked after distribution data changes."""
         self._group_update_callbacks.discard(callback)
 
     # Simple check functions for better code readability
@@ -965,8 +972,7 @@ class MusicCastDevice:
     # Group server functions
 
     async def mc_server_group_extend(self, zone, client_ips, group_id, distribution_num, retry=True):
-        """
-        Extend the given group by the given clients.
+        """Extend the given group by the given clients.
 
         If the group does not exist, it will be created.
         """
@@ -1057,8 +1063,7 @@ class MusicCastDevice:
             raise MusicCastGroupException(self.ip + ": Failed to leave group")
 
     async def zone_unjoin(self, zone_id, retry=True):
-        """
-        Stop playback for one zone while keeping the device in the group.
+        """Stop playback for one zone while keeping the device grouped.
 
         The previous input is restored if possible and the zone is
         turned off.
@@ -1080,8 +1085,7 @@ class MusicCastDevice:
             raise MusicCastGroupException(self.ip + ": Failed to leave group with zone " + zone_id)
 
     async def zone_join(self, zone_id, retry=True):
-        """
-        Join a MusicCast group with another zone from the same device.
+        """Join a MusicCast group with another zone on this device.
 
         The zone switches to the MC_LINK input and retries automatically
         on transient failures.
@@ -1100,8 +1104,7 @@ class MusicCastDevice:
     # Misc
 
     def get_save_inputs(self, zone_id):
-        """
-        Return a save save source for the given zone_id.
+        """Return a save save source for the given zone_id.
 
         A save input can be any input except netusb ones if the netusb
         module is already in use.
