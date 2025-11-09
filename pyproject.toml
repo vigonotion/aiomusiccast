@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aiomusiccast"
-version = "0.0.0"  # Version is automatically filled by GitHub action.
+dynamic = ["version"]
 description = "Companion library for musiccast devices intended for the Home Assistant integration."
 readme = "README.md"
 license = { file = "LICENSE.md" }
@@ -31,6 +31,9 @@ dependencies = [
 Homepage = "https://pypi.org/project/aiomusiccast"
 Documentation = "https://aiomusiccast.readthedocs.io"
 Repository = "https://github.com/vigonotion/aiomusiccast"
+
+[tool.hatch.version]
+path = "aiomusiccast/__init__.py"
 
 [dependency-groups]
 dev = [
