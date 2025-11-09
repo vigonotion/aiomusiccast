@@ -2,21 +2,16 @@
 
 ## Requirements
 
-* Make:
-    * macOS: `$ xcode-select --install`
-    * Linux: [https://www.gnu.org/software/make](https://www.gnu.org/software/make)
-    * Windows: [https://mingw.org/download/installer](https://mingw.org/download/installer)
-* Python: `$ pyenv install`
-* Poetry: [https://poetry.eustace.io/docs/#installation](https://poetry.eustace.io/docs/#installation)
-* Graphviz:
+* Python 3.10–3.14 (for example via [pyenv](https://github.com/pyenv/pyenv#installation))
+* uv: [https://docs.astral.sh/uv/getting-started/installation/](https://docs.astral.sh/uv/getting-started/installation/)
+* Graphviz (only required for UML/doc generation):
     * macOS: `$ brew install graphviz`
-    * Linux: [https://graphviz.org/download](https://graphviz.org/download/)
-    * Windows: [https://graphviz.org/download](https://graphviz.org/download/)
+    * Linux / Windows: [https://graphviz.org/download](https://graphviz.org/download/)
 
 To confirm these system dependencies are configured correctly:
 
 ```text
-$ make doctor
+$ ./bin/verchew
 ```
 
 ## Installation
@@ -24,61 +19,63 @@ $ make doctor
 Install project dependencies into a virtual environment:
 
 ```text
-$ make install
+$ uv sync
+```
+
+Install the pre-commit hooks (run once per clone):
+
+```text
+$ uv run pre-commit install --install-hooks
 ```
 
 # Development Tasks
 
 ## Manual
 
-Run the tests:
+There is no automated test suite yet. Static checks are the primary safety net.
+
+Docstrings follow the NumPy convention; the pre-commit hooks (docformatter and
+Ruff) keep them consistent automatically.
 
 ```text
-$ make test
-```
-
-Run static analysis:
-
-```text
-$ make check
+$ uv run ruff format aiomusiccast
+$ uv run ruff check aiomusiccast
+$ uv run mypy aiomusiccast --config-file=.mypy.ini
 ```
 
 Build the documentation:
 
 ```text
-$ make docs
+$ uv run mkdocs build --clean --strict
 ```
 
 ## Automatic
 
-Keep all of the above tasks running on change:
+Use your editor’s on-save hooks or a simple watcher such as `entr` to rerun the commands above, e.g.
+`find aiomusiccast -name '*.py' | entr -r uv run ruff check aiomusiccast`.
+
+You can also run the full hook suite manually:
 
 ```text
-$ make watch
+$ uv run pre-commit run --all-files
 ```
-
-> In order to have OS X notifications, `brew install terminal-notifier`.
 
 # Continuous Integration
 
-The CI server will report overall build status:
-
-```text
-$ make ci
-```
+CI runs the same Ruff and mypy checks defined above.
 
 # Demo Tasks
 
 Run the program:
 
 ```text
-$ make run
-````
+$ uv run python aiomusiccast/__main__.py
+```
 
 Launch an IPython session:
 
 ```text
-$ make ipython
+$ uv run ipython --ipython-dir=notebooks
 ```
 
 # Release Tasks
@@ -86,5 +83,6 @@ $ make ipython
 Release to PyPI:
 
 ```text
-$ make upload
+$ uv build
+$ UV_PUBLISH_TOKEN=... uv publish
 ```

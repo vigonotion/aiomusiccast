@@ -1,6 +1,5 @@
 from aiomusiccast.features import DeviceFeature, ZoneFeature
 
-
 DEVICE_FUNC_LIST_TO_FEATURE_MAPPING = {
     "wired_lan": DeviceFeature.WIRED_LAN,
     "wireless_lan": DeviceFeature.WIRELESS_LAN,
@@ -11,7 +10,7 @@ DEVICE_FUNC_LIST_TO_FEATURE_MAPPING = {
     "network_standby_auto": DeviceFeature.NETWORK_STANDBY_AUTO,
     "bluetooth_standby": DeviceFeature.BLUETOOTH_STANDBY,
     "bluetooth_tx_setting": DeviceFeature.BLUETOOTH_TX_SETTING,
-    'bluetooth_tx_connectivity_type': DeviceFeature.BLUETOOTH_TX_CONNECTIVITY_TYPE,
+    "bluetooth_tx_connectivity_type": DeviceFeature.BLUETOOTH_TX_CONNECTIVITY_TYPE,
     "auto_power_standby": DeviceFeature.AUTO_POWER_STANDBY,
     "ir_sensor": DeviceFeature.IR_SENSOR,
     "speaker_a": DeviceFeature.SPEAKER_A,
@@ -33,7 +32,7 @@ DEVICE_FUNC_LIST_TO_FEATURE_MAPPING = {
     "auto_play": DeviceFeature.AUTO_PLAY,
     "speaker_pattern": DeviceFeature.SPEAKER_PATTERN,
     "party_mode": DeviceFeature.PARTY_MODE,
-    'analytics': DeviceFeature.ANALYTICS,
+    "analytics": DeviceFeature.ANALYTICS,
     "ypao_volume": DeviceFeature.YPAO_VOLUME,
     "party_volume": DeviceFeature.PARTY_VOLUME,
     "party_mute": DeviceFeature.PARTY_MUTE,
@@ -105,6 +104,4 @@ MAIN_SYNC = "main_sync"
 MC_LINK_SOURCES = [MC_LINK, MAIN_SYNC]
 NULL_GROUP = "00000000000000000000000000000000"
 
-DISPLAY_DIMMER_SPECIALS = {
-    -1: "auto"
-}
+DISPLAY_DIMMER_SPECIALS = {-1: "auto"}

@@ -1,0 +1,46 @@
+# Linting and formatting powered by uv (inspired by py-capellambse)
+default_install_hook_types: [pre-commit, commit-msg]
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-ast
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+      - id: debug-statements
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+  - repo: local
+    hooks:
+      - id: docformatter
+        name: docformatter
+        language: system
+        entry: uv run --dev docformatter --config pyproject.toml --in-place
+        types_or: [python]
+        require_serial: true
+  - repo: local
+    hooks:
+      - id: ruff-format
+        name: ruff format
+        language: system
+        entry: uv run --dev ruff format
+        types_or: [python, pyi, jupyter]
+        require_serial: true
+      - id: ruff
+        name: ruff lint
+        language: system
+        entry: uv run --dev ruff check --output-format=concise --fix
+        types_or: [python, pyi, jupyter]
+        require_serial: true
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        language: system
+        entry: uv run --dev mypy aiomusiccast --config-file=.mypy.ini
+        types_or: [python, pyi, toml, yaml]
+        pass_filenames: false
+        require_serial: true

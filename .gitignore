@@ -46,4 +46,7 @@ Icon*
 # Eclipse
 .settings
 
+# PyCharm
+.idea/
+
 venv/

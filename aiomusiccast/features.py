@@ -8,7 +8,6 @@ class Feature(Flag):
 
 
 class DeviceFeature(Feature):
-
     NONE = 0
 
     WIRED_LAN = auto()

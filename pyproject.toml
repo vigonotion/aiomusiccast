@@ -1,75 +1,113 @@
-[tool.poetry]
+[build-system]
+requires = ["hatchling>=1.25.0"]
+build-backend = "hatchling.build"
 
+[project]
 name = "aiomusiccast"
-version = "0.0.0" # Version is automatically filled by github action.
+version = "0.0.0"  # Version is automatically filled by GitHub action.
 description = "Companion library for musiccast devices intended for the Home Assistant integration."
-
-license = "MIT"
-
-authors = ["Tom Schneider <mail@vigonotion.com>"]
-
 readme = "README.md"
-
-homepage = "https://pypi.org/project/aiomusiccast"
-documentation = "https://aiomusiccast.readthedocs.io"
-repository = "https://github.com/vigonotion/aiomusiccast"
-
-keywords = [
-]
+license = { file = "LICENSE.md" }
+authors = [{ name = "Tom Schneider", email = "mail@vigonotion.com" }]
+requires-python = ">=3.10"
+keywords = []
 classifiers = [
-    # TODO: update this list to match your application: https://pypi.org/pypi?%3Aaction=list_classifiers
     "Development Status :: 1 - Planning",
     "Natural Language :: English",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = [
+    "aiohttp>=3.9",
 ]
 
-[tool.poetry.dependencies]
+[project.urls]
+Homepage = "https://pypi.org/project/aiomusiccast"
+Documentation = "https://aiomusiccast.readthedocs.io"
+Repository = "https://github.com/vigonotion/aiomusiccast"
 
-python = "^3.8"
-aiohttp = "^3.7.4"
+[dependency-groups]
+dev = [
+    "docformatter[tomli]>=1.7.7",
+    "ipython>=8.24.0",
+    "mkdocs>=1.5.3",
+    "mypy>=1.8.0",
+    "pre-commit>=3.7.0",
+    "pygments>=2.15.0",
+    "ruff>=0.5.0",
+]
+docs = [
+    "mkdocs>=1.5.3",
+    "pygments>=2.15.0",
+]
 
-[tool.poetry.dev-dependencies]
+[tool.docformatter]
+wrap-descriptions = 72
+wrap-summaries = 72
+pre-summary-newline = false
 
-# Formatters
-black = "=20.8b1"
-isort = "=5.5.1"
+[tool.ruff]
+line-length = 120
+target-version = "py310"
 
-# Linters
-mypy = "*"
-pydocstyle = "*"
-pylint = "~2.6.0"
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
 
-# Testing
-pytest = "^5.3.2"
-pytest-cov = "*"
-pytest-describe = { git = "https://github.com/pytest-dev/pytest-describe", rev = "453aa9045b265e313f356f1492d8991c02a6aea6" } # use 2.0 when released
-pytest-expecter = "^2.1"
-pytest-random = "*"
-freezegun = "*"
+[tool.ruff.lint]
+extend-select = [
+    "ARG",
+    "B",
+    "C4",
+    "D",
+    "DTZ",
+    "ERA",
+    "FA",
+    "FIX",
+    "FURB",
+    "G",
+    "I",
+    "ICN",
+    "ISC",
+    "LOG",
+    "PIE",
+    "PL",
+    "PT",
+    "RET",
+    "RUF",
+    "SIM",
+    "T1",
+    "UP",
+    "YTT",
+]
+ignore = [
+    "D1",
+    "D201",
+    "D202",
+    "D203",
+    "D204",
+    "D211",
+    "D213",
+    "E501",
+    "PLC0414",
+    "PLR0911",
+    "PLR0912",
+    "PLR0913",
+    "PLR0914",
+    "PLR0915",
+    "PLR0917",
+    "PLR2004",
+]
 
-# Reports
-coveragespace = "^4.0"
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+ignore-decorators = ["typing.overload"]
 
-# Documentation
-mkdocs = "~1.0"
-pygments = "^2.5.2"
-
-# Tooling
-pyinstaller = "*"
-sniffer = "*"
-MacFSEvents = { version = "*", platform = "darwin" }
-pync = { version = "*", platform = "darwin" }
-ipython = "^7.12.0"
-
-[tool.black]
-
-target-version = ["py36", "py37", "py38"]
-skip-string-normalization = true
-
-[build-system]
-
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+[tool.ruff.lint.isort]
+combine-as-imports = true

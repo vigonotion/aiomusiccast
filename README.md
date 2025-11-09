@@ -21,7 +21,7 @@
 
 ## Requirements
 
-* Python 3.8+
+* Python 3.10–3.14
 
 ## Installation
 
@@ -31,10 +31,10 @@ Install it directly into an activated virtual environment:
 $ pip install aiomusiccast
 ```
 
-or add it to your [Poetry](https://poetry.eustace.io/) project:
+or add it to your [uv](https://docs.astral.sh/uv/) project:
 
 ```text
-$ poetry add aiomusiccast
+$ uv add aiomusiccast
 ```
 
 # Usage
