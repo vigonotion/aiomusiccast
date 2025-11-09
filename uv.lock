@@ -137,7 +137,6 @@ wheels = [
 
 [[package]]
 name = "aiomusiccast"
-version = "0.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },

@@ -20,6 +20,9 @@ __all__ = [
     "ZoneFeature",
 ]
 
+# Placeholder value replaced via `hatch version`.
+__version__ = "0.0.0"
+
 try:
     __version__ = metadata.version("aiomusiccast")
 except metadata.PackageNotFoundError:

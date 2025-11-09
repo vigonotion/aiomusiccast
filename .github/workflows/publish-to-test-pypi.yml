@@ -1,16 +1,21 @@
 name: Publish (Test PyPI)
 
 on:
+  workflow_dispatch:
+    inputs:
+      prerelease_suffix:
+        description: "Optional suffix to append (e.g. dev42). Leave empty to auto-generate."
+        required: false
   release:
     types: [created]
 
 jobs:
   deploy:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -21,11 +26,31 @@ jobs:
         python -m pip install uv hatch
     - name: Sync dependencies
       run: uv sync --locked
-    - name: Set project version from tag
-      run: uv run hatch version "$(git describe --tags --abbrev=0)"
+    - name: Determine version
+      id: version
+      env:
+        EVENT_NAME: ${{ github.event_name }}
+        RELEASE_TAG: ${{ github.event.release.tag_name }}
+        PRERELEASE_SUFFIX: ${{ inputs.prerelease_suffix }}
+        RUN_NUMBER: ${{ github.run_number }}
+      run: |
+        if [[ "$EVENT_NAME" == "release" && -n "$RELEASE_TAG" ]]; then
+            VERSION="$RELEASE_TAG"
+        else
+            BASE_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
+            VERSION="${BASE_TAG}.dev${RUN_NUMBER}"
+        fi
+
+        if [[ -n "$PRERELEASE_SUFFIX" ]]; then
+            VERSION="${VERSION}.${PRERELEASE_SUFFIX}"
+        fi
+
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+    - name: Set project version
+      run: uv run hatch version "${{ steps.version.outputs.version }}"
     - name: Build distribution
       run: uv build
     - name: Publish to Test PyPI
       env:
         UV_PUBLISH_TOKEN: ${{ secrets.TEST_PYPI_TOKEN }}
-      run: uv publish --repository-url https://test.pypi.org/legacy/
+      run: uv publish --publish-url https://test.pypi.org/legacy/
