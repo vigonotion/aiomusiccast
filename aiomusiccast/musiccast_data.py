@@ -105,6 +105,10 @@ class MusicCastData:
         self.speaker_a: bool | None = None
         self.speaker_b: bool | None = None
 
+        # Speaker Pattern
+        self.speaker_pattern: int | None = None
+        self.speaker_pattern_list: list[int] = []
+
         self.party_enable: bool | None = None
 
         self.capabilities: list[str] = []

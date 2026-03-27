@@ -362,6 +362,10 @@ class MusicCastDevice:
         if DeviceFeature.SPEAKER_B in self.features:
             self.data.speaker_b = self._func_status.get("speaker_b")
 
+        if DeviceFeature.SPEAKER_PATTERN in self.features:
+            raw = self._func_status.get("speaker_pattern")
+            self.data.speaker_pattern = int(raw) if raw is not None else None
+
         if DeviceFeature.DIMMER in self.features and "dimmer" in self._func_status and self.data.dimmer:
             self.data.dimmer.dimmer_current = self._func_status.get("dimmer")
 
@@ -505,6 +509,10 @@ class MusicCastDevice:
         if DeviceFeature.DIMMER in self.features and ranges:
             dimmer_range = next(filter(lambda x: x.get("id") == "dimmer", ranges))
             self.data.dimmer = Dimmer(dimmer_range.get("min"), dimmer_range.get("max"), dimmer_range.get("step"), 0)
+
+        if DeviceFeature.SPEAKER_PATTERN in self.features:
+            num_patterns = self._features.get("system", {}).get("speaker_pattern_num", 0)
+            self.data.speaker_pattern_list = list(range(1, num_patterns + 1))
 
         await self._fetch_func_status()
 
@@ -654,6 +662,11 @@ class MusicCastDevice:
     async def set_speaker_b(self, speaker_b: bool):
         """Set speaker b."""
         await self.device.request(System.set_speaker_b(speaker_b))
+
+    @_check_feature(DeviceFeature.SPEAKER_PATTERN)
+    async def set_speaker_pattern(self, num: int):
+        """Set the speaker pattern."""
+        await self.device.request(System.set_speaker_pattern(num))
 
     @_check_feature(ZoneFeature.SUBWOOFER_VOLUME)
     async def set_subwoofer_volume(self, zone_id, level):
