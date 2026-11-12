@@ -25,6 +25,7 @@ class MusicCastMediaContent:
         "juke",
         "radiko",
         "qobuz",
+        "tidal",
         "deezer",
         "amazon_music",
     )
