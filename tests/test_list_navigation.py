@@ -188,5 +188,56 @@ class PlayTest(unittest.IsolatedAsyncioTestCase):
                 await play(device, content_id)
 
 
+class SearchTest(unittest.IsolatedAsyncioTestCase):
+    def setUp(self) -> None:
+        patcher = mock.patch.object(ListNavigator, "POLL_INTERVAL", 0)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    async def test_search_from_input_root(self) -> None:
+        device = FakeDevice()
+
+        results = await MusicCastMediaContent.search(cast("Any", device), "main", "input:tidal", "Coltrane")
+
+        assert device.searches == ["Coltrane"]
+        assert titles(results) == ["Albums", "Coltrane album 1", "Coltrane album 2"]
+        assert parse_path_content_id(cast("str", results.children[1].content_id)) == (
+            "tidal",
+            ("s2", 1),
+            None,
+            "Coltrane",
+        )
+
+    async def test_search_from_a_searchable_entry(self) -> None:
+        device = FakeDevice()
+        root = await browse(device, "input:tidal")
+
+        results = await MusicCastMediaContent.search(
+            cast("Any", device), "main", cast("str", root.children[2].content_id), "Miles"
+        )
+
+        assert titles(results)[1:] == ["Miles album 1", "Miles album 2"]
+
+    async def test_results_stay_valid_after_another_search(self) -> None:
+        device = FakeDevice()
+        results = await MusicCastMediaContent.search(cast("Any", device), "main", "input:tidal", "Coltrane")
+        await MusicCastMediaContent.search(cast("Any", device), "main", "input:tidal", "Miles")
+
+        await play(device, cast("str", results.children[2].content_id))
+        album = await browse(device, cast("str", results.children[1].content_id))
+
+        assert device.played == ["Coltrane album 2"]
+        assert album.title == "Coltrane album 1"
+        assert device.searches == ["Coltrane", "Miles", "Coltrane"]
+
+    async def test_search_needs_a_searchable_entry(self) -> None:
+        device = FakeDevice()
+
+        with self.assertRaises(ValueError):  # noqa: PT027 - unittest based test suite
+            await MusicCastMediaContent.search(
+                cast("Any", device), "main", entry_content_id("tidal", MY_MUSIC), "Miles"
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
