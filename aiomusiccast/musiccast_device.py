@@ -819,6 +819,14 @@ class MusicCastDevice:
     async def play_list_media(self, item, zone_id):
         await self.device.request(NetUSB.set_list_control("main", "play", item, zone_id))
 
+    async def search_list_item(self, search_string, item):
+        """Run a search on a list entry that is capable of search.
+
+        The device enters the entry with the search applied, like selecting
+        it with ``select_list_item``.
+        """
+        return await self.device.request_json(NetUSB.set_search_string(search_string, "main", int(item)))
+
     async def play_url_media(self, zone_id, media_url, title, mime_type=None):
         await self.select_source(zone_id, "server", "autoplay_disabled")
 
