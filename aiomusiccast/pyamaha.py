@@ -346,10 +346,18 @@ class AsyncDevice:
             "SOAPACTION": f'"{self.upnp_avt_ns}#{action}"',
             "Accept": "*/*",
             "User-Agent": "MusicCast/4673 (iOS)",  # Otherwise the main zone switches to server source on play commands
-            "Content-Length": str(len(body)),
         }
+        # Content-Length must count bytes, not characters: with any non-ASCII
+        # character (e.g. in a title) the speaker would answer HTTP 400.
+        data = body.encode("utf-8")
+        headers["Content-Length"] = str(len(data))
 
-        return await self.client.request("POST", avt_ctrl_url, headers=headers, data=body)
+        try:
+            return await self.client.request("POST", avt_ctrl_url, headers=headers, data=data)
+        except (ClientError, asyncio.TimeoutError):
+            # The speaker closes kept-alive connections; retry once on a new one.
+            await asyncio.sleep(0.3)
+            return await self.client.request("POST", avt_ctrl_url, headers=headers, data=data)
 
 
 # end-of-class Device
