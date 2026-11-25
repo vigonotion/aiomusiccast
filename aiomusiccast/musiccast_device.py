@@ -847,8 +847,8 @@ class MusicCastDevice:
             'xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" '
             'xmlns:sec="http://www.sec.co.kr/">'
             '<item id="0" parentID="-1" restricted="false">'
-            f"<dc:title>{title}</dc:title><upnp:class>{obj_class}</upnp:class>"
-            f'<res protocolInfo="http-get:*:{mime_type}:*">{media_url}</res>'
+            f"<dc:title>{escape(title)}</dc:title><upnp:class>{obj_class}</upnp:class>"
+            f'<res protocolInfo="http-get:*:{mime_type}:*">{escape(media_url)}</res>'
             "</item>"
             "</DIDL-Lite>"
         )
@@ -857,7 +857,7 @@ class MusicCastDevice:
             "SetAVTransportURI",
             {
                 "InstanceID": 0,
-                "CurrentURI": media_url,
+                "CurrentURI": escape(media_url),
                 "CurrentURIMetaData": escape(meta),
             },
         )
