@@ -4,10 +4,37 @@ import logging
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import ClassVar
+from urllib.parse import urlsplit, urlunsplit
 
 from .musiccast_device import MusicCastDevice
 
 Logger = logging.getLogger(__name__)
+
+# Hosts that serve the same artwork over HTTPS. Devices report e.g.
+# http://resources.tidal.com:80/images/..., which browsers block as mixed
+# content when the frontend is served over HTTPS.
+HTTPS_THUMBNAIL_HOSTS = ("resources.tidal.com",)
+
+
+def secure_thumbnail(url: str | None) -> str | None:
+    """Return an HTTPS URL for artwork hosts known to support it.
+
+    Parameters
+    ----------
+    url
+        Thumbnail URL as reported by the device.
+
+    Returns
+    -------
+    str | None
+        The HTTPS URL for known hosts, otherwise ``url`` unchanged.
+    """
+    if not url or not url.startswith("http://"):
+        return url
+    parts = urlsplit(url)
+    if parts.hostname not in HTTPS_THUMBNAIL_HOSTS or parts.port not in (None, 80):
+        return url
+    return urlunsplit(("https", parts.hostname, parts.path, parts.query, parts.fragment))
 
 
 @dataclass(slots=True)
@@ -25,6 +52,7 @@ class MusicCastMediaContent:
         "juke",
         "radiko",
         "qobuz",
+        "tidal",
         "deezer",
         "amazon_music",
     )
@@ -77,7 +105,7 @@ class MusicCastMediaContent:
             can_search=attribute & 0b1000 == 0b1000,
             title=info.get("text"),
             content_id=f"list:{source}:{menu_layer}:{index}",
-            thumbnail=info.get("thumbnail"),
+            thumbnail=secure_thumbnail(info.get("thumbnail")),
             menu_layer=menu_layer,
             content_type="directory" if attribute & 0b10 == 0b10 else "track",
         )
