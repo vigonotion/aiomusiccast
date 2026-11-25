@@ -26,6 +26,7 @@ classifiers = [
 dependencies = [
     "aiohttp>=3.9",
 ]
+include=["aiomusiccast/py.typed"]
 
 [project.urls]
 Homepage = "https://pypi.org/project/aiomusiccast"
