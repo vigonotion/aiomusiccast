@@ -689,12 +689,7 @@ class MusicCastDevice:
     @_check_feature(ZoneFeature.SURROUND_AI)
     async def set_surround_ai(self, zone_id, value):
         """Set surround AI option."""
-        await self.device.request(
-            Zone.set_surround_ai(
-                zone_id,
-                value
-            )
-        )
+        await self.device.request(Zone.set_surround_ai(zone_id, value))
 
     async def select_sound_mode(self, zone_id, sound_mode):
         """Select sound mode."""
