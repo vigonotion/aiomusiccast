@@ -56,6 +56,14 @@ _device_capabilities: dict[DeviceFeature, DeviceCapabilityFactory | dict[str, De
         lambda: device.data.party_enable,
         lambda val: device.set_party_mode(val),
     ),
+    DeviceFeature.SPEAKER_PATTERN: lambda capability_id, device: OptionSetter(
+        capability_id,
+        "Speaker Pattern",
+        EntityType.CONFIG,
+        lambda: device.data.speaker_pattern,
+        lambda val: device.set_speaker_pattern(int(val)),
+        {num: f"pattern_{num}" for num in device.data.speaker_pattern_list},
+    ),
 }
 """Dictionary of all ZoneFeatures with a callable as value.
 
