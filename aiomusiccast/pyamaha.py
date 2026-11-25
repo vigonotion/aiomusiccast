@@ -1266,9 +1266,7 @@ class Zone:
             @param enable: Specifies Surround AI status.
         """
         assert zone in ZONES, "Invalid ZONE value!"
-        return Zone.URI["SET_SURROUND_AI"].format(
-            host="{host}", zone=zone, enable=_bool_to_str(enable)
-        )
+        return Zone.URI["SET_SURROUND_AI"].format(host="{host}", zone=zone, enable=_bool_to_str(enable))
 
     # end-of-method set_surround_ai
 
