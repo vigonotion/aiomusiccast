@@ -16,6 +16,8 @@ from .list_navigation import (
 )
 from .musiccast_device import MusicCastDevice
 
+ENQUEUE_MODES = ("play_now", "play_next", "add_to_queue")
+
 Logger = logging.getLogger(__name__)
 
 # Hosts that serve the same artwork over HTTPS. Devices report e.g.
@@ -351,6 +353,49 @@ class MusicCastMediaContent:
         async with navigator.lock:
             await navigator.goto(steps[:-1], query)
             await musiccast.play_list_media(last, zone_id)
+
+    @classmethod
+    async def enqueue_list_entry(
+        cls, musiccast: MusicCastDevice, zone_id: str, media_content_id: str, mode: str = "add_to_queue"
+    ) -> None:
+        """Add a list entry to the play queue: a track, or a folder.
+
+        Like play_list_entry, the list cursor is first moved to the list the
+        entry belongs to, so the right entry is queued.
+
+        Parameters
+        ----------
+        musiccast
+            The device.
+        zone_id
+            Zone whose queue it is.
+        media_content_id
+            Path-based content id of a list entry or of a folder.
+        mode
+            "play_next" (after the entry playing), "add_to_queue" (at the
+            end) or "play_now".
+
+        Raises
+        ------
+        ValueError
+            If the content id has no path, or ends in a search.
+        """
+        if mode not in ENQUEUE_MODES:
+            msg = f"Unknown queue mode: {mode}"
+            raise ValueError(msg)
+        parts = media_content_id.split(":")
+        if parts[0] != "list" or len(parts) < 5:
+            msg = f"Not a path-based list content id: {media_content_id}"
+            raise ValueError(msg)
+        source, steps, _start, query = parse_path_content_id(parts)
+        last = steps[-1] if steps else None
+        if not isinstance(last, int):
+            msg = f"Not a list entry: {media_content_id}"
+            raise ValueError(msg)
+        navigator = ListNavigator(musiccast, zone_id, source)
+        async with navigator.lock:
+            await navigator.goto(steps[:-1], query)
+            await musiccast.enqueue_list_media(last, zone_id, mode)
 
     @classmethod
     async def search(

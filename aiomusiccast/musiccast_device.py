@@ -819,6 +819,10 @@ class MusicCastDevice:
     async def play_list_media(self, item, zone_id):
         await self.device.request(NetUSB.set_list_control("main", "play", item, zone_id))
 
+    async def enqueue_list_media(self, item, zone_id, mode: str):
+        """Queue entry item of the current list: play_now, play_next or add_to_queue."""
+        await self.device.request(NetUSB.manage_list("main", mode, item, zone_id))
+
     async def search_list_item(self, search_string, item):
         """Run a search on a list entry that is capable of search.
 
