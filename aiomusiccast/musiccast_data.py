@@ -131,7 +131,8 @@ class MusicCastZoneData:
 
     def __init__(self):
         """Ctor."""
-        self.power: bool | None = None
+        # "on" or "standby", as the device reports it
+        self.power: str | None = None
         self.name: str | None = None
         self.min_volume: int = 0
         self.max_volume: int = 100
