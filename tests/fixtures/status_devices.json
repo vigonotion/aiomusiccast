@@ -1,0 +1,238 @@
+{
+ "cd_nt670d": {
+  "system/getFeatures": {
+   "system": {
+    "func_list": [
+     "wired_lan",
+     "wireless_lan",
+     "wireless_direct",
+     "network_standby",
+     "auto_power_standby",
+     "bluetooth_tx_setting",
+     "airplay",
+     "network_reboot"
+    ],
+    "input_list": [
+     {
+      "id": "tuner",
+      "distribution_enable": true,
+      "play_info_type": "tuner"
+     },
+     {
+      "id": "cd",
+      "distribution_enable": true,
+      "play_info_type": "cd"
+     }
+    ]
+   },
+   "zone": [
+    {
+     "id": "main",
+     "func_list": [
+      "power",
+      "sleep",
+      "volume",
+      "mute",
+      "signal_info"
+     ],
+     "range_step": [
+      {
+       "id": "volume",
+       "min": 0,
+       "max": 63,
+       "step": 1
+      }
+     ],
+     "input_list": [
+      "tuner",
+      "cd"
+     ]
+    }
+   ],
+   "tuner": {
+    "func_list": [
+     "fm",
+     "rds",
+     "dab"
+    ],
+    "range_step": [
+     {
+      "id": "fm",
+      "min": 87500,
+      "max": 108000,
+      "step": 50
+     }
+    ],
+    "preset": {
+     "type": "separate",
+     "num": 30
+    }
+   }
+  },
+  "system/getNetworkStatus": {
+   "network_name": "Kitchen",
+   "connection": "wireless_lan",
+   "dhcp": false,
+   "ip_address": "192.0.2.20",
+   "subnet_mask": "255.255.255.0",
+   "default_gateway": "192.0.2.1",
+   "dns_server_1": "192.0.2.1",
+   "dns_server_2": "192.0.2.1",
+   "wireless_lan": {
+    "ssid": "Home",
+    "type": "mixed_mode",
+    "key": "",
+    "ch": 1,
+    "strength": 74
+   },
+   "wireless_direct": {
+    "ssid": "CD-NT670D 000000",
+    "type": "none",
+    "key": ""
+   },
+   "musiccast_network": {
+    "ready": true,
+    "device_type": "standard",
+    "child_num": 0,
+    "ch": 0,
+    "initial_join_running": false
+   },
+   "mac_address": {
+    "wired_lan": "AABBCCDDEE01",
+    "wireless_lan": "AABBCCDDEE02",
+    "wireless_direct": "AABBCCDDEE03"
+   },
+   "airplay_pin": ""
+  },
+  "main/getSignalInfo": {
+   "audio": {
+    "error": 0,
+    "format": "MP3",
+    "fs": "44.1 kHz"
+   }
+  },
+  "main/getStatus": {
+   "power": "on",
+   "volume": 14,
+   "mute": false,
+   "input": "tuner"
+  },
+  "tuner/getPlayInfo": {
+   "band": "fm",
+   "auto_scan": false,
+   "fm": {
+    "preset": 3,
+    "freq": 99400,
+    "tuned": false,
+    "audio_mode": "mono"
+   },
+   "rds": {
+    "program_type": "POP M",
+    "program_service": "RADIO 1",
+    "radio_text_a": "Now playing: a song",
+    "radio_text_b": ""
+   },
+   "dab": {
+    "preset": 4,
+    "id": 0,
+    "status": "ready",
+    "freq": 0,
+    "category": "primary",
+    "audio_mode": "mono",
+    "bit_rate": 128,
+    "quality": 82,
+    "tune_aid": 0,
+    "off_air": false,
+    "dab_plus": true,
+    "program_type": "Pop Music",
+    "ch_label": "11B",
+    "service_label": "Station",
+    "dls": "",
+    "ensemble_label": "Ensemble "
+   }
+  }
+ },
+ "rx_a8a": {
+  "system/getFeatures": {
+   "system": {
+    "func_list": [
+     "wired_lan",
+     "wireless_lan"
+    ],
+    "web_control_url": "/AdvancedSettings.html?mc=true",
+    "input_list": []
+   },
+   "zone": [
+    {
+     "id": "main",
+     "func_list": [
+      "power",
+      "volume",
+      "mute",
+      "signal_info"
+     ],
+     "range_step": [
+      {
+       "id": "volume",
+       "min": 0,
+       "max": 161,
+       "step": 1
+      }
+     ],
+     "input_list": []
+    }
+   ]
+  },
+  "system/getNetworkStatus": {
+   "network_name": "Living room",
+   "connection": "wired_lan",
+   "dhcp": false,
+   "ip_address": "192.0.2.10",
+   "subnet_mask": "255.255.255.0",
+   "default_gateway": "192.0.2.1",
+   "dns_server_1": "192.0.2.1",
+   "dns_server_2": "192.0.2.1",
+   "wireless_lan": {
+    "enable": true,
+    "ssid": "",
+    "type": "none",
+    "key": "",
+    "ch": 0,
+    "strength": -1
+   },
+   "musiccast_network": {
+    "ready": true,
+    "device_type": "standard",
+    "child_num": 0,
+    "ch": 0,
+    "initial_join_running": false,
+    "wlan1_ch": 0,
+    "dfs": {
+     "option": false,
+     "radar_ch": 0
+    }
+   },
+   "mac_address": {
+    "wired_lan": "AABBCCDDEE11",
+    "wireless_lan": "AABBCCDDEE12",
+    "wireless_direct": "AABBCCDDEE13"
+   },
+   "airplay_pin": ""
+  },
+  "main/getSignalInfo": {
+   "audio": {
+    "error": 0,
+    "format": "---",
+    "fs": "---",
+    "bit": "",
+    "bitrate": 0
+   }
+  },
+  "main/getStatus": {
+   "power": "standby",
+   "volume": 56,
+   "mute": false,
+   "input": "hdmi2"
+  }
+ }
+}

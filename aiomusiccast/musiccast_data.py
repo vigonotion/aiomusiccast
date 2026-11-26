@@ -46,6 +46,18 @@ class MusicCastData:
         self.mac_addresses: dict[str, str] | None = None
         self.network_name: str | None = None
 
+        # Network status, refreshed on every fetch
+        # "wired_lan", "wireless_lan", "wireless_direct", "extend_1", ...
+        self.network_connection: str | None = None
+        self.ip_address: str | None = None
+        self.wlan_ssid: str | None = None
+        self.wlan_channel: int | None = None
+        # signal strength in percent, None when not on Wi-Fi
+        self.wlan_strength: int | None = None
+
+        # Path of the device's own web page, e.g. "/AdvancedSettings.html?mc=true"
+        self.web_control_url: str | None = None
+
         # features
         self.zones: dict[str, MusicCastZoneData] = {}
         self.input_names: dict[str, str] = {}
@@ -75,6 +87,20 @@ class MusicCastData:
 
         self.dab_service_label: str = ""
         self.dab_dls: str = ""
+
+        # Preset number of the current FM / DAB station, 0 if none
+        self.fm_preset: int | None = None
+        self.dab_preset: int | None = None
+        self.rds_program_service: str = ""
+        self.rds_program_type: str = ""
+        self.dab_ensemble_label: str = ""
+        self.dab_channel_label: str = ""
+        self.dab_program_type: str = ""
+        # kbps
+        self.dab_bit_rate: int | None = None
+        # signal quality, 0-100
+        self.dab_quality: int | None = None
+        self.dab_plus: bool | None = None
 
         # Group
         self.last_group_role: str | None = None
@@ -186,6 +212,25 @@ class MusicCastZoneData:
         self.surround_ai: bool | None = None
 
         self.surr_decoder_type: str | None = None
+
+        # Only for zones with "signal_info" in their func_list
+        self.signal_info: MusicCastSignalInfo | None = None
+
+
+@dataclass(slots=True)
+class MusicCastSignalInfo:
+    """The audio signal a zone plays, from getSignalInfo."""
+
+    # e.g. "PCM", "MP3", "Dolby Digital"; "---" without a signal, None in standby
+    format: str | None = None
+    # e.g. "44.1 kHz", as reported
+    sample_rate: str | None = None
+    # e.g. "16 bit", as reported (not every device reports it)
+    bit_depth: str | None = None
+    # bits per second, 0 when unknown (not every device reports it)
+    bitrate: int | None = None
+    # error code of the signal; 0 for none
+    error: int | None = None
 
 
 @dataclass(slots=True)
