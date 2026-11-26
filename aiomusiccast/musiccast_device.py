@@ -33,7 +33,14 @@ from aiomusiccast.exceptions import (
 
 from .capability_registry import build_device_capabilities, build_zone_capabilities
 from .features import Feature
-from .musiccast_data import Dimmer, MusicCastAlarmDetails, MusicCastData, MusicCastZoneData, RangeStep
+from .musiccast_data import (
+    Dimmer,
+    MusicCastAlarmDetails,
+    MusicCastData,
+    MusicCastSignalInfo,
+    MusicCastZoneData,
+    RangeStep,
+)
 from .pyamaha import AsyncDevice, Clock, Dist, NetUSB, System, Tuner, Zone
 
 Callback = Callable[[], None]
@@ -158,6 +165,9 @@ class MusicCastDevice:
                 if new_zone_data.get("play_info_updated") or new_zone_data.get("status_updated"):
                     await self._fetch_zone(parameter)
 
+                if new_zone_data.get("signal_info_updated") and zone:
+                    await self._fetch_signal_info(parameter)
+
         netusb_message = message.get("netusb")
         if netusb_message:
             if netusb_message.get("play_info_updated"):
@@ -253,6 +263,50 @@ class MusicCastDevice:
             self._tuner_play_info.get("dab", {}).get("service_label", self.data.dab_service_label).strip()
         )
         self.data.dab_dls = self._tuner_play_info.get("dab", {}).get("dls", self.data.dab_dls).strip()
+
+        fm = self._tuner_play_info.get("fm", {})
+        rds = self._tuner_play_info.get("rds", {})
+        dab = self._tuner_play_info.get("dab", {})
+        self.data.fm_preset = fm.get("preset", self.data.fm_preset)
+        self.data.rds_program_service = (rds.get("program_service") or "").strip()
+        self.data.rds_program_type = (rds.get("program_type") or "").strip()
+        self.data.dab_preset = dab.get("preset", self.data.dab_preset)
+        self.data.dab_ensemble_label = (dab.get("ensemble_label") or "").strip()
+        self.data.dab_channel_label = (dab.get("ch_label") or "").strip()
+        self.data.dab_program_type = (dab.get("program_type") or "").strip()
+        self.data.dab_bit_rate = dab.get("bit_rate")
+        self.data.dab_quality = dab.get("quality")
+        self.data.dab_plus = dab.get("dab_plus")
+
+    async def _fetch_signal_info(self, zone_id):
+        """Fetch the audio signal a zone plays."""
+        if ZoneFeature.SIGNAL_INFO not in self.data.zones[zone_id].features:
+            return
+        audio = (await self.device.request_json(Zone.get_signal_info(zone_id))).get("audio", {})
+        self.data.zones[zone_id].signal_info = MusicCastSignalInfo(
+            # In standby the device reports empty strings.
+            format=audio.get("format") or None,
+            sample_rate=audio.get("fs") or None,
+            bit_depth=audio.get("bit") or None,
+            bitrate=audio.get("bitrate"),
+            error=audio.get("error"),
+        )
+
+    async def fetch_network_status(self):
+        """Fetch the network status: connection, IP address, Wi-Fi."""
+        self._network_status = await self.device.request_json(System.get_network_status())
+
+        self.data.network_name = self._network_status.get("network_name")
+        self.data.mac_addresses = self._network_status.get("mac_address")
+        self.data.network_connection = self._network_status.get("connection")
+        self.data.ip_address = self._network_status.get("ip_address")
+
+        wlan = self._network_status.get("wireless_lan") or {}
+        on_wifi = self.data.network_connection == "wireless_lan"
+        self.data.wlan_ssid = (wlan.get("ssid") or None) if on_wifi else None
+        self.data.wlan_channel = wlan.get("ch") if on_wifi else None
+        strength = wlan.get("strength")
+        self.data.wlan_strength = strength if on_wifi and isinstance(strength, int) and strength >= 0 else None
 
     async def _fetch_zone(self, zone_id):
         _LOGGER.debug("Fetching zone %s...", zone_id)
@@ -372,11 +426,7 @@ class MusicCastDevice:
 
     async def fetch(self):
         """Fetch data from musiccast device."""
-        if not self._network_status:
-            self._network_status = await self.device.request_json(System.get_network_status())
-
-            self.data.network_name = self._network_status.get("network_name")
-            self.data.mac_addresses = self._network_status.get("mac_address")
+        await self.fetch_network_status()
 
         if not self._device_info:
             self._device_info = await self.device.request_json(System.get_device_info())
@@ -407,6 +457,7 @@ class MusicCastDevice:
                     )
 
             self._zone_ids = [zone.get("id") for zone in self._features.get("zone", [])]
+            self.data.web_control_url = self._features.get("system", {}).get("web_control_url")
 
             for zone in self._features.get("zone", []):
                 zone_id = zone.get("id")
@@ -506,6 +557,7 @@ class MusicCastDevice:
 
         for zone in self._zone_ids:
             await self._fetch_zone(zone)
+            await self._fetch_signal_info(zone)
 
         ranges = self._features.get("system").get("range_step")
 
@@ -890,6 +942,14 @@ class MusicCastDevice:
         )
 
     # -----Properties-----
+
+    @property
+    def web_page_url(self) -> str | None:
+        """Return the URL of the device's web page, if it has one."""
+        path = self.data.web_control_url
+        if not path:
+            return None
+        return f"http://{self.ip}{path if path.startswith('/') else '/' + path}"
 
     @property
     def media_image_url(self) -> str:
