@@ -66,6 +66,27 @@ class MusicCastData:
 
         self.netusb_preset_list: dict[Any, Any] = {}
 
+        # CD (devices with a "cd" input)
+        # "open", "close", "ready", "not_ready"
+        self.cd_device_status: str | None = None
+        # "play", "stop", "pause", "fast_reverse", "fast_forward"
+        self.cd_playback: str | None = None
+        self.cd_repeat: str | None = None
+        self.cd_repeat_available: list[str] = []
+        self.cd_shuffle: str | None = None
+        self.cd_shuffle_available: list[str] = []
+        # seconds into the track, and when that was reported
+        self.cd_play_time: int | None = None
+        self.cd_play_time_updated: datetime | None = None
+        self.cd_total_time: int | None = None
+        self.cd_disc_time: int | None = None
+        self.cd_track_number: int | None = None
+        self.cd_total_tracks: int | None = None
+        # From CD-Text, if the disc has it
+        self.cd_artist: str | None = None
+        self.cd_album: str | None = None
+        self.cd_track: str | None = None
+
         # Tuner
         self.band: str | None = None
         self.am_freq: int = 1

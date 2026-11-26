@@ -34,7 +34,7 @@ from aiomusiccast.exceptions import (
 from .capability_registry import build_device_capabilities, build_zone_capabilities
 from .features import Feature
 from .musiccast_data import Dimmer, MusicCastAlarmDetails, MusicCastData, MusicCastZoneData, RangeStep
-from .pyamaha import AsyncDevice, Clock, Dist, NetUSB, System, Tuner, Zone
+from .pyamaha import CD, AsyncDevice, Clock, Dist, NetUSB, System, Tuner, Zone
 
 Callback = Callable[[], None]
 AsyncCallback = Callable[[], Awaitable[None]]
@@ -171,6 +171,14 @@ class MusicCastDevice:
             if netusb_message.get("preset_info_updated"):
                 await self._fetch_netusb_presets()
 
+        cd_message = message.get("cd")
+        if cd_message and DeviceFeature.CD in self.features:
+            if cd_message.get("play_info_updated"):
+                await self._fetch_cd()
+            elif "play_time" in cd_message:
+                self.data.cd_play_time = cd_message["play_time"]
+                self.data.cd_play_time_updated = datetime.now(timezone.utc)
+
         tuner_message = message.get("tuner")
         if tuner_message and tuner_message.get("play_info_updated"):
             await self._fetch_tuner()
@@ -298,6 +306,27 @@ class MusicCastDevice:
 
         self.data.zones[zone_id] = zone_data
         await self._update_input(zone_id, zone.get("input"))
+
+    async def _fetch_cd(self):
+        """Fetch CD play info."""
+        _LOGGER.debug("Fetching cd...")
+        info = await self.device.request_json(CD.get_play_info())
+
+        self.data.cd_device_status = info.get("device_status")
+        self.data.cd_playback = info.get("playback")
+        self.data.cd_repeat = info.get("repeat")
+        self.data.cd_repeat_available = info.get("repeat_available", [])
+        self.data.cd_shuffle = info.get("shuffle")
+        self.data.cd_shuffle_available = info.get("shuffle_available", [])
+        self.data.cd_play_time = info.get("play_time")
+        self.data.cd_play_time_updated = datetime.now(timezone.utc)
+        self.data.cd_total_time = info.get("total_time")
+        self.data.cd_disc_time = info.get("disc_time")
+        self.data.cd_track_number = info.get("track_number")
+        self.data.cd_total_tracks = info.get("total_tracks")
+        self.data.cd_artist = info.get("artist") or None
+        self.data.cd_album = info.get("album") or None
+        self.data.cd_track = info.get("track") or None
 
     async def _fetch_distribution_data(self):
         _LOGGER.debug("Fetching Distribution data...")
@@ -485,6 +514,9 @@ class MusicCastDevice:
                 self.data.alarm_preset_list = clock_features.get("alarm_preset_list", [])
                 self.data.alarm_resume_input_list = clock_features.get("alarm_input_list", [])
 
+        if any(source.get("id") == "cd" for source in self._features.get("system", {}).get("input_list", [])):
+            self.features |= DeviceFeature.CD
+
         self.data.input_names = {
             source.get("id"): source.get("text") for source in self._name_text.get("input_list", [])
         }
@@ -500,6 +532,8 @@ class MusicCastDevice:
 
         if "tuner" in self._features:
             await self._fetch_tuner()
+        if DeviceFeature.CD in self.features:
+            await self._fetch_cd()
         await self._fetch_distribution_data()
         if DeviceFeature.ALARM_ONEDAY in self.features or DeviceFeature.ALARM_WEEKLY in self.features:
             await self._fetch_clock_data()
@@ -700,6 +734,54 @@ class MusicCastDevice:
 
     async def netusb_next_track(self):
         await self.device.request(NetUSB.set_playback("next"))
+
+    @_check_feature(DeviceFeature.CD)
+    async def cd_play(self):
+        """Play the CD."""
+        await self.device.request(CD.set_playback("play"))
+
+    @_check_feature(DeviceFeature.CD)
+    async def cd_pause(self):
+        """Pause the CD."""
+        await self.device.request(CD.set_playback("pause"))
+
+    @_check_feature(DeviceFeature.CD)
+    async def cd_stop(self):
+        """Stop the CD."""
+        await self.device.request(CD.set_playback("stop"))
+
+    @_check_feature(DeviceFeature.CD)
+    async def cd_previous_track(self):
+        """Go to the previous track (or the start of this one)."""
+        await self.device.request(CD.set_playback("previous"))
+
+    @_check_feature(DeviceFeature.CD)
+    async def cd_next_track(self):
+        """Go to the next track."""
+        await self.device.request(CD.set_playback("next"))
+
+    @_check_feature(DeviceFeature.CD)
+    async def cd_select_track(self, num: int):
+        """Play track num (1 to cd_total_tracks)."""
+        total = self.data.cd_total_tracks
+        if not total or not 1 <= num <= total:
+            raise MusicCastException(f"Track {num} is not on the disc ({total or 0} tracks)")
+        await self.device.request(CD.set_playback("track_select", num))
+
+    @_check_feature(DeviceFeature.CD)
+    async def cd_toggle_tray(self):
+        """Open or close the tray."""
+        await self.device.request(CD.toggle_tray())
+
+    @_check_feature(DeviceFeature.CD)
+    async def cd_toggle_repeat(self):
+        """Switch to the next repeat mode (cd_repeat_available)."""
+        await self.device.request(CD.toggle_repeat())
+
+    @_check_feature(DeviceFeature.CD)
+    async def cd_toggle_shuffle(self):
+        """Switch to the next shuffle mode (cd_shuffle_available)."""
+        await self.device.request(CD.toggle_shuffle())
 
     async def tuner_previous_station(self):
         if self.data.band in ("fm", "am"):
