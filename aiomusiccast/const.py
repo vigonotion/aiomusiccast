@@ -77,6 +77,9 @@ ZONE_FUNC_LIST_TO_FEATURE_MAPPING = {
     "dts_dialogue_control": ZoneFeature.DTS_DIALOGUE_CONTROL,
     "adaptive_dsp_level": ZoneFeature.ADAPTIVE_DSP_LEVEL,
     "mono": ZoneFeature.MONO,
+    "auro_3d_listening_mode": ZoneFeature.AURO_3D_LISTENING_MODE,
+    "auro_matic_preset": ZoneFeature.AURO_MATIC_PRESET,
+    "auro_matic_strength": ZoneFeature.AURO_MATIC_STRENGTH,
 }
 
 MIME_TYPE_UPNP_CLASS = {
