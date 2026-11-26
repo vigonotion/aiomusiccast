@@ -106,3 +106,6 @@ MC_LINK_SOURCES = [MC_LINK, MAIN_SYNC]
 NULL_GROUP = "00000000000000000000000000000000"
 
 DISPLAY_DIMMER_SPECIALS = {-1: "auto"}
+
+# Bit of the netusb getPlayInfo attribute: the track playing allows seeking
+NETUSB_SEEKABLE = 1 << 31

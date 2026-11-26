@@ -20,6 +20,7 @@ from aiomusiccast.const import (
     MC_LINK,
     MC_LINK_SOURCES,
     MIME_TYPE_UPNP_CLASS,
+    NETUSB_SEEKABLE,
     NULL_GROUP,
     ZONE_FUNC_LIST_TO_FEATURE_MAPPING,
     DeviceFeature,
@@ -235,6 +236,7 @@ class MusicCastDevice:
         self.data.netusb_albumart_url = self._netusb_play_info.get("albumart_url", self.data.netusb_albumart_url)
         self.data.netusb_total_time = self._netusb_play_info.get("total_time", None)
         self.data.netusb_play_time = self._netusb_play_info.get("play_time", None)
+        self.data.netusb_attribute = self._netusb_play_info.get("attribute")
 
         self.data.netusb_play_time_updated = datetime.now(timezone.utc)
 
@@ -649,6 +651,18 @@ class MusicCastDevice:
     async def netusb_stop(self):
         await self.device.request(NetUSB.set_playback("stop"))
 
+    async def netusb_seek(self, position: float):
+        """Seek to position (seconds) in the netusb track playing."""
+        if not self.netusb_seekable:
+            raise MusicCastUnsupportedException("The track playing does not allow seeking")
+        if self.data.netusb_total_time and not 0 <= position <= self.data.netusb_total_time:
+            raise MusicCastException(
+                f"Position {position} is not within the track (0 to {self.data.netusb_total_time})"
+            )
+        await self.device.request(NetUSB.set_play_position(position))
+        self.data.netusb_play_time = int(position)
+        self.data.netusb_play_time_updated = datetime.now(timezone.utc)
+
     async def netusb_shuffle(self, shuffle: bool):
         if self.data.api_version < 1.19:
             if (self.data.netusb_shuffle == "on") != shuffle:
@@ -919,6 +933,22 @@ class MusicCastDevice:
             return self.data.am_freq_str
 
         return None
+
+    @property
+    def netusb_seekable(self) -> bool:
+        """Return whether the netusb track playing allows seeking.
+
+        Bit 31 of the attribute in getPlayInfo, set where the device
+        seeks: TIDAL and media servers on a WX-021 or an RX-A8A, but not
+        TIDAL on a CD-NT670D. Media servers may report no duration
+        (total time 0) and still seek.
+
+        The play info is that of the device's netusb player. It stays at
+        the last track while a zone is in standby or on another input,
+        so check that the zone is on and plays the netusb input.
+        """
+        attribute = self.data.netusb_attribute
+        return attribute is not None and bool(attribute & NETUSB_SEEKABLE)
 
     @property
     def alarm_input_list(self) -> dict[str, str]:
