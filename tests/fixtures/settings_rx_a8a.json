@@ -1,0 +1,406 @@
+{
+ "system/getFeatures": {
+  "system": {
+   "func_list": [
+    "wired_lan",
+    "wireless_lan",
+    "network_standby",
+    "network_standby_auto",
+    "bluetooth_standby",
+    "bluetooth_tx_setting",
+    "bluetooth_tx_connectivity_type",
+    "dfs_option",
+    "headphone",
+    "hdmi_out_1",
+    "hdmi_out_2",
+    "hdmi_out_3",
+    "airplay",
+    "disklavier_settings",
+    "background_download",
+    "remote_info",
+    "network_reboot",
+    "system_reboot",
+    "ypao_volume",
+    "speaker_pattern",
+    "party_mode",
+    "party_volume",
+    "party_mute",
+    "name_text_avr",
+    "video_preset",
+    "hdmi_standby_through",
+    "analytics",
+    "works_with_sonos",
+    "terms_of_use"
+   ],
+   "speaker_pattern_num": 4,
+   "input_list": [
+    {
+     "id": "server",
+     "distribution_enable": true,
+     "play_info_type": "netusb"
+    },
+    {
+     "id": "hdmi2",
+     "distribution_enable": true,
+     "play_info_type": "none"
+    }
+   ]
+  },
+  "zone": [
+   {
+    "id": "main",
+    "func_list": [
+     "power",
+     "sleep",
+     "volume",
+     "mute",
+     "sound_program",
+     "surround_ai",
+     "pure_direct",
+     "enhancer",
+     "tone_control",
+     "dialogue_level",
+     "dialogue_lift",
+     "subwoofer_volume",
+     "signal_info",
+     "prepare_input_change",
+     "link_control",
+     "link_audio_delay",
+     "scene",
+     "contents_display",
+     "cursor",
+     "menu",
+     "actual_volume",
+     "surr_decoder_type",
+     "extra_bass",
+     "adaptive_drc",
+     "dts_dialogue_control",
+     "adaptive_dsp_level",
+     "auro_3d_listening_mode",
+     "auro_matic_preset",
+     "auro_matic_strength"
+    ],
+    "sound_program_list": [
+     "munich",
+     "vienna",
+     "amsterdam",
+     "freiburg",
+     "royaumont",
+     "chamber",
+     "village_vanguard",
+     "warehouse_loft",
+     "cellar_club",
+     "roxy_theatre",
+     "bottom_line",
+     "sports",
+     "action_game",
+     "roleplaying_game",
+     "music_video",
+     "recital_opera",
+     "standard",
+     "spectacle",
+     "sci-fi",
+     "adventure",
+     "drama",
+     "mono_movie",
+     "enhanced",
+     "2ch_stereo",
+     "all_ch_stereo",
+     "surr_decoder",
+     "straight"
+    ],
+    "surr_decoder_type_list": [
+     "toggle",
+     "auto",
+     "dolby_surround",
+     "dts_neural_x",
+     "auro_3d"
+    ],
+    "tone_control_mode_list": [
+     "manual"
+    ],
+    "auro_3d_listening_mode_list": [
+     "prev",
+     "next",
+     "auro_3d",
+     "surround",
+     "native"
+    ],
+    "auro_matic_preset_list": [
+     "prev",
+     "next",
+     "small",
+     "medium",
+     "large",
+     "movie",
+     "speech"
+    ],
+    "link_control_list": [
+     "speed",
+     "standard",
+     "stability"
+    ],
+    "link_audio_delay_list": [
+     "audio_sync",
+     "balanced",
+     "lip_sync"
+    ],
+    "range_step": [
+     {
+      "id": "volume",
+      "min": 0,
+      "max": 161,
+      "step": 1
+     },
+     {
+      "id": "tone_control",
+      "min": -12,
+      "max": 12,
+      "step": 1
+     },
+     {
+      "id": "dialogue_level",
+      "min": 0,
+      "max": 3,
+      "step": 1
+     },
+     {
+      "id": "dialogue_lift",
+      "min": 0,
+      "max": 5,
+      "step": 1
+     },
+     {
+      "id": "subwoofer_volume",
+      "min": -12,
+      "max": 12,
+      "step": 1
+     },
+     {
+      "id": "actual_volume_db",
+      "min": -80.5,
+      "max": 16.5,
+      "step": 0.5
+     },
+     {
+      "id": "actual_volume_numeric",
+      "min": 0.0,
+      "max": 97.0,
+      "step": 0.5
+     },
+     {
+      "id": "dts_dialogue_control",
+      "min": 0,
+      "max": 6,
+      "step": 1
+     },
+     {
+      "id": "auro_matic_strength",
+      "min": 0,
+      "max": 15,
+      "step": 1
+     }
+    ],
+    "scene_num": 8,
+    "actual_volume_mode_list": [
+     "db",
+     "numeric"
+    ],
+    "input_list": [
+     "server",
+     "hdmi2"
+    ]
+   },
+   {
+    "id": "zone2",
+    "zone_b": false,
+    "func_list": [
+     "power",
+     "sleep",
+     "volume",
+     "mute",
+     "enhancer",
+     "tone_control",
+     "balance",
+     "prepare_input_change",
+     "link_control",
+     "scene",
+     "contents_display",
+     "cursor",
+     "menu",
+     "actual_volume",
+     "extra_bass",
+     "mono"
+    ],
+    "tone_control_mode_list": [
+     "manual",
+     "auto",
+     "bypass"
+    ],
+    "link_control_list": [
+     "speed",
+     "standard",
+     "stability"
+    ],
+    "range_step": [
+     {
+      "id": "volume",
+      "min": 0,
+      "max": 161,
+      "step": 1
+     },
+     {
+      "id": "tone_control",
+      "min": -12,
+      "max": 12,
+      "step": 1
+     },
+     {
+      "id": "balance",
+      "min": -20,
+      "max": 20,
+      "step": 1
+     },
+     {
+      "id": "actual_volume_db",
+      "min": -80.5,
+      "max": 16.5,
+      "step": 0.5
+     },
+     {
+      "id": "actual_volume_numeric",
+      "min": 0.0,
+      "max": 97.0,
+      "step": 0.5
+     }
+    ],
+    "scene_num": 8,
+    "actual_volume_mode_list": [
+     "db",
+     "numeric"
+    ],
+    "input_list": [
+     "server",
+     "hdmi2"
+    ]
+   }
+  ]
+ },
+ "system/getFuncStatus": {
+  "hdmi_out_1": true,
+  "hdmi_out_2": false,
+  "hdmi_out_3": false,
+  "speaker_pattern": 1,
+  "party_mode": false
+ },
+ "main/getStatus": {
+  "power": "standby",
+  "sleep": 0,
+  "volume": 56,
+  "mute": false,
+  "max_volume": 161,
+  "input": "hdmi2",
+  "input_text": "TV",
+  "distribution_enable": true,
+  "sound_program": "surr_decoder",
+  "surr_decoder_type": "auto",
+  "surround_ai": false,
+  "pure_direct": false,
+  "enhancer": true,
+  "tone_control": {
+   "mode": "manual",
+   "bass": 0,
+   "treble": 0
+  },
+  "dialogue_level": 0,
+  "dialogue_lift": 0,
+  "subwoofer_volume": 0,
+  "link_control": "standard",
+  "link_audio_delay": "audio_sync",
+  "disable_flags": 0,
+  "contents_display": false,
+  "actual_volume": {
+   "mode": "db",
+   "value": -52.5,
+   "unit": "dB"
+  },
+  "party_enable": false,
+  "extra_bass": false,
+  "adaptive_drc": true,
+  "dts_dialogue_control": 0,
+  "adaptive_dsp_level": true,
+  "auro_3d": {
+   "listening_mode": "surround",
+   "auro_matic_preset": "large",
+   "auro_matic_strength": 12
+  }
+ },
+ "zone2/getStatus": {
+  "power": "standby",
+  "sleep": 0,
+  "volume": 51,
+  "mute": false,
+  "max_volume": 161,
+  "input": "server",
+  "input_text": "SERVER",
+  "distribution_enable": true,
+  "enhancer": true,
+  "tone_control": {
+   "mode": "auto",
+   "bass": 0,
+   "treble": 0
+  },
+  "balance": 0,
+  "link_control": "standard",
+  "disable_flags": 0,
+  "contents_display": false,
+  "actual_volume": {
+   "mode": "db",
+   "value": -55.0,
+   "unit": "dB"
+  },
+  "party_enable": false,
+  "extra_bass": false,
+  "mono": false
+ },
+ "system/getDeviceInfo": {
+  "model_name": "RX-A8A",
+  "device_id": "AABBCCDDEEFF",
+  "system_version": "1.0",
+  "api_version": 2.12
+ },
+ "system/getNetworkStatus": {
+  "network_name": "Living room",
+  "mac_address": {
+   "wired_lan": "AABBCCDDEEFF"
+  }
+ },
+ "system/getNameText": {
+  "zone_list": [
+   {
+    "id": "main",
+    "text": "Living room"
+   },
+   {
+    "id": "zone2",
+    "text": "Terrace"
+   }
+  ],
+  "input_list": [
+   {
+    "id": "server",
+    "text": "Server"
+   },
+   {
+    "id": "hdmi2",
+    "text": "HDMI 2"
+   }
+  ],
+  "sound_program_list": []
+ },
+ "dist/getDistributionInfo": {
+  "group_id": "00000000000000000000000000000000",
+  "role": "none",
+  "client_list": []
+ }
+}

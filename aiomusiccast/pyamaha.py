@@ -537,6 +537,9 @@ class System:
         "SET_NAME_TEXT": "http://{host}/YamahaExtendedControl/v1/system/setNameText",
         "SET_SPEAKER_PATTERN": "http://{host}/YamahaExtendedControl/v1/system/setSpeakerPattern?num={num}",
         "SET_PARTYMODE": "http://{host}/YamahaExtendedControl/v1/system/setPartyMode?enable={enable}",
+        "SET_HDMI_OUT_3": "http://{host}/YamahaExtendedControl/v1/system/setHdmiOut3?enable={enable}",
+        "REQUEST_SYSTEM_REBOOT": "http://{host}/YamahaExtendedControl/v1/system/requestSystemReboot",
+        "REQUEST_NETWORK_REBOOT": "http://{host}/YamahaExtendedControl/v1/system/requestNetworkReboot",
     }
 
     @staticmethod
@@ -957,6 +960,34 @@ class System:
     # end-of-method set_hdmi_out_2
 
     @staticmethod
+    def set_hdmi_out_3(enable):
+        """For turning HDMI OUT 3 on or off."""
+        return System.URI["SET_HDMI_OUT_3"].format(host="{host}", enable=_bool_to_str(enable))
+
+    # end-of-method set_hdmi_out_3
+
+    @staticmethod
+    def request_system_reboot():
+        """For restarting the whole device.
+
+        Requires "system_reboot" in the system func_list.
+        """
+        return System.URI["REQUEST_SYSTEM_REBOOT"]
+
+    # end-of-method request_system_reboot
+
+    @staticmethod
+    def request_network_reboot():
+        """For restarting the network module only ("network_reboot" in
+        func_list).
+
+        The network module handles streaming, MusicCast and DLNA.
+        """
+        return System.URI["REQUEST_NETWORK_REBOOT"]
+
+    # end-of-method request_network_reboot
+
+    @staticmethod
     def get_name_text(id):
         """For retrieving text information of Zone, Input, Sound
         program. If they can be renamed, can retrieve text information
@@ -1071,6 +1102,13 @@ class Zone:
         "SET_LINK_AUDIO_QUALITY": "http://{host}/YamahaExtendedControl/v1/{zone}/setLinkAudioQuality?mode={mode}",
         "SET_ADAPTIVE_DRC": "http://{host}/YamahaExtendedControl/v1/{zone}/setAdaptiveDrc?enable={enable}",
         "SET_SURR_DECODER_TYPE": "http://{host}/YamahaExtendedControl/v1/{zone}/setSurroundDecoderType?type={option}",
+        "SET_ADAPTIVE_DSP_LEVEL": "http://{host}/YamahaExtendedControl/v1/{zone}/setAdaptiveDspLevel?enable={enable}",
+        "SET_MONO": "http://{host}/YamahaExtendedControl/v1/{zone}/setMono?enable={enable}",
+        "SET_ACTUAL_VOLUME": "http://{host}/YamahaExtendedControl/v1/{zone}/setActualVolume?mode={mode}&value={value}",
+        "SET_AURO_3D_LISTENING_MODE": "http://{host}/YamahaExtendedControl/v1/{zone}/setAuro3dListeningMode?mode={mode}",
+        "SET_AURO_MATIC_PRESET": "http://{host}/YamahaExtendedControl/v1/{zone}/setAuroMaticPreset?preset={preset}",
+        "SET_AURO_MATIC_STRENGTH": "http://{host}/YamahaExtendedControl/v1/{zone}/setAuroMaticStrength?value={value}",
+        "RECALL_SCENE": "http://{host}/YamahaExtendedControl/v1/{zone}/recallScene?num={num}",
     }
 
     @staticmethod
@@ -1269,6 +1307,84 @@ class Zone:
         return Zone.URI["SET_SURROUND_AI"].format(host="{host}", zone=zone, enable=_bool_to_str(enable))
 
     # end-of-method set_surround_ai
+
+    @staticmethod
+    def set_adaptive_dsp_level(zone, enable):
+        """For setting Adaptive DSP Level."""
+        assert zone in ZONES, "Invalid ZONE value!"
+        return Zone.URI["SET_ADAPTIVE_DSP_LEVEL"].format(host="{host}", zone=zone, enable=_bool_to_str(enable))
+
+    # end-of-method set_adaptive_dsp_level
+
+    @staticmethod
+    def set_mono(zone, enable):
+        """For setting mono output."""
+        assert zone in ZONES, "Invalid ZONE value!"
+        return Zone.URI["SET_MONO"].format(host="{host}", zone=zone, enable=_bool_to_str(enable))
+
+    # end-of-method set_mono
+
+    @staticmethod
+    def set_actual_volume(zone, mode, value):
+        """For setting the volume in the unit shown on the device.
+
+        Parameters
+        ----------
+        zone : Any
+            Specifies target Zone. Values: 'main', 'zone2', 'zone3', 'zone4'
+        mode : Any
+            Unit of value. Values: actual_volume_mode_list of /system/getFeatures, e.g. 'db', 'numeric'
+        value : Any
+            Volume in that unit, in the range of actual_volume_<mode> of /system/getFeatures
+        """
+        assert zone in ZONES, "Invalid ZONE value!"
+        return Zone.URI["SET_ACTUAL_VOLUME"].format(host="{host}", zone=zone, mode=mode, value=f"{value:g}")
+
+    # end-of-method set_actual_volume
+
+    @staticmethod
+    def set_auro_3d_listening_mode(zone, mode):
+        """For setting the Auro-3D listening mode.
+
+        Values: auro_3d_listening_mode_list of /system/getFeatures.
+        """
+        assert zone in ZONES, "Invalid ZONE value!"
+        return Zone.URI["SET_AURO_3D_LISTENING_MODE"].format(host="{host}", zone=zone, mode=mode)
+
+    # end-of-method set_auro_3d_listening_mode
+
+    @staticmethod
+    def set_auro_matic_preset(zone, preset):
+        """For setting the Auro-Matic preset.
+
+        Values: auro_matic_preset_list of /system/getFeatures.
+        """
+        assert zone in ZONES, "Invalid ZONE value!"
+        return Zone.URI["SET_AURO_MATIC_PRESET"].format(host="{host}", zone=zone, preset=preset)
+
+    # end-of-method set_auro_matic_preset
+
+    @staticmethod
+    def set_auro_matic_strength(zone, value):
+        """For setting the Auro-Matic strength.
+
+        Values: range auro_matic_strength of /system/getFeatures.
+        """
+        assert zone in ZONES, "Invalid ZONE value!"
+        return Zone.URI["SET_AURO_MATIC_STRENGTH"].format(host="{host}", zone=zone, value=value)
+
+    # end-of-method set_auro_matic_strength
+
+    @staticmethod
+    def recall_scene(zone, num):
+        """For recalling a scene.
+
+        Values: 1 to scene_num of /system/getFeatures.
+        """
+        assert zone in ZONES, "Invalid ZONE value!"
+        return Zone.URI["RECALL_SCENE"].format(host="{host}", zone=zone, num=num)
+
+    # end-of-method recall_scene
 
     @staticmethod
     def set_direct(zone, enable):

@@ -105,6 +105,9 @@ class MusicCastData:
         self.speaker_a: bool | None = None
         self.speaker_b: bool | None = None
 
+        # HDMI outputs (1-3): enabled or not
+        self.hdmi_out: dict[int, bool | None] = {}
+
         # Speaker Pattern
         self.speaker_pattern: int | None = None
         self.speaker_pattern_list: list[int] = []
@@ -184,6 +187,24 @@ class MusicCastZoneData:
         self.clear_voice: bool | None = None
         self.surround_3d: bool | None = None
         self.surround_ai: bool | None = None
+        self.adaptive_dsp_level: bool | None = None
+        self.mono: bool | None = None
+
+        self.balance: int | None = None
+        # Volume as shown on the device: in dB when actual_volume_mode is "db"
+        self.actual_volume: float | None = None
+        self.actual_volume_mode: str | None = None
+        self.actual_volume_mode_list: list[str] = []
+
+        # Auro-3D
+        self.auro_3d_listening_mode: str | None = None
+        self.auro_3d_listening_mode_list: list[str] = []
+        self.auro_matic_preset: str | None = None
+        self.auro_matic_preset_list: list[str] = []
+        self.auro_matic_strength: int | None = None
+
+        # Number of scenes (recall_scene takes 1 to scene_num)
+        self.scene_num: int = 0
 
         self.surr_decoder_type: str | None = None
 

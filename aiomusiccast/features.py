@@ -93,3 +93,6 @@ class ZoneFeature(Feature):
     DTS_DIALOGUE_CONTROL = auto()
     ADAPTIVE_DSP_LEVEL = auto()
     MONO = auto()
+    AURO_3D_LISTENING_MODE = auto()
+    AURO_MATIC_PRESET = auto()
+    AURO_MATIC_STRENGTH = auto()

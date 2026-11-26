@@ -10,13 +10,56 @@ from .features import DeviceFeature, ZoneFeature
 if TYPE_CHECKING:
     from .musiccast_device import MusicCastDevice
 
-DeviceCapabilityFactory = Callable[[str, Any], Capability]
-ZoneCapabilityFactory = Callable[[str, Any, str], Capability]
+# A factory may return None when the device lacks what the capability needs
+# (e.g. the range of a value).
+DeviceCapabilityFactory = Callable[[str, Any], Capability | None]
+ZoneCapabilityFactory = Callable[[str, Any, str], Capability | None]
 
 
 def normalize_option(option: object) -> str:
     option_str = str(option)
     return option_str.replace(" ", "_").lower()
+
+
+def _hdmi_out(num: int) -> DeviceCapabilityFactory:
+    return lambda capability_id, device: BinarySetter(
+        capability_id,
+        f"HDMI Out {num}",
+        EntityType.CONFIG,
+        lambda: device.data.hdmi_out.get(num),
+        lambda val: device.set_hdmi_out(num, val),
+    )
+
+
+def _zone_number(
+    range_id: str,
+    name: str,
+    get_value: Callable[[Any, str], Any],
+    set_value: Callable[[Any, str, Any], Any],
+) -> ZoneCapabilityFactory:
+    """Return a NumberSetter factory for a value with a range."""
+
+    def factory(capability_id: str, device: Any, zone_id: str) -> Capability | None:
+        value_range = device.data.zones[zone_id].range_step.get(range_id)
+        if value_range is None:
+            return None
+        return NumberSetter(
+            capability_id,
+            name,
+            EntityType.CONFIG,
+            lambda: get_value(device, zone_id),
+            lambda val: set_value(device, zone_id, val),
+            value_range.minimum,
+            value_range.maximum,
+            value_range.step,
+        )
+
+    return factory
+
+
+def _actual_volume_db(device: Any, zone_id: str) -> float | None:
+    zone = device.data.zones[zone_id]
+    return zone.actual_volume if zone.actual_volume_mode == "db" else None
 
 
 """Dictionary of all DeviceFeatures with a callable as value.
@@ -64,6 +107,9 @@ _device_capabilities: dict[DeviceFeature, DeviceCapabilityFactory | dict[str, De
         lambda val: device.set_speaker_pattern(int(val)),
         {num: f"pattern_{num}" for num in device.data.speaker_pattern_list},
     ),
+    DeviceFeature.HDMI_OUT_1: _hdmi_out(1),
+    DeviceFeature.HDMI_OUT_2: _hdmi_out(2),
+    DeviceFeature.HDMI_OUT_3: _hdmi_out(3),
 }
 """Dictionary of all ZoneFeatures with a callable as value.
 
@@ -277,6 +323,54 @@ _zone_capabilities: dict[ZoneFeature, ZoneCapabilityFactory | dict[str, ZoneCapa
         lambda: device.data.zones[zone_id].surround_ai,
         lambda val: device.set_surround_ai(zone_id, val),
     ),
+    ZoneFeature.ADAPTIVE_DSP_LEVEL: lambda capability_id, device, zone_id: BinarySetter(
+        capability_id,
+        "Adaptive DSP Level",
+        EntityType.CONFIG,
+        lambda: device.data.zones[zone_id].adaptive_dsp_level,
+        lambda val: device.set_adaptive_dsp_level(zone_id, val),
+    ),
+    ZoneFeature.MONO: lambda capability_id, device, zone_id: BinarySetter(
+        capability_id,
+        "Mono",
+        EntityType.CONFIG,
+        lambda: device.data.zones[zone_id].mono,
+        lambda val: device.set_mono(zone_id, val),
+    ),
+    ZoneFeature.BALANCE: _zone_number(
+        "balance",
+        "Balance",
+        lambda device, zone_id: device.data.zones[zone_id].balance,
+        lambda device, zone_id, val: device.set_balance(zone_id, int(val)),
+    ),
+    ZoneFeature.ACTUAL_VOLUME: _zone_number(
+        "actual_volume_db",
+        "Volume (dB)",
+        _actual_volume_db,
+        lambda device, zone_id, val: device.set_actual_volume_db(zone_id, val),
+    ),
+    ZoneFeature.AURO_3D_LISTENING_MODE: lambda capability_id, device, zone_id: OptionSetter(
+        capability_id,
+        "Auro-3D Listening Mode",
+        EntityType.CONFIG,
+        lambda: device.data.zones[zone_id].auro_3d_listening_mode,
+        lambda val: device.set_auro_3d_listening_mode(zone_id, val),
+        {key: normalize_option(key) for key in device.data.zones[zone_id].auro_3d_listening_mode_list},
+    ),
+    ZoneFeature.AURO_MATIC_PRESET: lambda capability_id, device, zone_id: OptionSetter(
+        capability_id,
+        "Auro-Matic Preset",
+        EntityType.CONFIG,
+        lambda: device.data.zones[zone_id].auro_matic_preset,
+        lambda val: device.set_auro_matic_preset(zone_id, val),
+        {key: normalize_option(key) for key in device.data.zones[zone_id].auro_matic_preset_list},
+    ),
+    ZoneFeature.AURO_MATIC_STRENGTH: _zone_number(
+        "auro_matic_strength",
+        "Auro-Matic Strength",
+        lambda device, zone_id: device.data.zones[zone_id].auro_matic_strength,
+        lambda device, zone_id, val: device.set_auro_matic_strength(zone_id, int(val)),
+    ),
 }
 
 
@@ -293,10 +387,15 @@ def build_device_capabilities(device: MusicCastDevice) -> list[Capability]:
             if isinstance(feature_entry, dict):
                 for key, capability in feature_entry.items():
                     capability_id = f"{feature.name}_{key}"
-                    result.append(capability(capability_id, device))
+                    _append(result, capability(capability_id, device))
             else:
-                result.append(feature_entry(feature.name, device))
+                _append(result, feature_entry(feature.name, device))
     return result
+
+
+def _append(result: list[Capability], capability: Capability | None) -> None:
+    if capability is not None:
+        result.append(capability)
 
 
 def build_zone_capabilities(device: MusicCastDevice, zone_id: str) -> list[Capability]:
@@ -311,7 +410,7 @@ def build_zone_capabilities(device: MusicCastDevice, zone_id: str) -> list[Capab
             if isinstance(feature_entry, dict):
                 for key, capability in feature_entry.items():
                     capability_id = f"zone_{feature.name}_{key}"
-                    result.append(capability(capability_id, device, zone_id))
+                    _append(result, capability(capability_id, device, zone_id))
             else:
-                result.append(feature_entry(f"zone_{feature.name}", device, zone_id))
+                _append(result, feature_entry(f"zone_{feature.name}", device, zone_id))
     return result

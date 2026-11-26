@@ -37,6 +37,10 @@ from .musiccast_data import Dimmer, MusicCastAlarmDetails, MusicCastData, MusicC
 from .pyamaha import AsyncDevice, Clock, Dist, NetUSB, System, Tuner, Zone
 
 Callback = Callable[[], None]
+
+HDMI_OUT_FEATURES = {1: DeviceFeature.HDMI_OUT_1, 2: DeviceFeature.HDMI_OUT_2, 3: DeviceFeature.HDMI_OUT_3}
+# Relative commands in some option lists of getFeatures (e.g. the Auro-3D modes)
+RELATIVE_OPTIONS = ("prev", "next", "toggle")
 AsyncCallback = Callable[[], Awaitable[None]]
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -276,6 +280,18 @@ class MusicCastDevice:
         zone_data.clear_voice = zone.get("clear_voice")
         zone_data.surround_3d = zone.get("surround_3d")
         zone_data.surround_ai = zone.get("surround_ai")
+        zone_data.adaptive_dsp_level = zone.get("adaptive_dsp_level")
+        zone_data.mono = zone.get("mono")
+        zone_data.balance = zone.get("balance")
+
+        actual_volume = zone.get("actual_volume") or {}
+        zone_data.actual_volume = actual_volume.get("value")
+        zone_data.actual_volume_mode = actual_volume.get("mode")
+
+        auro_3d = zone.get("auro_3d") or {}
+        zone_data.auro_3d_listening_mode = auro_3d.get("listening_mode")
+        zone_data.auro_matic_preset = auro_3d.get("auro_matic_preset")
+        zone_data.auro_matic_strength = auro_3d.get("auro_matic_strength")
 
         zone_data.surr_decoder_type = zone.get("surr_decoder_type")
 
@@ -363,6 +379,10 @@ class MusicCastDevice:
         if DeviceFeature.SPEAKER_B in self.features:
             self.data.speaker_b = self._func_status.get("speaker_b")
 
+        for num, feature in HDMI_OUT_FEATURES.items():
+            if feature in self.features:
+                self.data.hdmi_out[num] = self._func_status.get(f"hdmi_out_{num}")
+
         if DeviceFeature.SPEAKER_PATTERN in self.features:
             raw = self._func_status.get("speaker_pattern")
             self.data.speaker_pattern = int(raw) if raw is not None else None
@@ -421,6 +441,15 @@ class MusicCastDevice:
                 zone_data.link_audio_delay_list = zone.get("link_audio_delay_list", None)
                 zone_data.link_audio_quality_list = zone.get("link_audio_quality_list", None)
                 zone_data.equalizer_mode_list = zone.get("equalizer_mode_list", ["manual"])
+                zone_data.actual_volume_mode_list = zone.get("actual_volume_mode_list", [])
+                # The lists also hold relative commands, which are no states.
+                zone_data.auro_3d_listening_mode_list = [
+                    mode for mode in zone.get("auro_3d_listening_mode_list", []) if mode not in RELATIVE_OPTIONS
+                ]
+                zone_data.auro_matic_preset_list = [
+                    preset for preset in zone.get("auro_matic_preset_list", []) if preset not in RELATIVE_OPTIONS
+                ]
+                zone_data.scene_num = zone.get("scene_num", 0)
 
                 for range_step in zone.get("range_step", []):
                     current = RangeStep()
@@ -690,6 +719,67 @@ class MusicCastDevice:
     async def set_surround_ai(self, zone_id, value):
         """Set surround AI option."""
         await self.device.request(Zone.set_surround_ai(zone_id, value))
+
+    @_check_feature(ZoneFeature.ADAPTIVE_DSP_LEVEL)
+    async def set_adaptive_dsp_level(self, zone_id, value):
+        """Set Adaptive DSP Level."""
+        await self.device.request(Zone.set_adaptive_dsp_level(zone_id, value))
+
+    @_check_feature(ZoneFeature.MONO)
+    async def set_mono(self, zone_id, value):
+        """Set mono output."""
+        await self.device.request(Zone.set_mono(zone_id, value))
+
+    @_check_feature(ZoneFeature.BALANCE)
+    async def set_balance(self, zone_id, value: int):
+        """Set the left/right balance."""
+        await self.device.request(Zone.set_balance(zone_id, value))
+
+    @_check_feature(ZoneFeature.ACTUAL_VOLUME)
+    async def set_actual_volume_db(self, zone_id, value: float):
+        """Set the volume in dB."""
+        await self.device.request(Zone.set_actual_volume(zone_id, "db", value))
+
+    @_check_feature(ZoneFeature.AURO_3D_LISTENING_MODE)
+    async def set_auro_3d_listening_mode(self, zone_id, mode: str):
+        """Set the Auro-3D listening mode."""
+        await self.device.request(Zone.set_auro_3d_listening_mode(zone_id, mode))
+
+    @_check_feature(ZoneFeature.AURO_MATIC_PRESET)
+    async def set_auro_matic_preset(self, zone_id, preset: str):
+        """Set the Auro-Matic preset."""
+        await self.device.request(Zone.set_auro_matic_preset(zone_id, preset))
+
+    @_check_feature(ZoneFeature.AURO_MATIC_STRENGTH)
+    async def set_auro_matic_strength(self, zone_id, value: int):
+        """Set the Auro-Matic strength."""
+        await self.device.request(Zone.set_auro_matic_strength(zone_id, value))
+
+    @_check_feature(ZoneFeature.SCENE)
+    async def recall_scene(self, zone_id, num: int):
+        """Recall scene num (1 to the zone's scene_num)."""
+        scene_num = self.data.zones[zone_id].scene_num
+        if not 1 <= num <= scene_num:
+            raise MusicCastException(f"Scene {num} is not in the range 1 to {scene_num}")
+        await self.device.request(Zone.recall_scene(zone_id, num))
+
+    async def set_hdmi_out(self, num: int, value: bool):
+        """Turn HDMI output num (1-3) on or off."""
+        feature = HDMI_OUT_FEATURES.get(num)
+        if feature is None or feature not in self.features:
+            raise MusicCastUnsupportedException(f"HDMI out {num} is not supported")
+        setter = {1: System.set_hdmi_out_1, 2: System.set_hdmi_out_2, 3: System.set_hdmi_out_3}[num]
+        await self.device.request(setter(value))
+
+    @_check_feature(DeviceFeature.SYSTEM_REBOOT)
+    async def reboot(self):
+        """Restart the device."""
+        await self.device.request(System.request_system_reboot())
+
+    @_check_feature(DeviceFeature.NETWORK_REBOOT)
+    async def reboot_network_module(self):
+        """Restart only the network module (streaming, DLNA)."""
+        await self.device.request(System.request_network_reboot())
 
     async def select_sound_mode(self, zone_id, sound_mode):
         """Select sound mode."""
