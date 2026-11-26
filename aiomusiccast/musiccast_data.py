@@ -56,6 +56,8 @@ class MusicCastData:
         self.netusb_playback: str | None = None
         self.netusb_repeat: str | None = None
         self.netusb_shuffle: str | None = None
+        # Bitmask of what the track playing allows, from getPlayInfo
+        self.netusb_attribute: int | None = None
         self.netusb_artist: str | None = None
         self.netusb_album: str | None = None
         self.netusb_track: str | None = None

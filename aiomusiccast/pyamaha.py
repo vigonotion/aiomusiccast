@@ -1755,6 +1755,7 @@ class NetUSB:
         "GET_SERVICE_INFO": "http://{host}/YamahaExtendedControl/v1/netusb/getServiceInfo?input={input}&type={type}&timeout={timeout}",
         "SET_REPEAT": "http://{host}/YamahaExtendedControl/v1/netusb/setRepeat?mode={mode}",
         "SET_SHUFFLE": "http://{host}/YamahaExtendedControl/v1/netusb/setShuffle?mode={mode}",
+        "SET_PLAY_POSITION": "http://{host}/YamahaExtendedControl/v1/netusb/setPlayPosition?position={position}",
     }
 
     @staticmethod
@@ -1825,6 +1826,26 @@ class NetUSB:
             Specifies the shuffle setting. Value : "off" / "on" / "songs" / "albums"
         """
         return NetUSB.URI["SET_SHUFFLE"].format(host="{host}", mode=mode)
+
+    # end-of-method set_shuffle
+
+    @staticmethod
+    def set_play_position(position):
+        """For seeking in the track playing.
+
+        YXC API Specification (Basic) 7.4 documents it for the Server input,
+        within total_time of getPlayInfo; newer firmware seeks in streaming
+        services too. The device accepts it while bit 31 of the attribute in
+        getPlayInfo is set.
+
+        Parameters
+        ----------
+        position : Any
+            Position in seconds, within the track.
+        """
+        return NetUSB.URI["SET_PLAY_POSITION"].format(host="{host}", position=int(position))
+
+    # end-of-method set_play_position
 
     @staticmethod
     def toggle_shuffle():
