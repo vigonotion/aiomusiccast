@@ -4,13 +4,14 @@ import asyncio
 import logging
 import math
 import mimetypes
+import re
 from collections.abc import Awaitable, Callable
 from datetime import datetime, time, timezone
 from functools import wraps
 from typing import Any, ParamSpec, TypeVar
 from xml.sax.saxutils import escape
 
-from aiohttp import ClientSession
+from aiohttp import ClientError, ClientSession
 
 from aiomusiccast.const import (
     ALARM_ONEDAY,
@@ -26,6 +27,7 @@ from aiomusiccast.const import (
     ZoneFeature,
 )
 from aiomusiccast.exceptions import (
+    MusicCastConnectionException,
     MusicCastException,
     MusicCastGroupException,
     MusicCastUnsupportedException,
@@ -42,6 +44,35 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 _LOGGER = logging.getLogger(__name__)
+
+# DLNA flags of a resource the renderer can seek in (byte-based seek supported)
+DLNA_SEEKABLE_FLAGS = "DLNA.ORG_OP=01;DLNA.ORG_FLAGS=01700000000000000000000000000000"
+_TRANSPORT_STATE = re.compile(r"<CurrentTransportState>([^<]*)</CurrentTransportState>")
+_REL_TIME = re.compile(r"<RelTime>([^<]*)</RelTime>")
+_TRACK_DURATION = re.compile(r"<TrackDuration>([^<]*)</TrackDuration>")
+
+
+def _hms(seconds: float) -> str:
+    """Format seconds as H:MM:SS, as DLNA expects it."""
+    seconds = max(0, int(seconds))
+    return f"{seconds // 3600}:{seconds // 60 % 60:02d}:{seconds % 60:02d}"
+
+
+def _seconds(value: str | None) -> float | None:
+    """Parse a DLNA time (H+:MM:SS[.F+]) into seconds.
+
+    None for "NOT_IMPLEMENTED" or an empty value.
+    """
+    if not value:
+        return None
+    parts = value.split(":")
+    if len(parts) != 3:
+        return None
+    try:
+        hours, minutes, secs = (float(part) for part in parts)
+    except ValueError:
+        return None
+    return hours * 3600 + minutes * 60 + secs
 
 
 def _check_feature(feature: Feature) -> Callable[[Callable[P, R]], Callable[P, R]]:
@@ -840,7 +871,42 @@ class MusicCastDevice:
     async def play_list_media(self, item, zone_id):
         await self.device.request(NetUSB.set_list_control("main", "play", item, zone_id))
 
-    async def play_url_media(self, zone_id, media_url, title, mime_type=None):
+    async def play_url_media(
+        self,
+        zone_id,
+        media_url,
+        title,
+        mime_type=None,
+        *,
+        artist: str | None = None,
+        album: str | None = None,
+        image_url: str | None = None,
+        duration: float | None = None,
+        size: int | None = None,
+        seekable: bool = False,
+    ):
+        """Play a URL on the device's DLNA renderer.
+
+        Parameters
+        ----------
+        zone_id
+            Zone to play in; it is switched to the server input.
+        media_url
+            URL of the media.
+        title
+            Title the device shows.
+        mime_type
+            MIME type of the media; guessed from the URL if not given.
+        artist, album, image_url
+            Further metadata the device shows (image_url: cover art).
+        duration
+            Length in seconds. With it, the device shows the progress.
+        size
+            Size in bytes.
+        seekable
+            Whether the server supports range requests, so that the device
+            can seek (see dlna_seek).
+        """
         await self.select_source(zone_id, "server", "autoplay_disabled")
 
         await self.device.dlna_avt_request("Stop", {"InstanceID": 0})
@@ -860,14 +926,28 @@ class MusicCastDevice:
         if not obj_class:
             obj_class = "object.item"
 
+        res_attributes = f'protocolInfo="http-get:*:{escape(mime_type)}:{DLNA_SEEKABLE_FLAGS if seekable else "*"}"'
+        if duration:
+            res_attributes += f' duration="{_hms(duration)}.000"'
+        if size:
+            res_attributes += f' size="{int(size)}"'
+
+        fields = [f"<dc:title>{escape(title)}</dc:title>"]
+        if artist:
+            fields.append(f"<dc:creator>{escape(artist)}</dc:creator>")
+            fields.append(f"<upnp:artist>{escape(artist)}</upnp:artist>")
+        if album:
+            fields.append(f"<upnp:album>{escape(album)}</upnp:album>")
+        if image_url:
+            fields.append(f"<upnp:albumArtURI>{escape(image_url)}</upnp:albumArtURI>")
+
         meta = (
             '<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" '
             'xmlns:dc="http://purl.org/dc/elements/1.1/" '
             'xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" '
             'xmlns:sec="http://www.sec.co.kr/">'
-            '<item id="0" parentID="-1" restricted="false">'
-            f"<dc:title>{escape(title)}</dc:title><upnp:class>{obj_class}</upnp:class>"
-            f'<res protocolInfo="http-get:*:{mime_type}:*">{escape(media_url)}</res>'
+            '<item id="0" parentID="-1" restricted="false">' + "".join(fields) + f"<upnp:class>{obj_class}</upnp:class>"
+            f"<res {res_attributes}>{escape(media_url)}</res>"
             "</item>"
             "</DIDL-Lite>"
         )
@@ -888,6 +968,48 @@ class MusicCastDevice:
                 "Speed": 1,
             },
         )
+
+    async def _dlna(self, action: str, args: dict[str, Any]) -> str:
+        """Send an AVTransport action; return the response body."""
+        try:
+            response = await self.device.dlna_avt_request(action, args)
+            text = await response.text()
+        except (ClientError, asyncio.TimeoutError) as err:
+            raise MusicCastConnectionException(f"DLNA {action} failed: {err!r}") from err
+        if response.status >= 400:
+            raise MusicCastException(f"DLNA {action} was refused (HTTP {response.status})")
+        return text
+
+    async def dlna_seek(self, position: float):
+        """Seek to position (seconds) in what the DLNA renderer plays.
+
+        Works for URLs played with seekable=True. The renderer ignores a
+        seek while it is still buffering a new stream, even if it
+        reports PLAYING already; wait until dlna_position_info() moves.
+        """
+        await self._dlna("Seek", {"InstanceID": 0, "Unit": "REL_TIME", "Target": _hms(position)})
+
+    async def dlna_position_info(self) -> tuple[float | None, float | None]:
+        """Return the renderer's (position, duration) in seconds.
+
+        Either is None when the renderer does not know it.
+        """
+        text = await self._dlna("GetPositionInfo", {"InstanceID": 0})
+        position = _REL_TIME.search(text)
+        duration = _TRACK_DURATION.search(text)
+        return (
+            _seconds(position.group(1)) if position else None,
+            _seconds(duration.group(1)) if duration else None,
+        )
+
+    async def dlna_transport_state(self) -> str | None:
+        """Return the DLNA renderer's transport state.
+
+        PLAYING, STOPPED, PAUSED_PLAYBACK, TRANSITIONING or
+        NO_MEDIA_PRESENT.
+        """
+        match = _TRANSPORT_STATE.search(await self._dlna("GetTransportInfo", {"InstanceID": 0}))
+        return match.group(1) if match else None
 
     # -----Properties-----
 
