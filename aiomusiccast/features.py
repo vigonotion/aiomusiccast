@@ -48,6 +48,11 @@ class DeviceFeature(Feature):
     NAME_TEXT_AVR = auto()
     HDMI_STANDBY_THROUGH = auto()
 
+    # inferred from the netusb func_list
+    RECENT_INFO = auto()
+    PLAY_QUEUE = auto()
+    MC_PLAYLIST = auto()
+
     # list of supported features that got infered indirectly
     CLOCK = auto()
     ALARM_ONEDAY = auto()

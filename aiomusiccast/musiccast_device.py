@@ -33,7 +33,16 @@ from aiomusiccast.exceptions import (
 
 from .capability_registry import build_device_capabilities, build_zone_capabilities
 from .features import Feature
-from .musiccast_data import Dimmer, MusicCastAlarmDetails, MusicCastData, MusicCastZoneData, RangeStep
+from .musiccast_data import (
+    Dimmer,
+    MusicCastAlarmDetails,
+    MusicCastData,
+    MusicCastListItem,
+    MusicCastPlayQueue,
+    MusicCastTunerPreset,
+    MusicCastZoneData,
+    RangeStep,
+)
 from .pyamaha import AsyncDevice, Clock, Dist, NetUSB, System, Tuner, Zone
 
 Callback = Callable[[], None]
@@ -79,6 +88,25 @@ def _check_feature(feature: Feature) -> Callable[[Callable[P, R]], Callable[P, R
         return inner
 
     return decorator
+
+
+NETUSB_FUNC_LIST_TO_FEATURE_MAPPING = {
+    "recent_info": DeviceFeature.RECENT_INFO,
+    "play_queue": DeviceFeature.PLAY_QUEUE,
+    "mc_playlist": DeviceFeature.MC_PLAYLIST,
+}
+LIST_PAGE_SIZE = 8  # the device returns lists in pages of 8
+MAX_LIST_PAGES = 64  # stop paging there, should a device never end a list
+
+
+def _list_item(index: int, entry: dict[str, Any]) -> MusicCastListItem:
+    return MusicCastListItem(
+        index=index,
+        text=entry.get("text") or entry.get("track") or "",
+        input=entry.get("input") or None,
+        thumbnail=entry.get("thumbnail") or entry.get("albumart_url") or None,
+        raw=entry,
+    )
 
 
 class MusicCastDevice:
@@ -456,6 +484,16 @@ class MusicCastDevice:
 
                 self.data.zones[zone_id] = zone_data
 
+            for func in self._features.get("netusb", {}).get("func_list", []):
+                if feature_bit := NETUSB_FUNC_LIST_TO_FEATURE_MAPPING.get(func):
+                    self.features |= feature_bit
+
+            tuner_features = self._features.get("tuner", {})
+            self.data.tuner_preset_type = tuner_features.get("preset", {}).get("type")
+            self.data.tuner_bands = [
+                band for band in tuner_features.get("func_list", []) if band in ("am", "fm", "dab")
+            ]
+
             if "clock" in self._features:
                 clock_features = self._features.get("clock", {})
                 if "alarm" in clock_features.get("func_list", []):
@@ -731,6 +769,116 @@ class MusicCastDevice:
     async def store_netusb_preset(self, preset):
         """Play the selected preset."""
         await self.device.get(NetUSB.store_preset(preset))
+
+    # -----Device lists-----
+
+    async def _read_pages(self, url: Callable[[int], str], key: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        """Read a paged list; return its entries and the last page."""
+        entries: list[dict[str, Any]] = []
+        page: dict[str, Any] = {}
+        for _ in range(MAX_LIST_PAGES):
+            page = await self.device.request_json(url(len(entries)))
+            lines = page.get(key) or []
+            entries += lines
+            if not lines or len(entries) >= (page.get("max_line") or 0):
+                break
+        return entries, page
+
+    @_check_feature(DeviceFeature.PLAY_QUEUE)
+    async def get_play_queue(self) -> MusicCastPlayQueue:
+        """Return the play queue (what the device plays next)."""
+        entries, page = await self._read_pages(NetUSB.get_play_queue, "track_info")
+        playing = page.get("playing_index")
+        return MusicCastPlayQueue(
+            items=[_list_item(index, entry) for index, entry in enumerate(entries)],
+            playing_index=playing if isinstance(playing, int) and playing >= 0 else None,
+        )
+
+    @_check_feature(DeviceFeature.PLAY_QUEUE)
+    async def play_queue_item(self, zone_id, index: int):
+        """Play the queue from entry index (counted from 0)."""
+        await self.device.request(NetUSB.manage_play_queue("play", index, zone_id))
+
+    @_check_feature(DeviceFeature.PLAY_QUEUE)
+    async def remove_play_queue_item(self, zone_id, index: int):
+        """Remove entry index (counted from 0) from the queue."""
+        await self.device.request(NetUSB.manage_play_queue("remove", index, zone_id))
+
+    @_check_feature(DeviceFeature.PLAY_QUEUE)
+    async def clear_play_queue(self):
+        """Empty the play queue."""
+        await self.device.request(NetUSB.clear_play_queue())
+
+    @_check_feature(DeviceFeature.RECENT_INFO)
+    async def get_recent_items(self) -> list[MusicCastListItem]:
+        """Return the recently played items.
+
+        Play one with recall_recent_item.
+
+        Unused slots (no text or input "unknown") are left out; index
+        stays the position on the device.
+        """
+        result = await self.device.request_json(NetUSB.get_recent_info())
+        return [
+            _list_item(index, entry)
+            for index, entry in enumerate(result.get("recent_info") or [])
+            if entry.get("text") and entry.get("input") not in (None, "", "unknown")
+        ]
+
+    @_check_feature(DeviceFeature.RECENT_INFO)
+    async def recall_recent_item(self, zone_id, index: int):
+        """Play a recently played item.
+
+        index counts from 0, as MusicCastListItem.index of
+        get_recent_items.
+        """
+        await self.device.request(NetUSB.recall_recent_item(zone_id, index + 1))
+
+    @_check_feature(DeviceFeature.MC_PLAYLIST)
+    async def get_mc_playlist_names(self) -> list[str]:
+        """Return the MusicCast playlist names; bank 1 is the first."""
+        result = await self.device.request_json(NetUSB.get_mc_playlist_name())
+        return list(result.get("name_list") or [])
+
+    @_check_feature(DeviceFeature.MC_PLAYLIST)
+    async def get_mc_playlist(self, bank: int) -> list[MusicCastListItem]:
+        """Return the tracks of a MusicCast playlist (bank from 1)."""
+        entries, _ = await self._read_pages(lambda index: NetUSB.get_mc_playlist(bank, index), "track_info")
+        return [_list_item(index, entry) for index, entry in enumerate(entries)]
+
+    @_check_feature(DeviceFeature.MC_PLAYLIST)
+    async def play_mc_playlist(self, zone_id, bank: int, index: int = 0):
+        """Play a MusicCast playlist (bank from 1) from track index."""
+        await self.device.request(NetUSB.manage_mc_playlist(bank, "play", index, zone_id))
+
+    @property
+    def tuner_preset_bands(self) -> list[str]:
+        """Return the bands to read presets of: ["common"] or one per band."""
+        if self.data.tuner_preset_type == "common":
+            return ["common"]
+        return list(self.data.tuner_bands)
+
+    async def get_tuner_presets(self, band: str) -> list[MusicCastTunerPreset]:
+        """Return the stored presets of a band of tuner_preset_bands."""
+        if band not in self.tuner_preset_bands:
+            raise MusicCastUnsupportedException(f"No tuner presets for band {band}")
+        result = await self.device.request_json(Tuner.get_preset_info(band))
+        return [
+            MusicCastTunerPreset(
+                num=num,
+                band=entry.get("band"),
+                number=entry.get("number") or 0,
+                text=(entry.get("text") or "").strip(),
+            )
+            for num, entry in enumerate(result.get("preset_info") or [], 1)
+            if entry.get("band") not in (None, "", "unknown")
+        ]
+
+    async def recall_tuner_preset(self, zone_id, band: str, num: int):
+        """Play tuner preset num (from 1) of a band."""
+        if band not in self.tuner_preset_bands:
+            raise MusicCastUnsupportedException(f"No tuner presets for band {band}")
+        await self.device.request(Tuner.recall_preset(zone_id, band, num))
 
     async def set_sleep_timer(self, zone_id, sleep_time=0):
         """Set sleep time."""

@@ -56,6 +56,8 @@ SERVICE_INFO_TYPE = ["account_list", "licensing", "activation_code"]
 SLEEP = [0, 30, 60, 90, 120]
 TUNING = ["up", "down", "cancel", "auto_up", "auto_down", "tp_up", "tp_down", "direct"]
 TYPE = ["select", "play", "return"]
+PLAY_QUEUE_TYPE = ["play", "remove"]
+MC_PLAYLIST_TYPE = ["play"]
 POWER = ["on", "standby", "toggle"]
 LIST_ID = ["main", "auto_complete", "search_artist", "search_track"]
 LANG = ["en", "ja", "fr", "de", "es", "ru", "it", "zh"]
@@ -1674,12 +1676,13 @@ class Tuner:
             Specifies station recalling zone. This causes input change in specified zone. Values: 'main', 'zone2', 'zone3', 'zone4'
         band : Any
             Specifies Band type. Depending on Preset Type gotten via
-            /system/getFeatures, specifying value is different Values: 'common' (band common), 'separate' (each band preset)
+            /system/getFeatures, specifying value is different Values: 'common' (preset type common),
+            'am', 'fm', 'dab' (preset type separate)
         num : Any
             Specifies Preset number. Value: one in the range gotten via /system/getFeatures
         """
         assert zone in ZONES, "Invalid ZONE value!"
-        assert band in PRESET_BAND, "Invalid BAND value!"
+        assert band in BAND, "Invalid BAND value!"
         return Tuner.URI["RECALL_PRESET"].format(host="{host}", zone=zone, band=band, num=num)
 
     # end-of-method recall_preset
@@ -1750,6 +1753,14 @@ class NetUSB:
         "SET_SEARCH_STRING": "http://{host}/YamahaExtendedControl/v1/netusb/setSearchString",
         "RECALL_PRESET": "http://{host}/YamahaExtendedControl/v1/netusb/recallPreset?zone={zone}&num={num}",
         "STORE_PRESET": "http://{host}/YamahaExtendedControl/v1/netusb/storePreset?num={num}",
+        "GET_PLAY_QUEUE": "http://{host}/YamahaExtendedControl/v1/netusb/getPlayQueue?index={index}",
+        "MANAGE_PLAY_QUEUE": "http://{host}/YamahaExtendedControl/v1/netusb/managePlayQueue?type={type}&index={index}&zone={zone}",
+        "CLEAR_PLAY_QUEUE": "http://{host}/YamahaExtendedControl/v1/netusb/clearPlayQueue",
+        "GET_RECENT_INFO": "http://{host}/YamahaExtendedControl/v1/netusb/getRecentInfo",
+        "RECALL_RECENT_ITEM": "http://{host}/YamahaExtendedControl/v1/netusb/recallRecentItem?zone={zone}&num={num}",
+        "GET_MC_PLAYLIST_NAME": "http://{host}/YamahaExtendedControl/v1/netusb/getMcPlaylistName",
+        "GET_MC_PLAYLIST": "http://{host}/YamahaExtendedControl/v1/netusb/getMcPlaylist?bank={bank}&index={index}",
+        "MANAGE_MC_PLAYLIST": "http://{host}/YamahaExtendedControl/v1/netusb/manageMcPlaylist?bank={bank}&type={type}&index={index}&zone={zone}",
         "GET_ACCOUNT_STATUS": "http://{host}/YamahaExtendedControl/v1/netusb/getAccountStatus",
         "SWITCH_ACCOUNT": "http://{host}/YamahaExtendedControl/v1/netusb/switchAccount?input={input}&index={index}&timeout={timeout}",
         "GET_SERVICE_INFO": "http://{host}/YamahaExtendedControl/v1/netusb/getServiceInfo?input={input}&type={type}&timeout={timeout}",
@@ -1902,6 +1913,111 @@ class NetUSB:
         return NetUSB.URI["SET_LIST_CONTROL"].format(host="{host}", list_id=list_id, type=type, index=index, zone=zone)
 
     # end-of-method set_list_control
+
+    @staticmethod
+    def get_play_queue(index):
+        """For retrieving the play queue, 8 entries from index.
+
+        Parameters
+        ----------
+        index : Any
+            Offset of the first entry, a multiple of 8.
+        """
+        return NetUSB.URI["GET_PLAY_QUEUE"].format(host="{host}", index=index)
+
+    # end-of-method get_play_queue
+
+    @staticmethod
+    def manage_play_queue(type, index, zone):
+        """For acting on an entry of the play queue.
+
+        Parameters
+        ----------
+        type : Any
+            'play' (play the queue from that entry) or 'remove'.
+        index : Any
+            Entry, counted from 0.
+        zone : Any
+            Values: 'main', 'zone2', 'zone3', 'zone4'
+        """
+        assert type in PLAY_QUEUE_TYPE, "Invalid TYPE value!"
+        assert zone in ZONES, "Invalid ZONE value!"
+        return NetUSB.URI["MANAGE_PLAY_QUEUE"].format(host="{host}", type=type, index=index, zone=zone)
+
+    # end-of-method manage_play_queue
+
+    @staticmethod
+    def clear_play_queue():
+        """For emptying the play queue."""
+        return NetUSB.URI["CLEAR_PLAY_QUEUE"]
+
+    # end-of-method clear_play_queue
+
+    @staticmethod
+    def get_recent_info():
+        """For retrieving the recently played items."""
+        return NetUSB.URI["GET_RECENT_INFO"]
+
+    # end-of-method get_recent_info
+
+    @staticmethod
+    def recall_recent_item(zone, num):
+        """For playing a recently played item.
+
+        Parameters
+        ----------
+        zone : Any
+            Values: 'main', 'zone2', 'zone3', 'zone4'
+        num : Any
+            Position in getRecentInfo, counted from 1.
+        """
+        assert zone in ZONES, "Invalid ZONE value!"
+        return NetUSB.URI["RECALL_RECENT_ITEM"].format(host="{host}", zone=zone, num=num)
+
+    # end-of-method recall_recent_item
+
+    @staticmethod
+    def get_mc_playlist_name():
+        """For retrieving the names of the MusicCast playlists."""
+        return NetUSB.URI["GET_MC_PLAYLIST_NAME"]
+
+    # end-of-method get_mc_playlist_name
+
+    @staticmethod
+    def get_mc_playlist(bank, index):
+        """For retrieving the tracks of a MusicCast playlist.
+
+        Parameters
+        ----------
+        bank : Any
+            Playlist number, counted from 1.
+        index : Any
+            Offset of the first entry, a multiple of 8.
+        """
+        return NetUSB.URI["GET_MC_PLAYLIST"].format(host="{host}", bank=bank, index=index)
+
+    # end-of-method get_mc_playlist
+
+    @staticmethod
+    def manage_mc_playlist(bank, type, index, zone):
+        """For playing a MusicCast playlist.
+
+        Parameters
+        ----------
+        bank : Any
+            Playlist number, counted from 1.
+        type : Any
+            'play'
+        index : Any
+            Track to start with.
+        zone : Any
+            Values: 'main', 'zone2', 'zone3', 'zone4'
+        """
+        assert type in MC_PLAYLIST_TYPE, "Invalid TYPE value!"
+        assert zone in ZONES, "Invalid ZONE value!"
+        return NetUSB.URI["MANAGE_MC_PLAYLIST"].format(host="{host}", bank=bank, type=type, index=index, zone=zone)
+
+    # end-of-method manage_mc_playlist
 
     @staticmethod
     def set_search_string(search_string, list_id=None, index=None):
