@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
@@ -113,6 +113,10 @@ class MusicCastData:
 
         self.capabilities: list[str] = []
 
+        # Tuner presets: "common" (one list) or "separate" (one per band)
+        self.tuner_preset_type: str | None = None
+        self.tuner_bands: list[str] = []
+
     @property
     def fm_freq_str(self) -> str:
         """Return a formatted string with fm frequency."""
@@ -213,3 +217,38 @@ class Dimmer(RangeStep):
     def __init__(self, dimmer_min: int, dimmer_max: int, dimmer_step: int, dimmer_current: int) -> None:
         super().__init__(dimmer_min, dimmer_max, dimmer_step)
         self.dimmer_current = dimmer_current
+
+
+@dataclass(slots=True)
+class MusicCastListItem:
+    """An entry of a device list: play queue, recent, playlist."""
+
+    # Position in the list, counted from 0
+    index: int
+    text: str
+    # Input the item plays on, e.g. "server", "net_radio", "tidal"
+    input: str | None = None
+    thumbnail: str | None = None
+    # The entry as the device reports it, for fields not covered here
+    raw: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class MusicCastPlayQueue:
+    """The device's play queue."""
+
+    items: list[MusicCastListItem]
+    # Index of the entry playing, None if none
+    playing_index: int | None = None
+
+
+@dataclass(slots=True)
+class MusicCastTunerPreset:
+    """A tuner preset."""
+
+    # Preset number, counted from 1
+    num: int
+    band: str
+    # Frequency in kHz for FM/AM, the service ID for DAB
+    number: int
+    text: str
