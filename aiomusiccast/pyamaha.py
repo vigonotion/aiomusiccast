@@ -96,6 +96,8 @@ class MusicCastUdpProtocol(asyncio.DatagramProtocol):
     def __init__(self, handle_event) -> None:
         super().__init__()
         self.handle_event = handle_event
+        # The event loop only keeps weak references to tasks.
+        self._tasks: set[asyncio.Task[None]] = set()
 
     def connection_made(self, transport):
         self.transport = transport
@@ -113,8 +115,21 @@ class MusicCastUdpProtocol(asyncio.DatagramProtocol):
         except Exception:
             _LOGGER.exception("An unexpected error occurred while handling an UDP message.")
         finally:
-            task = asyncio.create_task(self.handle_event(message_data))
-            task.add_done_callback(lambda _task: None)
+            if self.handle_event is not None:
+                task = asyncio.create_task(self.handle_event(message_data))
+                self._tasks.add(task)
+                task.add_done_callback(self._event_handled)
+
+    def _event_handled(self, task: asyncio.Task[None]) -> None:
+        """Forget the task and log its error, if any."""
+        self._tasks.discard(task)
+        if task.cancelled():
+            return
+        error = task.exception()
+        if isinstance(error, MusicCastConnectionException):
+            _LOGGER.debug("Could not fetch the data an event announced: %r", error.__cause__ or error)
+        elif error is not None:
+            _LOGGER.error("Handling an event failed", exc_info=error)
 
 
 class UrlBuilder:
