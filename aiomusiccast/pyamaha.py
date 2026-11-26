@@ -59,6 +59,7 @@ TYPE = ["select", "play", "return"]
 POWER = ["on", "standby", "toggle"]
 LIST_ID = ["main", "auto_complete", "search_artist", "search_track"]
 LANG = ["en", "ja", "fr", "de", "es", "ru", "it", "zh"]
+MANAGE_LIST_TYPE = ["play_now", "play_next", "add_to_queue"]
 WIFI = ["none", "wep", "wpa2-psk(aes)", "mixed_mode"]
 WIFI_DIRECT = ["none", "wpa2-psk(aes)"]
 STANDBY = ["off", "on", "auto"]
@@ -1746,6 +1747,7 @@ class NetUSB:
         "TOGGLE_REPEAT": "http://{host}/YamahaExtendedControl/v1/netusb/toggleRepeat",
         "TOGGLE_SHUFFLE": "http://{host}/YamahaExtendedControl/v1/netusb/toggleShuffle",
         "GET_LIST_INFO": "http://{host}/YamahaExtendedControl/v1/netusb/getListInfo?input={input}&index={index}&size={size}&lang={lang}&list_id={list_id}",
+        "MANAGE_LIST": "http://{host}/YamahaExtendedControl/v1/netusb/manageList?list_id={list_id}&type={type}&index={index}&zone={zone}&timeout={timeout}",
         "SET_LIST_CONTROL": "http://{host}/YamahaExtendedControl/v1/netusb/setListControl?list_id={list_id}&type={type}&index={index}&zone={zone}",
         "SET_SEARCH_STRING": "http://{host}/YamahaExtendedControl/v1/netusb/setSearchString",
         "RECALL_PRESET": "http://{host}/YamahaExtendedControl/v1/netusb/recallPreset?zone={zone}&num={num}",
@@ -1939,6 +1941,33 @@ class NetUSB:
         return NetUSB.URI["SET_SEARCH_STRING"], payload
 
     # end-of-method set_search_string
+
+    @staticmethod
+    def manage_list(list_id, type, index, zone, timeout=60000):
+        """For adding an entry of the current list to the play queue.
+
+        Parameters
+        ----------
+        list_id : Any
+            Values: 'main'
+        type : Any
+            'play_now' (play it now, ahead of the queue), 'play_next' (insert
+            it after the entry playing) or 'add_to_queue' (append it). Works on
+            folders (albums, playlists) too.
+        index : Any
+            Entry of the current list, counted from 0.
+        zone : Any
+            Values: 'main', 'zone2', 'zone3', 'zone4'
+        timeout : Any
+            How long the device may take, in ms (0-60000; 0 for the maximum).
+        """
+        assert type in MANAGE_LIST_TYPE, "Invalid TYPE value!"
+        assert zone in ZONES, "Invalid ZONE value!"
+        return NetUSB.URI["MANAGE_LIST"].format(
+            host="{host}", list_id=list_id, type=type, index=index, zone=zone, timeout=timeout
+        )
+
+    # end-of-method manage_list
 
     @staticmethod
     def recall_preset(zone, num):
