@@ -52,6 +52,7 @@ class DeviceFeature(Feature):
     CLOCK = auto()
     ALARM_ONEDAY = auto()
     ALARM_WEEKLY = auto()
+    CD = auto()
 
 
 # Zone Features

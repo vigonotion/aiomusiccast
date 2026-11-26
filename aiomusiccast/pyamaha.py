@@ -35,7 +35,7 @@ CD_PLAYBACK = [
     "fast_reverse_end",
     "fast_forward_start",
     "fast_forward_end",
-    "track_select ",
+    "track_select",
 ]
 DIR = ["next", "previous"]
 PLAYBACK = [
@@ -2049,7 +2049,7 @@ class CD:
     # end-of-method get_play_info
 
     @staticmethod
-    def set_playback(playback, num):
+    def set_playback(playback, num=None):
         """For controlling playback status.
 
         Parameters
@@ -2062,7 +2062,9 @@ class CD:
             Specifies target track number to playback.
             This parameter is valid only when playback "track_select" is specified. Values: 1-512
         """
-        assert playback in PLAYBACK, "Invalid PLAYBACK value!"
+        assert playback in CD_PLAYBACK, "Invalid PLAYBACK value!"
+        if playback != "track_select":
+            return CD.URI["SET_PLAYBACK"].split("&", 1)[0].format(host="{host}", playback=playback)
         return CD.URI["SET_PLAYBACK"].format(host="{host}", playback=playback, num=num)
 
     # end-of-method set_playback
