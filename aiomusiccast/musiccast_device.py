@@ -31,10 +31,9 @@ from aiomusiccast.exceptions import (
     MusicCastUnsupportedException,
 )
 
-from .category import Category
 from .capability_registry import build_device_capabilities, build_zone_capabilities
 from .features import Feature
-from .musiccast_data import Dimmer, MusicCastAlarmDetails, MusicCastData, MusicCastZoneData, RangeStep
+from .musiccast_data import Category, Dimmer, MusicCastAlarmDetails, MusicCastData, MusicCastZoneData, RangeStep
 from .pyamaha import AsyncDevice, Clock, Dist, NetUSB, System, Tuner, Zone
 
 Callback = Callable[[], None]
@@ -87,7 +86,6 @@ class MusicCastDevice:
 
     device: AsyncDevice
     features: DeviceFeature = DeviceFeature.NONE
-    category: Category = Category.UNKNOWN
 
     def __init__(self, ip: str, client: ClientSession, upnp_description: str | None = None) -> None:
         """Init dummy MusicCastDevice."""
@@ -383,12 +381,11 @@ class MusicCastDevice:
         if not self._device_info:
             self._device_info = await self.device.request_json(System.get_device_info())
 
-            self.category = Category(self._device_info.get("category_code", 0))
-
             self.data.device_id = self._device_info.get("device_id")
             self.data.model_name = self._device_info.get("model_name")
             self.data.system_version = self._device_info.get("system_version")
             self.data.api_version = self._device_info.get("api_version")
+            self.data.category = Category(self._device_info.get("category_code", 0))
 
         self._name_text = await self.device.request_json(System.get_name_text(None))
         zone_names = {zone.get("id"): zone.get("text") for zone in self._name_text.get("zone_list", [])}
