@@ -1,12 +1,37 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from dataclasses import dataclass
 from datetime import datetime
+from enum import IntEnum
 from typing import Any
 
 from .exceptions import MusicCastException
 from .features import ZoneFeature
+
+_LOGGER = logging.getLogger(__name__)
+
+
+class Category(IntEnum):
+    """Device category reported by the MusicCast API.
+
+    Identified by the category_code field in the device info response.
+    """
+
+    UNKNOWN = 0
+    AV_RECEIVER = 1
+    SOUNDBAR = 2
+    STEREO_RECEIVER = 3
+    SUBWOOFER = 4
+    MINI_SYSTEM = 5
+    DESKTOP_AUDIO_1 = 6
+
+    @classmethod
+    def _missing_(cls, value: object) -> Category:
+        """Return UNKNOWN for any unrecognised category code."""
+        _LOGGER.warning("Unknown MusicCast category code %r, using UNKNOWN", value)
+        return cls.UNKNOWN
 
 
 @dataclass(slots=True)
@@ -41,6 +66,7 @@ class MusicCastData:
         self.model_name: str | None = None
         self.system_version: str | None = None
         self.api_version: str | None = None
+        self.category: Category = Category.UNKNOWN
 
         # network status
         self.mac_addresses: dict[str, str] | None = None
